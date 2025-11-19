@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth, useSubscription, useSwapRequest } from '../../hooks/useContext';
+import { useReservationWebSocket } from '../../hooks/useReservationWebSocket';
 import { vehicleService } from '../../services/vehicleService';
 import { batteryService } from '../../services/batteryService';
 import { reservationService } from '../../services/reservationService';
@@ -32,81 +33,93 @@ export default function StaffSwapRequests() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 3; // 1 row x 3 columns
 
+    // Setup WebSocket listener for real-time reservation updates
+    useReservationWebSocket((data) => {
+        // When new reservation created, refresh the list
+        if (user?.station_id && data.stationId === user.station_id) {
+            console.log('📢 New reservation detected via WebSocket, refreshing data...');
+            // Fetch latest data without loading state (background update)
+            fetchSwapRequestsForStation(user.station_id, false);
+            // Also refresh history
+            fetchAllReservations(false);
+        }
+    }, !!user?.station_id);
+
     // Fetch scheduled reservations when component mounts or user changes
     useEffect(() => {
         if (user?.station_id) {
             // Initial load with loading state
             fetchSwapRequestsForStation(user.station_id, true);
 
-            // Auto-fetch swap requests every 5 seconds for real-time updates (without loading state)
-            const interval = setInterval(() => {
-                // Fetch without setting loading state (background update)
+            // Fallback polling every 5 seconds (slower, only if WebSocket not connected)
+            const pollInterval = setInterval(() => {
                 fetchSwapRequestsForStation(user.station_id, false);
             }, 5000)
 
-            return () => clearInterval(interval)
+            return () => clearInterval(pollInterval)
         }
     }, [user?.station_id, fetchSwapRequestsForStation]);
 
     // Fetch all reservations for history (not just scheduled)
-    useEffect(() => {
-        const fetchAllReservations = async (isInitialLoad = false) => {
-            if (!user?.station_id) return;
+    const fetchAllReservations = async (isInitialLoad = false) => {
+        if (!user?.station_id) return;
 
-            // Only show loading on initial load
+        // Only show loading on initial load
+        if (isInitialLoad) {
+            setHistoryLoading(true);
+        }
+        try {
+            // Get reservations for this station (currently returns scheduled only from backend)
+            // But we pass them to ReservationHistory which will show them with all status options
+            const allRes = await reservationService.getReservationsByStationId(user.station_id);
+
+            // Enrich with user, vehicle, and battery info
+            const enrichedAll = await Promise.all(
+                (Array.isArray(allRes) ? allRes : []).map(async (reservation) => {
+                    try {
+                        const [userInfo, vehicle, battery] = await Promise.all([
+                            userService.getUserById(reservation.user_id).catch(() => null),
+                            vehicleService.getVehicleById(reservation.vehicle_id).catch(() => null),
+                            reservation.battery_id
+                                ? batteryService.getBatteryById(reservation.battery_id).catch(() => null)
+                                : Promise.resolve(null)
+                        ]);
+
+                        return {
+                            ...reservation,
+                            user: userInfo,
+                            vehicle: vehicle,
+                            battery: battery
+                        };
+                    } catch (err) {
+                        console.error(`Error enriching reservation ${reservation.reservation_id}:`, err);
+                        return reservation;
+                    }
+                })
+            );
+
+            setAllReservations(enrichedAll);
+        } catch (err) {
+            console.error('Error fetching all reservations:', err);
+        } finally {
             if (isInitialLoad) {
-                setHistoryLoading(true);
+                setHistoryLoading(false);
             }
-            try {
-                // Get reservations for this station (currently returns scheduled only from backend)
-                // But we pass them to ReservationHistory which will show them with all status options
-                const allRes = await reservationService.getReservationsByStationId(user.station_id);
+        }
+    };
 
-                // Enrich with user, vehicle, and battery info
-                const enrichedAll = await Promise.all(
-                    (Array.isArray(allRes) ? allRes : []).map(async (reservation) => {
-                        try {
-                            const [userInfo, vehicle, battery] = await Promise.all([
-                                userService.getUserById(reservation.user_id).catch(() => null),
-                                vehicleService.getVehicleById(reservation.vehicle_id).catch(() => null),
-                                reservation.battery_id
-                                    ? batteryService.getBatteryById(reservation.battery_id).catch(() => null)
-                                    : Promise.resolve(null)
-                            ]);
-
-                            return {
-                                ...reservation,
-                                user: userInfo,
-                                vehicle: vehicle,
-                                battery: battery
-                            };
-                        } catch (err) {
-                            console.error(`Error enriching reservation ${reservation.reservation_id}:`, err);
-                            return reservation;
-                        }
-                    })
-                );
-
-                setAllReservations(enrichedAll);
-            } catch (err) {
-                console.error('Error fetching all reservations:', err);
-            } finally {
-                if (isInitialLoad) {
-                    setHistoryLoading(false);
-                }
-            }
-        };
-
+    // Load history on mount
+    useEffect(() => {
         if (user?.station_id) {
             // Initial load with loading state
             fetchAllReservations(true);
 
-            // Auto-fetch reservation history every 5 seconds for real-time updates (without loading state)
-            const interval = setInterval(() => {
+            // Fallback polling every 5 seconds (only if WebSocket not responding)
+            const pollInterval = setInterval(() => {
                 fetchAllReservations(false);
             }, 5000)
 
-            return () => clearInterval(interval)
+            return () => clearInterval(pollInterval)
         }
     }, [user?.station_id]);
 
