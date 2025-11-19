@@ -22,6 +22,7 @@ import { MailModule } from './modules/mail/mail.module';
 import { SystemConfigModule } from './modules/config/config.module';
 import { AiModule } from './modules/ai/ai.module';
 import { AdminDashboardModule } from './modules/admin-statistics/admin-statistics.module';
+import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AdminDashboardModule } from './modules/admin-statistics/admin-statistic
     SystemConfigModule,
     AiModule,
     AdminDashboardModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

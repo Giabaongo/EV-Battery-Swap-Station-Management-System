@@ -9,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { ConfigService } from '@nestjs/config';
 import { StationsService } from '../stations/stations.service';
+import { ReservationsGateway, ReservationCreatedEvent } from './reservations.gateway';
 
 @Injectable()
 export class ReservationsService {
@@ -21,7 +22,8 @@ export class ReservationsService {
     private userService: UsersService,
     private subscriptionsService: SubscriptionsService,
     private stationsService: StationsService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private reservationsGateway: ReservationsGateway
   ) { }
 
 
@@ -32,7 +34,7 @@ export class ReservationsService {
       //1. Check user có tồn tại
       const user = await this.userService.findOneById(user_id);
 
-      await this.stationsService.findOne(station_id);
+      const station = await this.stationsService.findOne(station_id);
 
       const vehicle = await this.vehicleService.findOne(vehicle_id);
       if (vehicle.user_id !== user_id) {
@@ -99,6 +101,29 @@ export class ReservationsService {
       });
 
       this.logger.log(`New reservation created with ID ${newReservation.reservation_id} for user ID ${user_id} at station ID ${station_id}`);
+
+      const payload: ReservationCreatedEvent = {
+        reservationId: newReservation.reservation_id,
+        stationId: station.station_id,
+        stationName: station.name,
+        scheduledTime: newReservation.scheduled_time.toISOString(),
+        batteryId: reservationBattery.battery_id,
+        vehicle: {
+          id: vehicle.vehicle_id,
+          vin: vehicle.vin,
+          batteryModel: vehicle.battery_model,
+          batteryType: vehicle.battery_type
+        },
+        user: {
+          id: user.user_id,
+          username: user.username,
+          email: user.email,
+          phone: user.phone
+        }
+      };
+
+      this.reservationsGateway.notifyReservationCreated(payload);
+
       return {
         reservation: newReservation,
         battery: {
