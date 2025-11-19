@@ -17,6 +17,12 @@ export const useReservationWebSocket = (
   const socketRef = useRef(null);
   const listenerRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
+  const callbackRef = useRef(onReservationCreated);
+
+  // Update callback ref whenever it changes (without triggering reconnect)
+  useEffect(() => {
+    callbackRef.current = onReservationCreated;
+  }, [onReservationCreated]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -49,8 +55,9 @@ export const useReservationWebSocket = (
       if (!listenerRef.current) {
         socket.on("reservation.created", (data) => {
           console.log("📢 New reservation event received:", data);
-          if (onReservationCreated) {
-            onReservationCreated(data);
+          // Use callback ref to always get latest version
+          if (callbackRef.current) {
+            callbackRef.current(data);
           }
         });
         listenerRef.current = true;
@@ -79,7 +86,7 @@ export const useReservationWebSocket = (
         listenerRef.current = false;
       }
     };
-  }, [enabled, onReservationCreated]);
+  }, [enabled]);
 
   return {
     isConnected: socketRef.current?.connected || false,

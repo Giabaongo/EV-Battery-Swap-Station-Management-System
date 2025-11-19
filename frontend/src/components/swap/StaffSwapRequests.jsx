@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth, useSubscription, useSwapRequest } from '../../hooks/useContext';
@@ -33,8 +33,8 @@ export default function StaffSwapRequests() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 3; // 1 row x 3 columns
 
-    // Setup WebSocket listener for real-time reservation updates
-    useReservationWebSocket((data) => {
+    // Memoize WebSocket callback to prevent reconnect loop
+    const handleReservationCreated = useCallback((data) => {
         // When new reservation created, refresh the list
         if (user?.station_id && data.stationId === user.station_id) {
             console.log('📢 New reservation detected via WebSocket, refreshing data...');
@@ -43,7 +43,10 @@ export default function StaffSwapRequests() {
             // Also refresh history
             fetchAllReservations(false);
         }
-    }, !!user?.station_id);
+    }, [user?.station_id, fetchSwapRequestsForStation]);
+
+    // Setup WebSocket listener for real-time reservation updates
+    useReservationWebSocket(handleReservationCreated, !!user?.station_id);
 
     // Fetch scheduled reservations when component mounts or user changes
     useEffect(() => {
