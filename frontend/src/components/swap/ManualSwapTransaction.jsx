@@ -454,7 +454,15 @@ export default function ManualSwapTransaction() {
                 console.warn('Failed to refresh batteries after swap:', refreshErr);
             }
 
-            alert('Swap transaction completed successfully!');
+            // Show toast notification instead of alert
+            if (window && window.toast) {
+                window.toast.success('Swap transaction completed successfully!');
+            } else if (typeof toast !== 'undefined') {
+                toast.success('Swap transaction completed successfully!');
+            } else {
+                // fallback: alert
+                alert('Swap transaction completed successfully!');
+            }
             setIsSubmitting(false);
             navigate('/staff/swap-requests');
         } catch (error) {
