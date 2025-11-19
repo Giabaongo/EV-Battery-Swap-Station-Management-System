@@ -7,11 +7,12 @@ import { VehiclesModule } from '../vehicles/vehicles.module';
 import { UsersModule } from '../users/users.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { StationsModule } from '../stations/stations.module';
+import { ReservationsGateway } from './reservations.gateway';
 
 @Module({
   imports: [BatteriesModule, DatabaseModule, VehiclesModule, UsersModule, SubscriptionsModule, StationsModule],
   controllers: [ReservationsController],
-  providers: [ReservationsService],
+  providers: [ReservationsService, ReservationsGateway],
   exports: [ReservationsService],
 })
 export class ReservationsModule { }

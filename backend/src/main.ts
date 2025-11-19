@@ -10,7 +10,14 @@ async function bootstrap() {
   app.use(cookieParser());
   // Enable CORS for frontend
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'], // Vite dev server ports
+    origin: process.env.NODE_ENV === 'production' 
+      ? [
+          'http://localhost:3000', 
+          'http://localhost:5173', 
+          'http://localhost:5174',
+          'https://ev-battery-swap-station-management.vercel.app', // Production Vercel URL
+        ]
+      : true, // Allow all origins in development (for testing HTML files)
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
