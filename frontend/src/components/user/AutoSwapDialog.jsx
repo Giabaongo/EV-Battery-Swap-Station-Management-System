@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { CheckCircle2 } from 'lucide-react';
 import { useStation } from '../../hooks/useContext';
 import { swappingService } from '../../services/swappingService';
 import { vehicleService } from '../../services/vehicleService';
@@ -251,12 +252,12 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         setErrors([]);
 
         if (!formData.vehicle_id) {
-            setErrors(['Vui lòng chọn xe']);
+            setErrors(['Please select a vehicle']);
             return;
         }
 
         if (!formData.station_id) {
-            setErrors(['Vui lòng chọn trạm']);
+            setErrors(['Please select a station']);
             return;
         }
 
@@ -288,7 +289,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
 
         try {
             if (!emptySlot || !emptySlot.cabinet || !emptySlot.slot) {
-                setErrors(['Thông tin khoang trống không hợp lệ']);
+                setErrors(['Invalid empty slot information']);
                 return;
             }
 
@@ -371,7 +372,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
 
         try {
             if (!fullBatterySlot || !fullBatterySlot.battery) {
-                setErrors(['Thông tin pin không hợp lệ']);
+                setErrors(['Invalid battery information']);
                 return;
             }
 
@@ -389,10 +390,10 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
             setSwapTransaction(response);
             setCurrentStep(SWAP_STEPS.SWAP_SUCCESS);
 
-            toast.success('Đổi pin thành công!');
+            toast.success('Battery swap successful!');
         } catch (err) {
             console.error('❌ Error taking battery:', err);
-            const msg = err?.response?.data?.message || 'Lỗi khi lấy pin';
+            const msg = err?.response?.data?.message || 'Error taking battery';
             setErrors([msg]);
         } finally {
             setLoading(false);
@@ -425,14 +426,14 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 {currentStep === SWAP_STEPS.STATION_SELECTION && (
                     <>
                         <DialogHeader>
-                            <DialogTitle>Chọn Trạm Đổi Pin</DialogTitle>
+                            <DialogTitle>Select Battery Swap Station</DialogTitle>
                         </DialogHeader>
 
                         <div className="space-y-4">
                             {/* Vehicle Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Chọn Xe
+                                    Select Vehicle
                                 </label>
                                 <select
                                     name="vehicle_id"
@@ -441,7 +442,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                     className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 >
-                                    <option value="">-- Chọn Xe --</option>
+                                    <option value="">-- Select Vehicle --</option>
                                     {vehicles.map((vehicle) => (
                                         <option key={vehicle.vehicle_id} value={vehicle.vehicle_id}>
                                             {vehicle.vin} - {vehicle.battery_model || 'Unknown Model'}
@@ -451,12 +452,12 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                 </select>
                                 {vehicles.length === 0 && (
                                     <>
-                                        <p className="text-sm text-gray-500 mt-1">Không có xe nào</p>
+                                        <p className="text-sm text-gray-500 mt-1">No vehicles available</p>
                                         <Link
                                             to="/driver/profile"
                                             className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors mt-2"
                                         >
-                                            Thêm Xe
+                                            Add Vehicle
                                         </Link>
                                     </>
                                 )}
@@ -465,7 +466,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                             {/* Station Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    {scheduledReservation ? '📍 Trạm Đặt Trước' : 'Tìm Trạm'}
+                                    {scheduledReservation ? '📍 Reserved Station' : 'Search Station'}
                                 </label>
 
                                 {scheduledReservation && selectedStation ? (
@@ -479,12 +480,12 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                                     {selectedStation.address}
                                                 </div>
                                                 <div className="text-xs text-green-600 mt-2 font-semibold">
-                                                    ✓ {selectedStation.available} pin sẵn sàng
+                                                    ✓ {selectedStation.available} batteries available
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="text-xs text-amber-600 mt-3 italic flex items-center gap-1">
-                                            🔐 Trạm từ lịch đặt trước của bạn
+                                            Station from your reserved schedule
                                         </div>
                                     </div>
                                 ) : (
@@ -494,7 +495,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                             value={stationSearch}
                                             onChange={handleStationSearch}
                                             onFocus={() => setShowSuggestions(true)}
-                                            placeholder="Nhập tên trạm..."
+                                            placeholder="Enter station name..."
                                             className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             autoComplete="off"
                                             disabled={checkingReservation}
@@ -518,15 +519,15 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                                             <div className="font-medium text-gray-900">{station.name}</div>
                                                             <div className="text-sm text-gray-600">{station.address}</div>
                                                             <div className="text-xs text-green-600 mt-1">
-                                                                {station.available} pin sẵn sàng
+                                                                {station.available} batteries available
                                                             </div>
                                                         </div>
                                                     ))
                                                 ) : (
                                                     <div className="p-3 text-sm text-gray-500 text-center">
                                                         {stationSearch
-                                                            ? `Không tìm thấy trạm "${stationSearch}"`
-                                                            : 'Không có trạm nào với pin sẵn sàng'}
+                                                            ? `No stations found for "${stationSearch}"`
+                                                            : 'No stations with available batteries'}
                                                     </div>
                                                 )}
                                             </div>
@@ -542,9 +543,9 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                 )}
 
                                 {stationsLoading ? (
-                                    <p className="text-sm text-gray-500 mt-1">Đang tải trạm...</p>
+                                    <p className="text-sm text-gray-500 mt-1">Loading stations...</p>
                                 ) : stationsWithBatteries.length === 0 && !scheduledReservation ? (
-                                    <p className="text-sm text-gray-500 mt-1">Không có trạm với pin sẵn sàng</p>
+                                    <p className="text-sm text-gray-500 mt-1">No stations with available batteries</p>
                                 ) : null}
                             </div>
 
@@ -571,13 +572,13 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                 onClick={() => onOpenChange(false)}
                                 disabled={loading}
                             >
-                                Huỷ
+                                Cancel
                             </Button>
                             <Button
                                 disabled={loading || !formData.vehicle_id || !formData.station_id}
                                 onClick={handleNextToReturnBattery}
                             >
-                                {loading ? 'Đang xử lý...' : 'Tiếp Theo'}
+                                {loading ? 'Processing...' : 'Next'}
                             </Button>
                         </DialogFooter>
                     </>
@@ -587,14 +588,14 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 {currentStep === SWAP_STEPS.RETURN_BATTERY && emptySlot && (
                     <>
                         <DialogHeader>
-                            <DialogTitle>Trả Pin Vào Trụ</DialogTitle>
+                            <DialogTitle>Return Battery to Slot</DialogTitle>
                         </DialogHeader>
 
                         <div className="space-y-6 py-4">
                             <div className="text-center">
-                                <p className="text-gray-600 text-lg mb-4">Vui lòng để pin của bạn vào:</p>
+                                <p className="text-gray-600 text-lg mb-4">Please place your battery into:</p>
                                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-                                    <p className="text-gray-500 text-sm mb-2">Trụ/Khoang:</p>
+                                    <p className="text-gray-500 text-sm mb-2">Cabinet/Slot:</p>
                                     <p className="text-3xl font-bold text-blue-600">
                                         {emptySlot.cabinet?.cabinet_name || `Cabinet ${emptySlot.cabinet?.cabinet_id}`},
                                         Slot {emptySlot.slot?.slot_number}
@@ -619,10 +620,10 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                 }}
                                 disabled={loading}
                             >
-                                Quay Lại
+                                Back
                             </Button>
                             <Button disabled={loading} onClick={handleReturnBattery}>
-                                {loading ? 'Đang xử lý...' : 'Tiếp Theo'}
+                                {loading ? 'Processing...' : 'Next'}
                             </Button>
                         </DialogFooter>
                     </>
@@ -632,14 +633,14 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 {currentStep === SWAP_STEPS.CHECK_BATTERY_HEALTH && (
                     <>
                         <DialogHeader>
-                            <DialogTitle>Kiểm Tra Tình Trạng Pin</DialogTitle>
+                            <DialogTitle>Check Battery Health</DialogTitle>
                         </DialogHeader>
 
                         <div className="space-y-6 py-4">
                             {batteryCheckStatus === 'checking' && (
                                 <div className="text-center">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                                    <p className="text-gray-600">Đang kiểm tra tình trạng pin...</p>
+                                    <p className="text-gray-600">Checking battery health...</p>
                                 </div>
                             )}
 
@@ -650,9 +651,9 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                             <span className="text-3xl">✓</span>
                                         </div>
                                     </div>
-                                    <p className="text-gray-700 font-medium">Pin của bạn sẵn sàng!</p>
+                                    <p className="text-gray-700 font-medium">Your battery is ready!</p>
                                     <p className="text-sm text-gray-500 mt-2">
-                                        Tiến hành lấy pin đầy từ trụ
+                                        Proceed to take the fully charged battery from the slot
                                     </p>
                                 </div>
                             )}
@@ -665,13 +666,13 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                         </div>
                                     </div>
                                     <h3 className="text-lg font-bold text-red-600 mb-2">
-                                        Tình Trạng Pin Dưới Tiêu Chuẩn
+                                        Battery Health Below Standard
                                     </h3>
                                     <p className="text-gray-700 mb-4">
-                                        Mức sức khỏe pin (SOH) của bạn dưới 80% và không đủ điều kiện để đổi.
+                                        Your battery health (SOH) is below 80% and not eligible for swapping.
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                        Vui lòng lấy pin ra khỏi khoang và liên hệ nhân viên hỗ trợ để xử lý.
+                                        Please remove the battery from the slot and contact support staff for assistance.
                                     </p>
                                 </div>
                             )}
@@ -686,14 +687,14 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                         onClick={handleBatteryHealthFailed}
                                         disabled={loading}
                                     >
-                                        Quay Lại
+                                        Back
                                     </Button>
                                     <Button
                                         variant="destructive"
                                         onClick={handleBatteryHealthFailed}
                                         disabled={loading}
                                     >
-                                        Liên Hệ Nhân Viên
+                                        Contact Support
                                     </Button>
                                 </>
                             )}
@@ -704,7 +705,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                     onClick={handleBatteryHealthPassed}
                                     className="w-full"
                                 >
-                                    {loading ? 'Đang xử lý...' : 'Tiếp Theo'}
+                                    {loading ? 'Processing...' : 'Next'}
                                 </Button>
                             )}
                         </DialogFooter>
@@ -715,7 +716,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 {currentStep === SWAP_STEPS.COLLECT_BATTERY && fullBatterySlot && (
                     <>
                         <DialogHeader>
-                            <DialogTitle>Lấy Pin Đầy</DialogTitle>
+                            <DialogTitle>Collect Full Battery</DialogTitle>
                         </DialogHeader>
 
                         <div className="space-y-6 py-4">
@@ -725,16 +726,16 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                         <span className="text-3xl">🔋</span>
                                     </div>
                                 </div>
-                                <p className="text-gray-600 text-lg mb-4">Pin đầy của bạn sẵn sàng ở:</p>
+                                <p className="text-gray-600 text-lg mb-4">Your full battery is ready at:</p>
                                 <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
-                                    <p className="text-gray-500 text-sm mb-2">Trụ/Khoang:</p>
+                                    <p className="text-gray-500 text-sm mb-2">Cabinet/Slot:</p>
                                     <p className="text-3xl font-bold text-green-600">
                                         {fullBatterySlot.battery?.cabinet?.cabinet_name || `Cabinet ${fullBatterySlot.battery?.cabinet_id}`},
                                         Slot {fullBatterySlot.battery?.slot?.slot_number}
                                     </p>
                                 </div>
                                 <p className="text-sm text-gray-500 mt-4">
-                                    Mức sạc: {fullBatterySlot.battery?.current_charge}%
+                                    Charge Level: {fullBatterySlot.battery?.current_charge}%
                                 </p>
                             </div>
 
@@ -755,10 +756,10 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                 }}
                                 disabled={loading}
                             >
-                                Quay Lại
+                                Back
                             </Button>
                             <Button disabled={loading} onClick={handleTakeBattery} className="w-full">
-                                {loading ? 'Đang xử lý...' : 'Hoàn Thành Đổi Pin'}
+                                {loading ? 'Processing...' : 'Complete Swap'}
                             </Button>
                         </DialogFooter>
                     </>
@@ -767,61 +768,50 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 {/* STEP 5: Swap Success */}
                 {currentStep === SWAP_STEPS.SWAP_SUCCESS && (
                     <>
-                        <DialogHeader>
-                            <DialogTitle>Đổi Pin Thành Công</DialogTitle>
-                        </DialogHeader>
-
-                        <div className="space-y-6 py-6">
-                            <div className="text-center">
-                                <div className="flex justify-center mb-4">
-                                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-5xl">✓</span>
-                                    </div>
+                        <div className="bg-white dark:bg-background rounded-xl">
+                            <div className="flex flex-col items-center px-6 pt-6">
+                                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                                    <CheckCircle2 className="h-9 w-9 text-green-600 dark:text-green-400" />
                                 </div>
-
-                                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                    Chúc Mừng!
-                                </h2>
-                                <p className="text-gray-600 mb-6">
-                                    Pin của bạn đã được đổi thành công. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!
-                                </p>
+                                <DialogHeader className="text-center">
+                                    <DialogTitle className="text-2xl font-bold">Swapped Successfully!</DialogTitle>
+                                    <DialogDescription>Battery swap completed. Here are the details.</DialogDescription>
+                                </DialogHeader>
                             </div>
 
-                            {swapTransaction && (
-                                <div className="bg-gray-50 rounded-lg overflow-hidden divide-y divide-gray-200">
-                                    <div className="flex justify-between gap-x-6 p-4">
-                                        <p className="text-slate-500 text-sm">Người dùng</p>
-                                        <p className="text-slate-900 text-sm font-medium text-right">
-                                            {swapTransaction.vehicle?.user?.username || 'N/A'}
+                            <div className="px-6 py-4">
+                                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <div className="flex justify-between gap-x-6 py-3">
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">User</p>
+                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-medium text-right">
+                                            {swapTransaction?.vehicle?.user?.username || 'N/A'}
                                         </p>
                                     </div>
-                                    <div className="flex justify-between gap-x-6 p-4">
-                                        <p className="text-slate-500 text-sm">Trạm</p>
-                                        <p className="text-slate-900 text-sm font-medium text-right">
+                                    <div className="flex justify-between gap-x-6 py-3">
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Station</p>
+                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-medium text-right">
                                             {selectedStation?.name || 'N/A'}
                                         </p>
                                     </div>
-                                    <div className="flex justify-between gap-x-6 p-4">
-                                        <p className="text-slate-500 text-sm">Xe</p>
-                                        <p className="text-slate-900 text-sm font-medium text-right">
-                                            {swapTransaction.vehicle?.vin || 'N/A'}
+                                    <div className="flex justify-between gap-x-6 py-3">
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Vehicle</p>
+                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-medium text-right">
+                                            {swapTransaction?.vehicle?.vin || 'N/A'}
                                         </p>
                                     </div>
-                                    <div className="flex justify-between gap-x-6 p-4">
-                                        <p className="text-slate-500 text-sm">Mã giao dịch</p>
-                                        <p className="text-slate-900 text-sm font-mono font-semibold text-right">
-                                            {swapTransaction.swapTransaction?.transaction_id || 'N/A'}
+                                    <div className="flex justify-between gap-x-6 py-3">
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Transaction ID</p>
+                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-mono font-semibold text-right">
+                                            {swapTransaction?.swapTransaction?.transaction_id || 'N/A'}
                                         </p>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
 
-                        <DialogFooter>
-                            <Button onClick={handleSuccessClose} className="w-full">
-                                Quay Về Trang Chủ
-                            </Button>
-                        </DialogFooter>
+                            <DialogFooter className="px-6 pb-6">
+                                <Button className="w-full" onClick={handleSuccessClose}>Back to Dashboard</Button>
+                            </DialogFooter>
+                        </div>
                     </>
                 )}
             </DialogContent>

@@ -4,8 +4,10 @@ import { paymentService } from '../../services/paymentService';
 import { swapService } from '../../services/swapService';
 import { stationService } from '../../services/stationService';
 import { vehicleService } from '../../services/vehicleService';
+import { reservationService } from '../../services/reservationService';
 import SwapHistoryCard from '../../components/history/SwapHistoryCard';
 import PaymentHistoryCard from '../../components/history/PaymentHistoryCard';
+import ReservationHistoryCard from '../../components/history/ReservationHistoryCard';
 
 export default function SwapHistory() {
   // Get user from parent (Driver.jsx) via Outlet context
@@ -21,6 +23,11 @@ export default function SwapHistory() {
   const [paymentResultsPerPage, setPaymentResultsPerPage] = useState(10);
   const [paymentTotalResults, setPaymentTotalResults] = useState(0);
 
+  // Pagination state for reservations
+  const [reservationCurrentPage, setReservationCurrentPage] = useState(1);
+  const [reservationResultsPerPage, setReservationResultsPerPage] = useState(10);
+  const [reservationTotalResults, setReservationTotalResults] = useState(0);
+
   // Sorting state
   const [sortBy, setSortBy] = useState('date'); // 'date' or 'amount'
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
@@ -31,9 +38,13 @@ export default function SwapHistory() {
   // Filter state for payments
   const [paymentTimePeriod, setPaymentTimePeriod] = useState('week'); // 'week', 'month', 'year'
 
+  // Filter state for reservations
+  const [reservationTimePeriod, setReservationTimePeriod] = useState('week'); // 'week', 'month', 'year'
+
   // Data state
   const [swapHistory, setSwapHistory] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [reservationHistory, setReservationHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stations, setStations] = useState({});
 
@@ -66,25 +77,29 @@ export default function SwapHistory() {
         console.warn('No user ID found');
         setSwapHistory([]);
         setPaymentHistory([]);
+        setReservationHistory([]);
         setSwapTotalResults(0);
         setPaymentTotalResults(0);
+        setReservationTotalResults(0);
         return;
       }
 
       setLoading(true);
       try {
-        // Fetch stations, swap transactions, payments and vehicles in parallel
-        const [allStations, swapTransactions, payments, vehicles] = await Promise.all([
+        // Fetch stations, swap transactions, payments, vehicles, and reservations in parallel
+        const [allStations, swapTransactions, payments, vehicles, reservations] = await Promise.all([
           stationService.getAllStations(),
           swapService.getAllSwapTransactionsByUserId(user.user_id),
           paymentService.getPaymentByUserId(user.user_id),
-          vehicleService.getVehicleByUserId(user.user_id)
+          vehicleService.getVehicleByUserId(user.user_id),
+          reservationService.getReservationsByUserId(user.user_id)
         ]);
 
         console.log('Swap transactions from API:', swapTransactions);
         console.log('Payments from API:', payments);
         console.log('Stations from API:', allStations);
         console.log('Vehicles from API:', vehicles);
+        console.log('Reservations from API:', reservations);
 
         // Create a map of station_id to station object for quick lookup
         const stationMap = {};
@@ -160,9 +175,39 @@ export default function SwapHistory() {
           rawData: payment
         }));
 
-        // Apply time period filter to both
+        // Transform reservations to UI format
+        const transformedReservations = (reservations || []).map(reservation => {
+          const station = stationMap[reservation.station_id];
+          const vehicle = vehicleMap[reservation.vehicle_id];
+          const dateField = reservation.created_at || reservation.scheduled_time;
+          return {
+            id: `reservation-${reservation.reservation_id}`,
+            type: 'reservation',
+            date: dateField
+              ? new Date(dateField).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })
+              : 'N/A',
+            time: dateField
+              ? new Date(dateField).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })
+              : 'N/A',
+            location: station?.name || station?.address || `Station ${reservation.station_id || 'Unknown'}`,
+            vin: vehicle?.vin || 'N/A',
+            status: reservation.status,
+            timestamp: dateField ? new Date(dateField).getTime() : 0,
+            rawData: reservation
+          };
+        });
+
+        // Apply time period filter to all
         const filteredSwaps = filterByTimePeriod(transformedSwaps, swapTimePeriod);
         const filteredPayments = filterByTimePeriod(transformedPayments, paymentTimePeriod);
+        const filteredReservations = filterByTimePeriod(transformedReservations, reservationTimePeriod);
 
         // Apply sorting to swaps
         const sortedSwaps = [...filteredSwaps].sort((a, b) => {
@@ -186,9 +231,19 @@ export default function SwapHistory() {
           return 0;
         });
 
+        // Apply sorting to reservations
+        const sortedReservations = [...filteredReservations].sort((a, b) => {
+          if (sortBy === 'date') {
+            const comparison = a.timestamp - b.timestamp;
+            return sortOrder === 'asc' ? comparison : -comparison;
+          }
+          return 0;
+        });
+
         // Update total results
         setSwapTotalResults(sortedSwaps.length);
         setPaymentTotalResults(sortedPayments.length);
+        setReservationTotalResults(sortedReservations.length);
 
         // Apply pagination to swaps
         const swapStartIndex = (swapCurrentPage - 1) * swapResultsPerPage;
@@ -200,21 +255,29 @@ export default function SwapHistory() {
         const paymentEndIndex = paymentStartIndex + paymentResultsPerPage;
         const paginatedPayments = sortedPayments.slice(paymentStartIndex, paymentEndIndex);
 
+        // Apply pagination to reservations
+        const reservationStartIndex = (reservationCurrentPage - 1) * reservationResultsPerPage;
+        const reservationEndIndex = reservationStartIndex + reservationResultsPerPage;
+        const paginatedReservations = sortedReservations.slice(reservationStartIndex, reservationEndIndex);
+
         setSwapHistory(paginatedSwaps);
         setPaymentHistory(paginatedPayments);
+        setReservationHistory(paginatedReservations);
       } catch (error) {
         console.error('Error fetching history:', error);
         setSwapHistory([]);
         setPaymentHistory([]);
+        setReservationHistory([]);
         setSwapTotalResults(0);
         setPaymentTotalResults(0);
+        setReservationTotalResults(0);
       } finally {
         setLoading(false);
       }
     };
 
     fetchSwapHistory();
-  }, [swapCurrentPage, swapResultsPerPage, paymentCurrentPage, paymentResultsPerPage, sortBy, sortOrder, swapTimePeriod, paymentTimePeriod, user?.user_id]);
+  }, [swapCurrentPage, swapResultsPerPage, paymentCurrentPage, paymentResultsPerPage, reservationCurrentPage, reservationResultsPerPage, sortBy, sortOrder, swapTimePeriod, paymentTimePeriod, reservationTimePeriod, user?.user_id]);
 
   // Calculate pagination info for swaps
   const swapTotalPages = Math.ceil(swapTotalResults / swapResultsPerPage);
@@ -226,6 +289,11 @@ export default function SwapHistory() {
   const paymentStartIndex = (paymentCurrentPage - 1) * paymentResultsPerPage + 1;
   const paymentEndIndex = Math.min(paymentCurrentPage * paymentResultsPerPage, paymentTotalResults);
 
+  // Calculate pagination info for reservations
+  const reservationTotalPages = Math.ceil(reservationTotalResults / reservationResultsPerPage);
+  const reservationStartIndex = (reservationCurrentPage - 1) * reservationResultsPerPage + 1;
+  const reservationEndIndex = Math.min(reservationCurrentPage * reservationResultsPerPage, reservationTotalResults);
+
   // Handle sort
   const handleSort = (column) => {
     if (sortBy === column) {
@@ -236,6 +304,7 @@ export default function SwapHistory() {
     }
     setSwapCurrentPage(1); // Reset to first page when sorting
     setPaymentCurrentPage(1);
+    setReservationCurrentPage(1);
   };
 
   // Handler functions for Swap History
@@ -284,6 +353,29 @@ export default function SwapHistory() {
     setPaymentCurrentPage(prev => Math.min(paymentTotalPages, prev + 1));
   };
 
+  // Handler functions for Reservation History
+  const handleReservationResultsPerPageChange = (value) => {
+    setReservationResultsPerPage(value);
+    setReservationCurrentPage(1);
+  };
+
+  const handleReservationTimePeriodChange = (period) => {
+    setReservationTimePeriod(period);
+    setReservationCurrentPage(1);
+  };
+
+  const handleReservationPageChange = (pageNum) => {
+    setReservationCurrentPage(pageNum);
+  };
+
+  const handleReservationPrevious = () => {
+    setReservationCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const handleReservationNext = () => {
+    setReservationCurrentPage(prev => Math.min(reservationTotalPages, prev + 1));
+  };
+
   return (
     <div className="min-h-screen bg-transparent p-6">
       <div className="max-w-7xl mx-auto">
@@ -325,6 +417,26 @@ export default function SwapHistory() {
           onPageChange={handlePaymentPageChange}
           onPrevious={handlePaymentPrevious}
           onNext={handlePaymentNext}
+        />
+
+        <ReservationHistoryCard
+          reservationHistory={reservationHistory}
+          loading={loading}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          resultsPerPage={reservationResultsPerPage}
+          onResultsPerPageChange={handleReservationResultsPerPageChange}
+          timePeriod={reservationTimePeriod}
+          onTimePeriodChange={handleReservationTimePeriodChange}
+          currentPage={reservationCurrentPage}
+          totalPages={reservationTotalPages}
+          totalResults={reservationTotalResults}
+          startIndex={reservationStartIndex}
+          endIndex={reservationEndIndex}
+          onPageChange={handleReservationPageChange}
+          onPrevious={handleReservationPrevious}
+          onNext={handleReservationNext}
         />
       </div>
     </div>
