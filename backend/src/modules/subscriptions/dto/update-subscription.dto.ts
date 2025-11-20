@@ -9,5 +9,8 @@ export class UpdateSubscriptionDto {
   @IsInt()
   @IsOptional()
   swap_used?: number;
+
+  @IsOptional()
+  battery_id?: number | null;
 }
 
