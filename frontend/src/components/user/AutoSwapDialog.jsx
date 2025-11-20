@@ -252,6 +252,11 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
     const handleNextToReturnBattery = async () => {
         setErrors([]);
 
+        if (!formData.user_id || formData.user_id === '') {
+            setErrors(['User ID is missing. Please refresh the page.']);
+            return;
+        }
+
         if (!formData.vehicle_id) {
             setErrors(['Please select a vehicle']);
             return;
@@ -265,11 +270,21 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         setLoading(true);
         try {
             // Call API: get empty slot for returning battery
-            const response = await swappingService.getEmptySlot({
+            const payload = {
                 user_id: parseInt(formData.user_id, 10),
                 vehicle_id: parseInt(formData.vehicle_id, 10),
                 station_id: parseInt(formData.station_id, 10),
-            });
+            };
+
+            // Validate all are numbers
+            if (isNaN(payload.user_id) || isNaN(payload.vehicle_id) || isNaN(payload.station_id)) {
+                setErrors(['Invalid user, vehicle, or station ID']);
+                setLoading(false);
+                return;
+            }
+
+            console.log('📤 Sending to get-empty-slot:', payload);
+            const response = await swappingService.getEmptySlot(payload);
 
             console.log('✅ Empty slot found:', response);
             setEmptySlot(response); // { cabinet, slot }

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Cron, CronExpression, Interval } from '@nestjs/schedule';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { UpdateReservationDto } from './dto/update-reservation-status.dto';
 import { BatteriesService } from '../batteries/batteries.service';
 import { DatabaseService } from '../database/database.service';
 import { BatteryStatus, ReservationStatus, SubscriptionStatus } from '@prisma/client';
@@ -9,6 +10,8 @@ import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { ConfigService } from '@nestjs/config';
 import { StationsService } from '../stations/stations.service';
+import { CabinetService } from '../cabinets/cabinets.service';
+import { ReservationsGateway, ReservationCreatedEvent, ReservationStatusUpdatedEvent } from './reservations.gateway';
 
 @Injectable()
 export class ReservationsService {
@@ -21,7 +24,9 @@ export class ReservationsService {
     private userService: UsersService,
     private subscriptionsService: SubscriptionsService,
     private stationsService: StationsService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private cabinetsService: CabinetService,
+    private reservationsGateway: ReservationsGateway
   ) { }
 
 

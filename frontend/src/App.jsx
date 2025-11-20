@@ -46,6 +46,7 @@ import SupportDetail from './pages/admin/supports/SupportDetail'
 import AdminReport from './pages/admin/reports/ReportDashboard'
 import StaffTransfer from './pages/staff/TransferRequests'
 import CreateBattery from './pages/staff/CreateBattery'
+import ReservationCountdownWidget from './components/booking/ReservationCountdownWidget'
 
 // import ProtectedRoute from './components/auth/ProtectedRoute'
 
