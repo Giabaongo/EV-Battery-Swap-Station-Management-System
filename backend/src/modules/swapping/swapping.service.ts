@@ -152,7 +152,6 @@ export class SwappingService {
                     prisma),
                 this.cabinetsService.updateSlot(dto.slot_id,
                     {
-                        battery_id: returnBattery.battery_id,
                         is_occupied: true
                     },
                     prisma
@@ -319,7 +318,6 @@ export class SwappingService {
                     // Update vehicle to assign battery
                     this.cabinetsService.updateSlot(takenBattery.slot_id,
                         {
-                            battery_id: null,
                             is_occupied: false
                         },
                         prisma
