@@ -6,6 +6,7 @@ import { VehiclesService } from '../vehicles/vehicles.service';
 import { BatteryStatus } from '@prisma/client';
 import { StationsService } from '../stations/stations.service';
 import { findBatteryAvailibleForTicket } from './dto/find-availiable-batteries-ticket.dto';
+import { BatteriesGateway } from './batteries.gateway';
 
 @Injectable()
 export class BatteriesService {
@@ -13,6 +14,7 @@ export class BatteriesService {
     private databaseService: DatabaseService,
     private vehiclesService: VehiclesService,
     private stationsService: StationsService,
+    private batteriesGateway: BatteriesGateway,
   ) { }
 
   private readonly logger = new Logger(BatteriesService.name);
@@ -263,6 +265,9 @@ export class BatteriesService {
       throw new NotFoundException(`Battery with ID ${id} not found`);
     }
 
+    // Store previous status for WebSocket event
+    const previousStatus = battery.status;
+
     // ✅ FIXED: Validate status transitions unless explicitly skipped
     if (!skipValidation) {
       this.validateStatusTransition(battery.status, status, battery);
@@ -271,12 +276,33 @@ export class BatteriesService {
     const updatedBattery = await prisma.battery.update({
       where: { battery_id: id },
       data: { status },
+      include: {
+        station: {
+          select: {
+            station_id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     this.logger.log(
       `Updated battery ID ${id} from ${battery.status} to status ${status}` +
       (skipValidation ? ' (validation skipped)' : '')
     );
+
+    // 🔥 Emit WebSocket event for battery status change
+    if (previousStatus !== status) {
+      this.batteriesGateway.notifyBatteryStatusChanged({
+        batteryId: updatedBattery.battery_id,
+        stationId: updatedBattery.station_id,
+        stationName: updatedBattery.station?.name || 'Unknown',
+        previousStatus: previousStatus,
+        currentStatus: status,
+        currentCharge: Number(updatedBattery.current_charge),
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     return updatedBattery;
   }
@@ -370,6 +396,7 @@ export class BatteriesService {
     const battery = await this.findOne(battery_id);
 
     const previousCharge = Number(battery.current_charge);
+    const previousStatus = battery.status;
     let newStatus = battery.status;
 
     // ✅ FIXED: Auto-adjust status based on charge level
@@ -412,6 +439,30 @@ export class BatteriesService {
       `Battery ${battery_id} charge set from ${previousCharge}% to ${charge_percentage}%` +
       (newStatus !== battery.status ? ` (status: ${battery.status} → ${newStatus})` : '')
     );
+
+    // 🔥 Emit WebSocket event for battery charge update
+    this.batteriesGateway.notifyBatteryChargeUpdated({
+      batteryId: updatedBattery.battery_id,
+      stationId: updatedBattery.station_id,
+      previousCharge: previousCharge,
+      currentCharge: charge_percentage,
+      chargeChange: charge_percentage - previousCharge,
+      status: updatedBattery.status,
+      timestamp: new Date().toISOString(),
+    });
+
+    // 🔥 Emit status change event if status changed
+    if (previousStatus !== newStatus) {
+      this.batteriesGateway.notifyBatteryStatusChanged({
+        batteryId: updatedBattery.battery_id,
+        stationId: updatedBattery.station_id,
+        stationName: updatedBattery.station?.name || 'Unknown',
+        previousStatus: previousStatus,
+        currentStatus: newStatus,
+        currentCharge: charge_percentage,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     return {
       battery_id: updatedBattery.battery_id,

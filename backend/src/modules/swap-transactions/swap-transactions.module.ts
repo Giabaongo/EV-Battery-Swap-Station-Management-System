@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SwapTransactionsService } from './swap-transactions.service';
 import { SwapTransactionsController } from './swap-transactions.controller';
+import { SwapTransactionsGateway } from './swap-transactions.gateway';
 import { UsersModule } from '../users/users.module';
 import { VehiclesModule } from '../vehicles/vehicles.module';
 import { StationsModule } from '../stations/stations.module';
@@ -18,7 +19,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     SubscriptionsModule
   ],
   controllers: [SwapTransactionsController],
-  providers: [SwapTransactionsService],
+  providers: [SwapTransactionsService, SwapTransactionsGateway],
   exports: [SwapTransactionsService],
 })
 export class SwapTransactionsModule { }
