@@ -175,7 +175,7 @@ export default function Register() {
               disabled={loading || success}
               className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${loading || success
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
+                : "bg-blue-700 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
                 }`}
             >
               {loading ? (

@@ -5,41 +5,50 @@ import PaginationControls from './PaginationControls';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 
+// Component bảng lịch sử trao đổi pin - Hiển thị tất cả các lần đổi pin của user
+// Tính năng: Sắp xếp theo cột, lọc theo thời gian, phân trang
 export default function SwapHistoryCard({
-  swapHistory,
-  loading,
-  sortBy,
-  sortOrder,
-  onSort,
-  // Filter props
-  resultsPerPage,
-  onResultsPerPageChange,
-  timePeriod,
-  onTimePeriodChange,
-  // Pagination props
-  currentPage,
-  totalPages,
-  totalResults,
-  startIndex,
-  endIndex,
-  onPageChange,
-  onPrevious,
-  onNext
+  swapHistory,  // Danh sách giao dịch trao đổi pin
+  loading,      // Flag cho biết đang load dữ liệu không
+  sortBy,       // Cột được sắp xếp (ví dụ: 'date', 'station')
+  sortOrder,    // Thứ tự sắp xếp ('asc' hoặc 'desc')
+  onSort,       // Callback khi user click vào header để sắp xếp
+  // Props lọc dữ liệu
+  resultsPerPage,        // Số lượng kết quả hiển thị trên 1 trang
+  onResultsPerPageChange,// Callback khi user thay đổi số kết quả
+  timePeriod,            // Khoảng thời gian lọc (ví dụ: '7days', '30days')
+  onTimePeriodChange,    // Callback khi user thay đổi khoảng thời gian
+  // Props phân trang
+  currentPage,  // Trang hiện tại
+  totalPages,   // Tổng số trang
+  totalResults, // Tổng số kết quả
+  startIndex,   // Index bắt đầu của trang hiện tại
+  endIndex,     // Index kết thúc của trang hiện tại
+  onPageChange, // Callback khi user chuyển trang
+  onPrevious,   // Callback khi user click nút "Trang trước"
+  onNext        // Callback khi user click nút "Trang tiếp theo"
 }) {
+  // State lưu giao dịch được chọn để xem chi tiết
   const [selectedSwap, setSelectedSwap] = useState(null);
+  // State điều khiển hiển thị dialog chi tiết giao dịch
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Hàm xử lý khi user click "Xem chi tiết" giao dịch
   const handleViewDetail = (swap) => {
-    setSelectedSwap(swap);
-    setDetailOpen(true);
+    setSelectedSwap(swap);  // Lưu giao dịch được chọn
+    setDetailOpen(true);     // Mở dialog chi tiết
   };
 
+  // Component hiển thị icon sắp xếp (mũi tên lên/xuống)
+  // Tính năng: Giúp user biết cột nào đang được sắp xếp và theo thứ tự nào
   const SortIcon = ({ column }) => {
+    // Nếu cột này không phải cột được sắp xếp, hiển thị icon mờ
     if (sortBy !== column) return <ArrowUpDown size={16} className="text-gray-400" />;
+    // Nếu là cột đang sắp xếp, hiển thị icon xanh (dù asc hay desc, icon giống nhau)
     return sortOrder === 'asc' ? (
-      <ArrowUpDown size={16} className="text-blue-600" />
+      <ArrowUpDown size={16} className="text-blue-700" />
     ) : (
-      <ArrowUpDown size={16} className="text-blue-600" />
+      <ArrowUpDown size={16} className="text-blue-700" />
     );
   };
 
@@ -95,7 +104,7 @@ export default function SwapHistoryCard({
               <tr>
                 <td colSpan="5" className="px-6 py-12 text-center">
                   <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
                     <span className="ml-3 text-gray-600">Loading...</span>
                   </div>
                 </td>
@@ -119,7 +128,7 @@ export default function SwapHistoryCard({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleViewDetail(item)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                        className="text-blue-700 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2"
                       >
                         <Eye className="w-4 h-4" />
                         <span>Detail</span>
@@ -205,3 +214,4 @@ export default function SwapHistoryCard({
     </div>
   );
 }
+

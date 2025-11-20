@@ -4,24 +4,35 @@ import { ChevronLeft, ChevronRight, Car, CreditCard, Calendar, Package } from 'l
 import { subscriptionService } from '../../services/subscriptionService';
 import { vehicleService } from '../../services/vehicleService';
 
+// Component hiển thị danh sách gói cước đăng ký của user
 export default function SubscriptionCard() {
+  // State lưu danh sách gói cước của user
   const [subscriptions, setSubscriptions] = useState([]);
+  // State theo dõi gói cước đang xem (khi có nhiều gói)
   const [currentIndex, setCurrentIndex] = useState(0);
+  // State cho biết đang load dữ liệu hay chưa
   const [loading, setLoading] = useState(true);
+  // State lưu map xe (key: vehicle_id, value: thông tin xe) để tra cứu nhanh
   const [vehiclesMap, setVehiclesMap] = useState({});
 
-  // Get user from localStorage
+  // Lấy thông tin user từ localStorage (sử dụng useMemo để cache và tránh re-render không cần thiết)
+  // useMemo chỉ thực thi lại khi dependency [] thay đổi (không bao giờ trong trường hợp này)
   const user = useMemo(() => {
     try {
+      // Lấy user JSON từ localStorage (được lưu khi user đăng nhập)
       const userData = localStorage.getItem('user');
+      // Parse JSON string thành object, nếu không có thì trả về null
       return userData ? JSON.parse(userData) : null;
     } catch {
+      // Nếu JSON parse thất bại, trả về null
       return null;
     }
-  }, []);
+  }, []);  // Empty dependency array = chỉ tạo 1 lần khi component mount
 
+  // Lấy danh sách gói cước và xe khi component mount hoặc user_id thay đổi
   useEffect(() => {
     const fetchSubscriptions = async () => {
+      // Nếu chưa có user_id, dừng lại (user chưa đăng nhập)
       if (!user?.user_id) {
         setSubscriptions([]);
         setLoading(false);
@@ -31,23 +42,29 @@ export default function SubscriptionCard() {
       try {
         setLoading(true);
 
-        // Fetch subscriptions and vehicles in parallel
+        // Lấy gói cước và xe song song để tăng hiệu năng (Promise.all)
+        // Promise.all chạy cả 2 request cùng lúc, chứ không tuần tự
         const [subsData, vehiclesData] = await Promise.all([
-          subscriptionService.getSubscriptionsByUserId(user.user_id),
-          vehicleService.getVehicleByUserId(user.user_id)
+          subscriptionService.getSubscriptionsByUserId(user.user_id),  // Gọi API 1: Lấy gói cước
+          vehicleService.getVehicleByUserId(user.user_id)  // Gọi API 2: Lấy danh sách xe
         ]);
 
+        // Xử lý response dữ liệu gói cước (có thể là { data: [...] } hoặc [...])
         const subscriptionsArray = subsData.data || subsData || [];
+        // Xử lý response dữ liệu xe (có thể là { data: [...] } hoặc [...])
         const vehiclesArray = vehiclesData.data || vehiclesData || [];
 
-        // Create vehicles map for quick lookup
+        // Tạo map xe để tra cứu nhanh (O(1) thay vì O(n))
+        // Ví dụ: { "vehicle_1": {...}, "vehicle_2": {...} }
+        // Sau này khi cần tìm xe, chỉ cần vMap[vehicle_id] thay vì duyệt cả array
         const vMap = {};
         vehiclesArray.forEach(vehicle => {
           vMap[vehicle.vehicle_id] = vehicle;
         });
         setVehiclesMap(vMap);
 
-        // Filter active subscriptions
+        // Lọc ra những gói cước đang hoạt động (status = 'active')
+        // Không lấy gói cước expired hoặc cancelled
         const activeSubscriptions = subscriptionsArray.filter(
           sub => sub.status === 'active'
         );
@@ -101,7 +118,7 @@ export default function SubscriptionCard() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
           </div>
         </CardContent>
       </Card>
@@ -163,7 +180,7 @@ export default function SubscriptionCard() {
           {/* Package Name */}
           <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 mb-1">
-              <Package className="w-4 h-4 text-blue-600" />
+              <Package className="w-4 h-4 text-blue-700" />
               <p className="text-xs text-gray-600 font-medium">Package</p>
             </div>
             <p className="text-xl font-bold text-gray-900">
@@ -233,7 +250,7 @@ export default function SubscriptionCard() {
             {currentSubscription.swap_used !== undefined && (
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-600">Swaps Used</p>
-                <p className="text-lg font-bold text-blue-600">
+                <p className="text-lg font-bold text-blue-700">
                   {currentSubscription.swap_used}
                   {currentSubscription.package?.swap_count &&
                     <span className="text-sm text-gray-500 font-normal">
@@ -293,3 +310,4 @@ export default function SubscriptionCard() {
     </Card>
   );
 }
+

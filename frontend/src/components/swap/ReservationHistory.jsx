@@ -198,7 +198,7 @@ export default function ReservationHistory({ reservations = [] }) {
                                     <button
                                         key={pageNum}
                                         onClick={() => setCurrentPage(pageNum)}
-                                        className={`px-3 py-2 leading-tight border border-gray-200 hover:bg-gray-50 hover:text-gray-900 ${currentPage === pageNum ? 'bg-blue-50 text-blue-600' : ''
+                                        className={`px-3 py-2 leading-tight border border-gray-200 hover:bg-gray-50 hover:text-gray-900 ${currentPage === pageNum ? 'bg-blue-50 text-blue-700' : ''
                                             }`}
                                     >
                                         {pageNum}
@@ -221,3 +221,4 @@ export default function ReservationHistory({ reservations = [] }) {
         </section>
     );
 }
+

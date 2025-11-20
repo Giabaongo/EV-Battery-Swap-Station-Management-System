@@ -422,23 +422,72 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
-                {/* STEP 1: Station Selection */}
-                {currentStep === SWAP_STEPS.STATION_SELECTION && (
-                    <>
-                        <DialogHeader>
-                            <DialogTitle>Select Battery Swap Station</DialogTitle>
-                        </DialogHeader>
+                <DialogHeader>
+                    <DialogTitle>Auto Battery Swap</DialogTitle>
+                </DialogHeader>
 
-                        <div className="space-y-4">
-                            {/* Vehicle Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Vehicle
-                                </label>
-                                <select
-                                    name="vehicle_id"
-                                    value={formData.vehicle_id}
-                                    onChange={handleChange}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Vehicle Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select Vehicle
+                        </label>
+                        <select
+                            name="vehicle_id"
+                            value={formData.vehicle_id}
+                            onChange={handleChange}
+                            className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        >
+                            <option value="">-- Select Vehicle --</option>
+                            {vehicles.map((vehicle) => (
+                                <option key={vehicle.vehicle_id} value={vehicle.vehicle_id}>
+                                    {vehicle.vin} - {vehicle.battery_model || 'Unknown Model'}
+                                    {vehicle.status === 'active' ? ' (Active)' : ''}
+                                </option>
+                            ))}
+                        </select>
+                        {vehicles.length === 0 && (
+                            <>
+                                <p className="text-sm text-gray-500 mt-1">No vehicles found</p>
+                                <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                                    Add a vehicle
+                                </Link>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Station Selection with Search and List */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {scheduledReservation ? '📍 Reserved Station' : 'Search Station'}
+                        </label>
+
+                        {scheduledReservation && selectedStation ? (
+                            // Show reserved station info - no search needed
+                            <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-md">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="font-semibold text-amber-900 text-lg">{selectedStation.name}</div>
+                                        <div className="text-sm text-amber-700 mt-2">{selectedStation.address}</div>
+                                        <div className="text-xs text-green-600 mt-2 font-semibold">
+                                            ✓ {selectedStation.available} batteries available
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-amber-600 mt-3 italic flex items-center gap-1">
+                                    🔐 Station from your reservation
+                                </div>
+                            </div>
+                        ) : (
+                            // Show search interface when no reservation
+                            <div className="relative" ref={searchRef}>
+                                <input
+                                    type="text"
+                                    value={stationSearch}
+                                    onChange={handleStationSearch}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    placeholder="Type station name to search..."
                                     className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     required
                                 >
@@ -818,3 +867,4 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         </Dialog>
     );
 }
+

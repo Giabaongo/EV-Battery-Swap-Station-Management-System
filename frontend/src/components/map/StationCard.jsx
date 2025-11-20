@@ -37,7 +37,7 @@ export default function StationCard({ station, onClick }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Zap className="text-blue-600" size={24} />
+                <Zap className="text-blue-700" size={24} />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">{station.name}</h3>

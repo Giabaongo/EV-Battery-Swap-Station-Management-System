@@ -30,7 +30,7 @@ export default function PackageAnalytics({ data }) {
         <div>
           <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
             <Medal className="w-4 h-4 text-warning" />
-            Top Packages by Subscriptions
+            Top Packages by Subscriptions (All Time)
           </h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -69,7 +69,7 @@ export default function AssignVehicle({ onAdded }) {
         <Dialog open={open} onOpenChange={setOpen}>
             <div>
                 <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700">Add Vehicle</Button>
+                    <Button className="bg-blue-700 hover:bg-blue-700">Add Vehicle</Button>
                 </DialogTrigger>
 
                 <DialogContent className="max-w-md">
@@ -105,3 +105,4 @@ export default function AssignVehicle({ onAdded }) {
         </Dialog>
     )
 }
+

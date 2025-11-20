@@ -1,6 +1,6 @@
 const stats = [
   {
-    number: "500,000+",
+    number: "500+",
     label: "Battery Swaps Completed"
   },
   {
@@ -12,14 +12,14 @@ const stats = [
     label: "Customer Satisfaction"
   },
   {
-    number: "150+",
+    number: "50+",
     label: "Stations Nationwide"
   }
 ]
 
 export default function Statistics() {
   return (
-    <section className="bg-blue-600 py-16 px-4">
+    <section className="bg-blue-700 py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
