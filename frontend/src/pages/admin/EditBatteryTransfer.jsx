@@ -90,12 +90,6 @@ export default function EditBatteryTransfer() {
   });
 
   const handleCancel = () => {
-    if (formik.dirty) {
-      toast.warning('You have unsaved changes', {
-        description: 'Changes will be lost if you leave without saving',
-      });
-      return;
-    }
     navigate(`/admin/battery-transfer-requests/${id}`);
   };
 

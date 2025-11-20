@@ -26,9 +26,6 @@ export class StationsService {
 
       return newStation;
     } catch (error) {
-      if (error.code === 'P2002') {
-        throw new ConflictException('Station name already exists');
-      }
       throw error;
     }
   }

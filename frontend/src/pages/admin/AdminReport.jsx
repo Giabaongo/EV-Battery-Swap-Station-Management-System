@@ -39,6 +39,24 @@ export default function AdminReport() {
     })
   }
 
+  const removeVietnameseTones = (str) => {
+    const from = "àáãảạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệđùúủũụưừứửữựòóỏõọôồốổỗộơờớởỡợìíỉĩịäëïîöüûñçýỳỹỵỷ"
+    const to = "aaaaaaaaaaaaaaaaaeeeeeeeeeeeduuuuuuuuuuuoooooooooooooooooiiiiiaeiiouuncyyyyy"
+
+    for (let i = 0; i < from.length; i++) {
+      str = str.replace(new RegExp(from[i], 'gi'), to[i])
+    }
+
+    const FROM = "ÀÁÃẢẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆĐÙÚỦŨỤƯỪỨỬỮỰÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÌÍỈĨỊÄËÏÎÖÜÛÑÇÝỲỸỴỶ"
+    const TO = "AAAAAAAAAAAAAAAAAEEEEEEEEEEEDUUUUUUUUUUUOOOOOOOOOOOOOOOOOIIIIIAEIIOUUNCYYYYY"
+
+    for (let i = 0; i < FROM.length; i++) {
+      str = str.replace(new RegExp(FROM[i], 'gi'), TO[i])
+    }
+
+    return str
+  }
+
   const handleExportPDF = () => {
     if (!analysisData) return
 
@@ -47,26 +65,30 @@ export default function AdminReport() {
     const pageHeight = doc.internal.pageSize.getHeight()
     let yPosition = 20
 
+    // Use courier font for better compatibility
+    doc.setFont('courier')
+
     // Title
     doc.setFontSize(16)
-    doc.setFont(undefined, 'bold')
-    doc.text('AI Gợi ý Nâng Cấp Trạm', pageWidth / 2, yPosition, { align: 'center' })
+    doc.setFont('courier', 'bold')
+    doc.text('AI Goi y Nang Cap Tram', pageWidth / 2, yPosition, { align: 'center' })
     yPosition += 10
 
     // Analysis date and summary
     doc.setFontSize(10)
-    doc.setFont(undefined, 'normal')
-    doc.text(`Ngày phân tích: ${formatDate(analysisData.analysis_date)}`, 20, yPosition)
+    doc.setFont('courier', 'normal')
+    doc.text(`Ngay phan tich: ${formatDate(analysisData.analysis_date)}`, 20, yPosition)
     yPosition += 5
-    doc.text(`Tổng số trạm được phân tích: ${analysisData.total_stations_analyzed}`, 20, yPosition)
+    doc.text(`Tong so tram duoc phan tich: ${analysisData.total_stations_analyzed}`, 20, yPosition)
     yPosition += 10
 
     // Summary section
-    doc.setFont(undefined, 'bold')
-    doc.text('Tóm tắt:', 20, yPosition)
+    doc.setFont('courier', 'bold')
+    doc.text('Tom tat:', 20, yPosition)
     yPosition += 5
-    doc.setFont(undefined, 'normal')
-    const summaryLines = doc.splitTextToSize(analysisData.summary, pageWidth - 40)
+    doc.setFont('courier', 'normal')
+    const summaryText = removeVietnameseTones(analysisData.summary)
+    const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 40)
     doc.text(summaryLines, 20, yPosition)
     yPosition += summaryLines.length * 5 + 10
 
@@ -77,54 +99,58 @@ export default function AdminReport() {
         yPosition = 20
       }
 
-      doc.setFont(undefined, 'bold')
+      doc.setFont('courier', 'bold')
       doc.setFontSize(11)
-      doc.text(`Khuyến nghị ${idx + 1}: ${rec.station_name}`, 20, yPosition)
+      doc.text(`Khuyen nghi ${idx + 1}: ${removeVietnameseTones(rec.station_name)}`, 20, yPosition)
       yPosition += 6
 
-      doc.setFont(undefined, 'normal')
+      doc.setFont('courier', 'normal')
       doc.setFontSize(10)
-      doc.text(`Ưu tiên: ${rec.priority}`, 20, yPosition)
+      doc.text(`Uu tien: ${rec.priority}`, 20, yPosition)
       yPosition += 5
 
       // Recommendation text
-      doc.text('Đề xuất:', 20, yPosition)
+      doc.text('De xuat:', 20, yPosition)
       yPosition += 4
-      const recLines = doc.splitTextToSize(rec.recommendation, pageWidth - 40)
+      const recText = removeVietnameseTones(rec.recommendation)
+      const recLines = doc.splitTextToSize(recText, pageWidth - 40)
       doc.text(recLines, 25, yPosition)
       yPosition += recLines.length * 4 + 3
 
       // Reasons
-      doc.text('Lý do:', 20, yPosition)
+      doc.text('Ly do:', 20, yPosition)
       yPosition += 4
       rec.reasons.forEach((reason) => {
-        const reasonLines = doc.splitTextToSize(`• ${reason}`, pageWidth - 45)
+        const reasonText = removeVietnameseTones(reason)
+        const reasonLines = doc.splitTextToSize(`- ${reasonText}`, pageWidth - 45)
         doc.text(reasonLines, 25, yPosition)
         yPosition += reasonLines.length * 4
       })
       yPosition += 2
 
       // Suggested improvements
-      doc.text('Cải tiến được đề xuất:', 20, yPosition)
+      doc.text('Cai tien duoc de xuat:', 20, yPosition)
       yPosition += 4
       rec.suggested_improvements.forEach((improvement) => {
-        const impLines = doc.splitTextToSize(`✓ ${improvement}`, pageWidth - 45)
+        const impText = removeVietnameseTones(improvement)
+        const impLines = doc.splitTextToSize(`+ ${impText}`, pageWidth - 45)
         doc.text(impLines, 25, yPosition)
         yPosition += impLines.length * 4
       })
       yPosition += 2
 
       // Estimated impact
-      doc.setFont(undefined, 'italic')
-      const impactLines = doc.splitTextToSize(`Tác động dự kiến: ${rec.estimated_impact}`, pageWidth - 40)
+      doc.setFont('courier', 'italic')
+      const impactText = removeVietnameseTones(rec.estimated_impact)
+      const impactLines = doc.splitTextToSize(`Tac dong du kien: ${impactText}`, pageWidth - 40)
       doc.text(impactLines, 20, yPosition)
-      doc.setFont(undefined, 'normal')
+      doc.setFont('courier', 'normal')
       yPosition += impactLines.length * 4 + 8
     })
 
     // Download PDF
     doc.save(`station-analysis-${new Date().toISOString().split('T')[0]}.pdf`)
-    toast.success('Xuất PDF thành công!')
+    toast.success('Xuat PDF thanh cong!')
   }
 
   return (

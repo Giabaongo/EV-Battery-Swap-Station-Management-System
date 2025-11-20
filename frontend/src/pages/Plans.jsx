@@ -172,6 +172,7 @@ export default function Plans() {
         user_id: user.user_id,
         package_id: selectedPlan.rawData.package_id,
         vehicle_id: parseInt(vehicleId)
+        //TODO: THÊM PAYMENT TYPE VÔ CÁI NÀY 
       }
 
       const res = await paymentService.createPayment(payload)

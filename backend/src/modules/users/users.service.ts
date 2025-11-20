@@ -37,7 +37,11 @@ export class UsersService {
 
     const hashedPassword = await hashPassword(password);
 
-    const emailVerified = role === $Enums.Role.driver ? false : true;
+    let emailVerified = false;
+
+    if (createUserDto.role === $Enums.Role.station_staff) {
+      emailVerified = true;
+    }
 
     const newUser = await this.databaseService.user.create({
       data: {
@@ -113,10 +117,10 @@ export class UsersService {
    */
   async getUserProfile(user_id: number) {
     const user = await this.findOneById(user_id);
-    
+
     // Remove sensitive fields
     const { password, refresh_token, email_token, ...safeUserData } = user;
-    
+
     return safeUserData;
   }
 

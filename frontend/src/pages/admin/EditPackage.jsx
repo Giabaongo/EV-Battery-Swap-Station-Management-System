@@ -84,12 +84,6 @@ export default function EditPackage() {
   });
 
   const handleCancel = () => {
-    if (hasChanges) {
-      toast.warning('You have unsaved changes', {
-        description: 'Changes will be lost if you leave without saving',
-      });
-      return;
-    }
     navigate(`/admin/packages/${id}`);
   };
 

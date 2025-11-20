@@ -94,16 +94,44 @@ export default function BookingContainer() {
   }, [vehicles, selectedVehicleId]);
 
   // Match subscription to selected vehicle
+  // If multiple subscriptions exist for the same vehicle, prioritize by:
+  // 1. Show non-active status first (expired, cancelled, pending_penalty_payment)
+  // 2. If all are active, show the most recent one
   useEffect(() => {
     console.log('BookingContainer: Matching subscription - selectedVehicleId:', selectedVehicleId, 'normalizedSubscriptions:', normalizedSubscriptions);
     if (selectedVehicleId && normalizedSubscriptions.length > 0) {
-      const matched = normalizedSubscriptions.find(s => {
+      // Find ALL subscriptions for this vehicle
+      const matchedSubscriptions = normalizedSubscriptions.filter(s => {
         const matches = s.__normalizedVehicleId === Number(selectedVehicleId);
-        console.log('  - Checking subscription:', s.subscription_id, '__normalizedVehicleId:', s.__normalizedVehicleId, 'matches:', matches);
+        console.log('  - Checking subscription:', s.subscription_id, 'status:', s.status, '__normalizedVehicleId:', s.__normalizedVehicleId, 'matches:', matches);
         return matches;
       });
-      setSelectedVehicleSubscription(matched || null);
-      console.log('BookingContainer: ✓ Matched subscription for vehicle:', selectedVehicleId, '→', matched);
+
+      if (matchedSubscriptions.length === 0) {
+        setSelectedVehicleSubscription(null);
+        console.log('BookingContainer: ⚠️ No subscription found for vehicle:', selectedVehicleId);
+      } else if (matchedSubscriptions.length === 1) {
+        setSelectedVehicleSubscription(matchedSubscriptions[0]);
+        console.log('BookingContainer: ✓ Found 1 subscription for vehicle:', selectedVehicleId, '→', matchedSubscriptions[0]);
+      } else {
+        // Multiple subscriptions for same vehicle
+        // Priority: show non-active status first (expired, cancelled, pending_penalty_payment)
+        const nonActiveSubscription = matchedSubscriptions.find(s => s.status !== 'active');
+
+        if (nonActiveSubscription) {
+          setSelectedVehicleSubscription(nonActiveSubscription);
+          console.log('BookingContainer: ✓ Found', matchedSubscriptions.length, 'subscriptions for vehicle:', selectedVehicleId, 'using non-active subscription:', nonActiveSubscription);
+        } else {
+          // All are active - pick most recent
+          const mostRecent = matchedSubscriptions.reduce((latest, current) => {
+            const latestTime = new Date(latest.updated_at || latest.created_at).getTime();
+            const currentTime = new Date(current.updated_at || current.created_at).getTime();
+            return currentTime > latestTime ? current : latest;
+          });
+          setSelectedVehicleSubscription(mostRecent);
+          console.log('BookingContainer: ✓ Found', matchedSubscriptions.length, 'subscriptions for vehicle:', selectedVehicleId, 'all active, using most recent:', mostRecent);
+        }
+      }
     } else if (selectedVehicleId && normalizedSubscriptions.length === 0) {
       console.log('BookingContainer: ⚠️ No subscriptions available yet for vehicle:', selectedVehicleId);
       setSelectedVehicleSubscription(null);
@@ -130,10 +158,32 @@ export default function BookingContainer() {
     // ensure id is numeric (select gives string), log for debugging
     const vid = Number(vehicleId);
     setSelectedVehicleId(vid);
-    const matched = normalizedSubscriptions.find(
+
+    // Find ALL subscriptions for this vehicle and pick the best one
+    const matchedSubscriptions = normalizedSubscriptions.filter(
       (s) => s.__normalizedVehicleId === vid || Number(s.vehicle_id) === vid
     );
-    setSelectedVehicleSubscription(matched || null);
+
+    if (matchedSubscriptions.length === 0) {
+      setSelectedVehicleSubscription(null);
+    } else if (matchedSubscriptions.length === 1) {
+      setSelectedVehicleSubscription(matchedSubscriptions[0]);
+    } else {
+      // Multiple subscriptions - prioritize non-active status
+      const nonActiveSubscription = matchedSubscriptions.find(s => s.status !== 'active');
+
+      if (nonActiveSubscription) {
+        setSelectedVehicleSubscription(nonActiveSubscription);
+      } else {
+        // All are active - pick most recent
+        const mostRecent = matchedSubscriptions.reduce((latest, current) => {
+          const latestTime = new Date(latest.updated_at || latest.created_at).getTime();
+          const currentTime = new Date(current.updated_at || current.created_at).getTime();
+          return currentTime > latestTime ? current : latest;
+        });
+        setSelectedVehicleSubscription(mostRecent);
+      }
+    }
   };
 
   const handleConfirmBooking = async () => {
@@ -151,9 +201,30 @@ export default function BookingContainer() {
       return;
     }
 
-    // Check if user has active subscription (for selected vehicle)
+    // Check if user has subscription for the selected vehicle
     if (!subscriptionToUse) {
-      toast.error('You need an active subscription for the selected vehicle to book a battery swap. Please subscribe to a plan first.');
+      toast.error('You need to subscribe to a plan for the selected vehicle to book a battery swap.');
+      navigate('/driver/plans');
+      return;
+    }
+
+    // Check subscription status - must be 'active'
+    if (subscriptionToUse.status !== 'active') {
+      let errorMsg = '';
+      switch (subscriptionToUse.status) {
+        case 'expired':
+          errorMsg = 'Your subscription has expired. Please renew your plan to continue.';
+          break;
+        case 'cancelled':
+          errorMsg = 'Your subscription has been cancelled. Please subscribe to a new plan.';
+          break;
+        case 'pending_penalty_payment':
+          errorMsg = 'You have a pending penalty payment. Please complete it before booking a swap.';
+          break;
+        default:
+          errorMsg = `Your subscription status is: ${subscriptionToUse.status}. You cannot book at this time.`;
+      }
+      toast.error(errorMsg);
       navigate('/driver/plans');
       return;
     }

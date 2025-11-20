@@ -27,7 +27,7 @@ export default function AdminPage() {
             </div>
 
             {/* Main Content */}
-            <main className="relative z-10 p-6">
+            <main className="relative z-5 p-6 pl-64">
                 {/* Trang con sẽ render ở đây */}
                 <Outlet />
             </main>

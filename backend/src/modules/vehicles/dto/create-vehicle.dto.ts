@@ -3,9 +3,8 @@ import {
   IsString,
   MaxLength,
   Length,
+  IsOptional,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { VehicleStatus } from '@prisma/client';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateVehicleDto {
@@ -16,15 +15,14 @@ export class CreateVehicleDto {
   vin: string;
 
   @ApiProperty({ description: 'Vehicle make', maxLength: 50 })
-  @IsNotEmpty({ message: 'Battery model is required' })
+  @IsOptional()
   @IsString({ message: 'Battery model must be a string' })
   @MaxLength(50, { message: 'Battery model must not exceed 50 characters' })
-  battery_model: string;
+  battery_model: string = 'EV Model 1';
 
   @ApiProperty({ description: 'Vehicle battery type', maxLength: 50 })
-  @IsNotEmpty({ message: 'Battery type is required' })
+  @IsOptional()
   @IsString({ message: 'Battery type must be a string' })
   @MaxLength(50, { message: 'Battery type must not exceed 50 characters' })
-  battery_type: string;
-
+  battery_type: string = 'Lithium-ion';
 }

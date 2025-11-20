@@ -44,6 +44,7 @@ import EditPackage from './pages/admin/EditPackage'
 import CreatePackage from './pages/admin/CreatePackage'
 import PackageDetail from './pages/admin/PackageDetail'
 import StaffTransfer from './components/dashboard/StaffTransfer'
+import CreateBattery from './components/dashboard/CreateBattery'
 import SupportDetail from './pages/admin/SupportDetail'
 
 // import ProtectedRoute from './components/auth/ProtectedRoute'
@@ -88,6 +89,7 @@ function App() {
           {/* Route container for Staff */}
           <Route index element={<StaffDashboard />} />
           <Route path="inventory" element={<StaffInventory />} />
+          <Route path="batteries/create" element={<CreateBattery />} />
           <Route path="inspection" element={<StaffInspection />} />
           <Route path="swap-requests" element={<StaffSwapRequests />} />
           <Route path="manual-swap" element={<ManualSwapTransaction />} />

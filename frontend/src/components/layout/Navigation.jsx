@@ -1,6 +1,17 @@
 import { Link, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { useAuth } from "../../hooks/useContext"
+import {
+  LayoutDashboard,
+  MapPin,
+  Users,
+  Package,
+  ArrowLeftRight,
+  MessageCircle,
+  FileText,
+  User as UserIcon,
+  LogOut
+} from 'lucide-react'
 
 export default function Navigation({ type = "main" }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -91,191 +102,129 @@ export default function Navigation({ type = "main" }) {
   )
 
   // --- NAVBAR CHO STAFF ---
-  const StaffNavigation = () => (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="mx-auto px-6">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <span className="ml-4 text-sm text-gray-500">Staff Portal</span>
-          </div>
+  const StaffNavigation = () => {
+    const location = useLocation()
+    const menuItems = [
+      { name: 'Overview', path: '/staff', icon: LayoutDashboard },
+      { name: 'Manual Swap', path: '/staff/manual-swap', icon: MapPin },
+      { name: 'Battery Inventory', path: '/staff/inventory', icon: Package },
+      { name: 'Swap Requests', path: '/staff/swap-requests', icon: ArrowLeftRight },
+      { name: 'Transfer Requests', path: '/staff/transfer-requests', icon: ArrowLeftRight },
+      { name: 'Import Batteries', path: '/staff/import-batteries', icon: FileText },
+      { name: 'Profile', path: '/staff/profile', icon: UserIcon },
+    ]
 
-          <div className="flex items-center space-x-6">
-            <Link
-              to="/staff"
-              className="text-gray-600 hover:text-blue-600 transition-colors flex items-center"
-            >
-              <i className="ri-layout-grid-line mr-2 text-blue-500"></i>
-              Overview
-            </Link>
+    const isActive = (path) => {
+      if (path === '/staff') {
+        return location.pathname === '/staff'
+      }
+      return location.pathname === path
+    }
 
-            <Link
-              to="/staff/manual-swap"
-              className="text-gray-600 hover:text-blue-600 transition-colors flex items-center"
-            >
-              <i className="ri-search-line mr-2 text-blue-500"></i>
-              Manual Swap
-            </Link>
-
-            <Link
-              to="/staff/inventory"
-              className="text-gray-600 hover:text-blue-600 transition-colors flex items-center"
-            >
-              <i className="ri-archive-line mr-2 text-blue-500"></i>
-              Battery Inventory
-            </Link>
-
-            <Link
-              to="/staff/swap-requests"
-              className="text-gray-600 hover:text-blue-600 transition-colors flex items-center"
-            >
-              <i className="ri-swap-line mr-2 text-orange-500"></i>
-              Swap Requests
-            </Link>
-
-            <Link
-              to="/staff/transfer-requests"
-              className="text-gray-600 hover:text-blue-600 transition-colors flex items-center"
-            >
-              <i className="ri-arrow-left-right-line mr-2 text-green-500"></i>
-              Transfer Requests
-            </Link>
-
-
-
-            <div className="flex items-center space-x-3">
-              <Link
-                to="/staff/profile"
-                className="text-gray-600 hover:text-blue-600 transition-colors flex items-center"
-              >
-                Staff
-              </Link>
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <i className="ri-user-3-line text-green-600 text-lg"></i>
-              </div>
+    return (
+      <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col shadow-lg fixed left-0 top-0 overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">S</span>
             </div>
-
+            <span className="text-xl font-bold text-gray-800">Staff Portal</span>
           </div>
+        </div>
 
+        <nav className="flex-1 p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive(item.path)
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.name}</span>
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-gray-200">
           <button
             onClick={logout}
-            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition-colors text-sm"
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 font-medium"
           >
-            Logout
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
           </button>
         </div>
-      </div>
-    </nav>
-  )
+      </aside>
+    )
+  }
 
   // --- NAVBAR CHO ADMIN ---
   const AdminNavigation = () => {
     const location = useLocation()
+    const menuItems = [
+      { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+      { name: 'Stations', path: '/admin/stations-list', icon: MapPin },
+      { name: 'Users', path: '/admin/users-list', icon: Users },
+      { name: 'Packages', path: '/admin/packages-list', icon: Package },
+      { name: 'Battery Transfer', path: '/admin/battery-transfer-requests', icon: ArrowLeftRight },
+      { name: 'Support', path: '/admin/support-list', icon: MessageCircle },
+      { name: 'AI Reports', path: '/admin/report', icon: FileText },
+      { name: 'Profile', path: '/admin/profile', icon: UserIcon },
+    ]
 
-    // Helper function to check if current path matches
     const isActive = (path) => {
       if (path === '/admin') {
         return location.pathname === '/admin'
       }
-      return location.pathname.startsWith(path)
+      return location.pathname === path
     }
 
     return (
-      <header className="flex h-16 w-full items-center justify-center bg-white dark:bg-slate-900 px-6 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-        {/* Logo bên trái */}
-        <div className="absolute left-6 flex items-center gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-slate-900 dark:text-slate-50 text-xl font-bold leading-normal">EV Charge</h1>
+      <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col shadow-lg fixed left-0 top-0 overflow-y-auto">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">A</span>
+            </div>
+            <span className="text-xl font-bold text-gray-800">Admin Portal</span>
           </div>
         </div>
 
-        {/* Navigation ở giữa */}
-        <nav className="flex items-center gap-6">
-          <Link
-            to="/admin"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin') && location.pathname === '/admin'
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>Dashboard</span>
-          </Link>
-          <Link
-            to="/admin/stations-list"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/stations-list')
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>Stations</span>
-          </Link>
-          <Link
-            to="/admin/users-list"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/users-list')
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>Users</span>
-          </Link>
-          <Link
-            to="/admin/packages-list"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/packages-list')
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>Packages</span>
-          </Link>
-          <Link
-            to="/admin/battery-transfer-requests"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/battery-transfer-req')
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>Battery Transfer</span>
-          </Link>
-          <Link
-            to="/admin/support-list"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/support-list')
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>Support</span>
-          </Link>
-          <Link
-            to="/admin/report"
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/reports')
-              ? 'bg-blue-100 text-blue-600'
-              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-              }`}
-          >
-            <span>AI Reports</span>
-          </Link>
-          <div className="flex items-center space-x-3">
-            <Link
-              to="/admin/profile"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-base font-semibold ${isActive('/admin/reports')
-                ? 'bg-blue-100 text-blue-600'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors'
-                }`}
-            >
-              Admin
-            </Link>
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <i className="ri-user-3-line text-blue-600 text-lg"></i>
-            </div>
-          </div>
+        <nav className="flex-1 p-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive(item.path)
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.name}</span>
+              </Link>
+            )
+          })}
         </nav>
 
-        <button
-          onClick={logout}
-          className="absolute right-6 px-4 py-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-sm"
-        >
-          Logout
-        </button>
-      </header>
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={logout}
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 font-medium"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
     )
   }
 

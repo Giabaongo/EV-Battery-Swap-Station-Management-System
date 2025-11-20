@@ -109,9 +109,9 @@ export class VehiclesController {
     return this.vehiclesService.update(id, updateVehicleDto);
   }
 
-  @Delete(':id')
-  @Roles('admin')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.vehiclesService.remove(id);
-  }
+  // @Delete(':id')
+  // @Roles('admin')
+  // remove(@Param('id', ParseIntPipe) id: number) {
+  //   return this.vehiclesService.remove(id);
+  // }
 }

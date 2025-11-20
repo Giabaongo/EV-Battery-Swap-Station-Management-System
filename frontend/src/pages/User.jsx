@@ -4,10 +4,9 @@ import Sidebar from '../components/layout/Sidebar';
 import { useStation, useSubscription } from '../hooks/useContext';
 import { vehicleService } from '../services/vehicleService';
 import DashboardHeader from '../components/user/DashboardHeader';
-import VehicleStatusCard from '../components/user/VehicleStatusCard';
+import VehicleSubscriptionCard from '../components/user/VehicleSubscriptionCard';
 import RecentActivityCard from '../components/user/RecentActivityCard';
 import NearbyStationsCard from '../components/user/NearbyStationsCard';
-import PlansCard from '../components/user/PlansCard';
 import HelpLinksCard from '../components/user/HelpLinksCard';
 import SwapSuccessDialog from '../components/dashboard/SwapSuccessDialog';
 import AutoSwapDialog from '../components/user/AutoSwapDialog';
@@ -53,6 +52,10 @@ export default function User() {
     };
 
     fetchVehicleData();
+
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(fetchVehicleData, 5000);
+    return () => clearInterval(interval);
   }, [user?.user_id]);
 
   const nearbyStations = useMemo(() => {
@@ -135,18 +138,20 @@ export default function User() {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* Vehicle & Subscription Card - Full Width */}
+              <div className="lg:col-span-2">
+                <VehicleSubscriptionCard vehicles={vehicleData} onFindStations={() => navigate('/driver/map')} />
+              </div>
 
               {/* Left column */}
               <div className="lg:col-span-1 flex flex-col gap-6">
-                <VehicleStatusCard vehicles={vehicleData} onFindStations={() => navigate('/driver/map')} />
                 <RecentActivityCard onViewAll={() => navigate('/driver/reports')} />
               </div>
 
               {/* Right column */}
               <div className="lg:col-span-1 flex flex-col gap-6 ml-6">
-                {/* <MonthSummaryCard /> */}
-                <PlansCard />
                 <NearbyStationsCard stations={nearbyStations} onViewAll={() => navigate('/driver/map')} />
 
                 <HelpLinksCard

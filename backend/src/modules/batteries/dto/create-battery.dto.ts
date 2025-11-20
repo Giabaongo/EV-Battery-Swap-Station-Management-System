@@ -11,8 +11,9 @@ import {
     IsInt,
 } from "class-validator";
 import { Type } from 'class-transformer';
-import { BatteryStatus } from "@prisma/client";
-import { ApiProperty } from "@nestjs/swagger/dist/decorators/api-property.decorator";
+import { ApiProperty } from "@nestjs/swagger";
+import { Battery, BatteryStatus } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export class CreateBatteryDto {
     @IsNotEmpty({ message: 'Serial number is required' })
@@ -22,56 +23,57 @@ export class CreateBatteryDto {
 
     @IsOptional()
     @IsInt()
-    vehicle_id?: number | null; // Optional, can be null if not assigned to a vehicle
+    vehicle_id: number | null; // Optional, can be null if not assigned to a vehicle
 
     @IsOptional()
     @IsInt()
-    station_id?: number | null; // Optional, can be null if not assigned to a station
+    station_id: number | null; // Optional, can be null if not assigned to a station
 
     @IsOptional()
     @IsInt()
-    cabinet_id?: number | null; // Optional, can be null if not assigned to a cabinet
+    cabinet_id: number | null; // Optional, can be null if not assigned to a cabinet
 
     @IsOptional()
     @IsInt()
-    slot_id?: number | null; // Optional, can be null if not assigned to a slot
+    slot_id: number | null; // Optional, can be null if not assigned to a slot
 
-    @IsNotEmpty({ message: 'Model is required' })
+    @IsOptional()
     @IsString({ message: 'Model must be a string' })
     @MinLength(2, { message: 'Model must be at least 2 characters long' })
-    model: string;
+    model: string = 'EV Model 1';
 
     @ApiProperty({ description: 'Battery type', example: 'Li-Ion' })
-    @IsNotEmpty({ message: 'Type is required' })
+    @IsOptional()
     @IsString({ message: 'Type must be a string' })
-    @MinLength(2, { message: 'Type must be at least 2 characters long' })
+    @MinLength(2, { message: 'Type must be at most 50 characters long' })
     @MaxLength(50, { message: 'Type must be at most 50 characters long' })
-    type: string;
+    type: string = "Lithium-ion";
 
     @ApiProperty({ description: 'Battery capacity in kWh', example: 75.5 })
     @IsNotEmpty({ message: 'Capacity is required' })
     @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Capacity must be a number with max 2 decimal places' })
     @Type(() => Number)
     @Min(1, { message: 'Capacity must be at least 1 kWh' })
-    capacity_kwh: number = 30.0;
+    capacity: number = 30.0;
 
     @ApiProperty({ description: 'Current charge percentage', example: 85.5 })
-    @IsNotEmpty({ message: 'Current charge is required' })
-    @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Current charge must be a number with max 2 decimal places' })
+    @IsOptional()
+    @IsNumber({ maxDecimalPlaces: 2 }, { message: 'current_charge must be a number with max 2 decimal places' })
     @Type(() => Number)
     @Min(0, { message: 'Current charge cannot be negative' })
     @Max(100, { message: 'Current charge cannot exceed 100%' })
     current_charge: number = 100;
 
     @ApiProperty({ description: 'State of health percentage', example: 90.0 })
-    @IsNotEmpty({ message: 'State of health is required' })
+    @IsOptional()
     @IsNumber({ maxDecimalPlaces: 2 }, { message: 'SOH must be a number with max 2 decimal places' })
     @Type(() => Number)
     @Min(0, { message: 'SOH cannot be negative' })
     @Max(100, { message: 'SOH cannot exceed 100%' })
     soh: number = 100;
 
-    @IsNotEmpty({ message: 'Status is required' })
-    @IsEnum(BatteryStatus, { message: 'Status must be a valid BatteryStatus enum value' })
-    status: BatteryStatus;
-}
+    @ApiProperty({ description: 'Battery status', example: 'full', enum: BatteryStatus })
+    @IsOptional()
+    @IsEnum(BatteryStatus, { message: 'status must be a valid BatteryStatus enum value' })
+    status: BatteryStatus = BatteryStatus.full;
+};

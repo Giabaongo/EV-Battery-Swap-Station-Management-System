@@ -18,7 +18,7 @@ import { SimulateChargeForStationDto } from './dto/simulate-charge-for-station.d
 export class BatteriesController {
   constructor(private readonly batteriesService: BatteriesService) { }
 
-  @Roles($Enums.Role.admin)
+  @Roles($Enums.Role.admin, $Enums.Role.station_staff)
   @ApiOperation({ summary: 'Create a new battery' })
   @ApiResponse({ status: 201, description: 'The battery has been successfully created.' })
   @Post()

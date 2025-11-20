@@ -2,9 +2,9 @@ import { ConflictException, Injectable, NotFoundException, Logger, BadRequestExc
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { DatabaseService } from '../database/database.service';
-import { VehicleStatus } from '@prisma/client';
+import { SubscriptionStatus, VehicleStatus } from '@prisma/client';
 import { UsersService } from '../users/users.service';
-import { AddVehicleDto } from './dto/add-vehicle.dto';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class VehiclesService {
@@ -13,6 +13,7 @@ export class VehiclesService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly userService: UsersService,
+    private readonly subscriptionsService: SubscriptionsService
   ) { }
 
   async create(createVehicleDto: CreateVehicleDto) {
@@ -224,19 +225,25 @@ export class VehiclesService {
   }
 
   async removeVehicleFromUser(vin: string, user_id: number) {
-    const vehicle = await this.findByVin(vin);
+    try {
+      // ✅ Check if vehicle exists
+      const vehicle = await this.findByVin(vin);
+      if (vehicle.user_id !== user_id) {
+        throw new BadRequestException(
+          `Vehicle with VIN ${vin} is not assigned to user ID ${user_id}`
+        );
+      }
 
-    if (vehicle.user_id !== user_id) {
-      throw new BadRequestException('This user does not own this vehicle!');
+      const removedVehicle = await this.databaseService.vehicle.update({
+        where: { vin },
+        data: { user_id: null, status: VehicleStatus.inactive },
+      });
+
+      return removedVehicle;
     }
-
-    const unLinkedVehicle = await this.update(vehicle.vehicle_id, {
-      user_id: null,
-      status: VehicleStatus.inactive
-    })
-
-    return unLinkedVehicle;
-
+    catch (error) {
+      throw error;
+    }
   }
 
   async update(id: number, updateVehicleDto: UpdateVehicleDto, tx?: any) {
@@ -265,13 +272,5 @@ export class VehiclesService {
       }
       throw error;
     }
-  }
-
-  async remove(id: number) {
-    await this.findOne(id); // Check if vehicle exists
-
-    return await this.databaseService.vehicle.delete({
-      where: { vehicle_id: id },
-    });
   }
 }

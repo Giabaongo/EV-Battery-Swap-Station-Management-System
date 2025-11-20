@@ -1,5 +1,4 @@
 import Sidebar from '../components/layout/Sidebar'
-import ReservationCountdownWidget from '../components/reservation/ReservationCountdownWidget'
 import { Outlet } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuth, useReservation } from '../hooks/useContext'
@@ -48,8 +47,7 @@ export default function Driver() {
         </main>
       </div>
 
-      {/* Reservation Countdown Widget - shows globally when active */}
-      <ReservationCountdownWidget />
+
     </div>
   )
 }

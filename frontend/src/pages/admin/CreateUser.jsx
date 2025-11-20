@@ -91,7 +91,7 @@ export default function CreateUser() {
         const newUser = await userService.createUser(createData);
         
         toast.success('User created successfully!');
-        navigate(`/admin/users/${newUser.user_id}`);
+        navigate(`/admin/users-list`);
       } catch (err) {
         console.error('Error creating user:', err);
         toast.error(err.response?.data?.message || 'Failed to create user');
@@ -102,12 +102,6 @@ export default function CreateUser() {
   });
 
   const handleCancel = () => {
-    if (formik.dirty) {
-      toast.warning('You have unsaved changes', {
-        description: 'Changes will be lost if you leave without saving',
-      });
-      return;
-    }
     navigate('/admin/users-list');
   };
 

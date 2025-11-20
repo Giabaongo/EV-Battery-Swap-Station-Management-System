@@ -176,6 +176,9 @@ export class ReservationsService {
         }
       });
     } catch (error) {
+      if (error.code === 'P2002') {
+        throw new BadRequestException('Cannot create reservation please try later!');
+      }
       throw error;
     }
   }

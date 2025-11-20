@@ -93,12 +93,6 @@ export default function EditStation() {
   };
 
   const handleCancel = () => {
-    if (formik.dirty) {
-      toast.warning('You have unsaved changes', {
-        description: 'Changes will be lost if you leave without saving',
-      });
-      return;
-    }
     navigate(`/admin/stations/${id}`);
   };
 

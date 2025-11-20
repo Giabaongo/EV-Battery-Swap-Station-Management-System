@@ -67,6 +67,7 @@ export const userService = {
   getAllUsers,
   updateUser,
   deleteUser,
+  createUser
 };
 
 export default userService;

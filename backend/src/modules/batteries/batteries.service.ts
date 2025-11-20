@@ -58,15 +58,16 @@ export class BatteriesService {
   }
 
   create(createBatteryDto: CreateBatteryDto) {
-    // const newBattery = this.databaseService.battery.create({
-    //   data: {
-    //     ...createBatteryDto,
-    //   }
-    // });
-
-    // this.logger.log(`New battery created with ID ${newBattery.battery_id}`);
-    // return newBattery;
-    return `This action adds a new battery`;
+    try {
+      const newBattery = this.databaseService.battery.create({
+        data: {
+          ...createBatteryDto,
+        },
+      });
+      return newBattery;
+    } catch (error) {
+      throw error;
+    }
   }
 
   findAll() {

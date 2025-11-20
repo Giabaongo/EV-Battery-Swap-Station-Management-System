@@ -43,9 +43,33 @@ export default function Booking({
     );
   }
 
+  // Utility function to check if subscription is active
+  const isSubscriptionActive = (subscription) => {
+    if (!subscription) return false;
+    return subscription.status === 'active';
+  };
+
+  // Utility function to get subscription status message
+  const getSubscriptionStatusMessage = (subscription) => {
+    if (!subscription) {
+      return { title: 'No subscription', status: 'none', message: 'You need to subscribe to a plan before booking a battery swap.' };
+    }
+
+    const statusMap = {
+      'active': { title: 'Active Subscription', status: 'active', message: null },
+      'expired': { title: 'Subscription Expired', status: 'expired', message: 'Your subscription has expired. Please renew your plan to continue.' },
+      'cancelled': { title: 'Subscription Cancelled', status: 'cancelled', message: 'Your subscription has been cancelled. Please subscribe to a new plan.' },
+      'pending_penalty_payment': { title: 'Pending Penalty Payment', status: 'penalty', message: 'You have a pending penalty payment. Please complete it before booking a swap.' }
+    };
+
+    return statusMap[subscription.status] || { title: 'Unknown Status', status: 'unknown', message: 'Your subscription status is unknown.' };
+  };
+
   // compute subscription banner and related UI based on selected vehicle vs user-level
   const hasVehicles = Array.isArray(vehicles) && vehicles.length > 0;
   const subscriptionToShow = hasVehicles ? selectedVehicleSubscription : activeSubscription;
+  const isSubscriptionValid = isSubscriptionActive(subscriptionToShow);
+  const subscriptionStatusInfo = getSubscriptionStatusMessage(subscriptionToShow);
 
   // determine selected vehicle battery model (if any) so StationInfoPanel can filter compatible batteries
   const selectedVehicleBatteryModel = (() => {
@@ -53,6 +77,23 @@ export default function Booking({
     const veh = vehicles.find(v => (v.vehicle_id ?? v.id) === selectedVehicleId);
     return veh?.battery_model ?? veh?.batteryModel ?? veh?.battery?.battery_model;
   })();
+
+  const getStatusBgColor = (status) => {
+    switch (status) {
+      case 'active':
+        return { bg: 'bg-green-50', border: 'border-green-400', icon: 'text-green-400', text: 'text-green-700', textSecondary: 'text-green-600' };
+      case 'expired':
+        return { bg: 'bg-red-50', border: 'border-red-400', icon: 'text-red-400', text: 'text-red-700', textSecondary: 'text-red-600' };
+      case 'cancelled':
+        return { bg: 'bg-orange-50', border: 'border-orange-400', icon: 'text-orange-400', text: 'text-orange-700', textSecondary: 'text-orange-600' };
+      case 'penalty':
+        return { bg: 'bg-red-50', border: 'border-red-400', icon: 'text-red-400', text: 'text-red-700', textSecondary: 'text-red-600' };
+      default:
+        return { bg: 'bg-yellow-50', border: 'border-yellow-400', icon: 'text-yellow-400', text: 'text-yellow-700', textSecondary: 'text-yellow-600' };
+    }
+  };
+
+  const statusColors = getStatusBgColor(subscriptionStatusInfo.status);
 
   const subscriptionBanner = (() => {
     if (subscriptionLoading) {
@@ -65,81 +106,41 @@ export default function Booking({
       );
     }
 
-    if (hasVehicles) {
-      if (selectedVehicleSubscription) {
-        return (
-          <div className="px-6 pb-4">
-            <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-green-700 font-medium">Active Subscription: {selectedVehicleSubscription?.package?.package_name || 'Premium Plan'}</p>
-                  <p className="text-sm text-green-600 mt-1">Swaps remaining: {selectedVehicleSubscription?.remaining_swap_count ?? 'Unlimited'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="px-6 pb-4">
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700 font-medium">Selected vehicle has no active subscription</p>
-                <p className="text-sm text-yellow-600 mt-1">You need to subscribe a plan for this vehicle before booking a battery swap.</p>
-                <button onClick={onNavigateToPlans} className="mt-2 text-sm font-medium text-yellow-700 hover:text-yellow-800 underline">View Plans →</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // fallback to user-level subscription
-    if (subscriptionToShow) {
-      return (
-        <div className="px-6 pb-4">
-          <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-700 font-medium">Active Subscription: {subscriptionToShow?.package?.package_name || 'Premium Plan'}</p>
-                <p className="text-sm text-green-600 mt-1">Swaps remaining: {subscriptionToShow?.remaining_swap_count ?? 'Unlimited'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="px-6 pb-4">
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+        <div className={`${statusColors.bg} border-l-4 ${statusColors.border} p-4 rounded-lg`}>
           <div className="flex items-start">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+              {subscriptionStatusInfo.status === 'active' ? (
+                <svg className={`h-5 w-5 ${statusColors.icon}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className={`h-5 w-5 ${statusColors.icon}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              )}
             </div>
             <div className="ml-3">
-              <p className="text-sm text-yellow-700 font-medium">No active subscription found</p>
-              <p className="text-sm text-yellow-600 mt-1">You need to subscribe to a plan before booking a battery swap.</p>
-              <button onClick={onNavigateToPlans} className="mt-2 text-sm font-medium text-yellow-700 hover:text-yellow-800 underline">View Plans →</button>
+              <p className={`text-sm ${statusColors.text} font-medium`}>
+                {subscriptionStatusInfo.status === 'active' && subscriptionToShow
+                  ? `Active Subscription: ${subscriptionToShow?.package?.package_name || 'Premium Plan'}`
+                  : subscriptionStatusInfo.title
+                }
+              </p>
+              {subscriptionStatusInfo.status === 'active' && subscriptionToShow && (
+                <p className={`text-sm ${statusColors.textSecondary} mt-1`}>
+                  Swaps remaining: {subscriptionToShow?.remaining_swap_count ?? 'Unlimited'}
+                </p>
+              )}
+              {subscriptionStatusInfo.message && (
+                <p className={`text-sm ${statusColors.textSecondary} mt-1`}>{subscriptionStatusInfo.message}</p>
+              )}
+              {subscriptionStatusInfo.status !== 'active' && (
+                <button onClick={onNavigateToPlans} className={`mt-2 text-sm font-medium ${statusColors.text} hover:opacity-80 underline`}>
+                  View Plans →
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -199,7 +200,7 @@ export default function Booking({
             showCancelDialog={showCancelDialog}
             onConfirmCancel={onConfirmCancel}
             onCancelDialogClose={onCancelDialogClose}
-            selectedVehicleHasSubscription={Boolean(subscriptionToShow)}
+            selectedVehicleHasSubscription={isSubscriptionValid}
             selectedVehicleBatteryModel={selectedVehicleBatteryModel}
           />
         </div>

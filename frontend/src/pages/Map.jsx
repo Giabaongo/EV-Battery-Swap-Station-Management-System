@@ -8,14 +8,35 @@ import { useStation, useBattery, useVehicle } from '../hooks/useContext';
 // Take real station data from StationContext
 
 export default function MapPage() {
-  const { stations } = useStation();
-  const { batteries } = useBattery();
+  const { stations, getAllStations } = useStation();
+  const { batteries, getAllBatteries } = useBattery();
   const { vehicles } = useVehicle();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [filteredStations, setFilteredStations] = useState([]);
   const [map, setMap] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+
+  // Auto-refresh data every 5 seconds
+  useEffect(() => {
+    const refreshData = async () => {
+      try {
+        await Promise.all([
+          getAllStations(),
+          getAllBatteries()
+        ]);
+      } catch (error) {
+        console.error('Error refreshing map data:', error);
+      }
+    };
+
+    // Initial fetch
+    refreshData();
+
+    // Refresh every 5 seconds
+    const interval = setInterval(refreshData, 5000);
+    return () => clearInterval(interval);
+  }, [getAllStations, getAllBatteries]);
 
   // Compute Haversine distance in meters
   //Công thức tính quãng đường giữa hai điểm trên map dựa trên vĩ độ và kinh độ của chúng

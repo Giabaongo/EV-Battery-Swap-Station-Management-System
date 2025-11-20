@@ -166,11 +166,14 @@ export class SubscriptionsService {
       },
       include: {
         package: true
-      }
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
     });
 
     if (!subscription) {
-      throw new NotFoundException(`Active subscription for vehicle ID ${vehicleId} not found`);
+      throw new NotFoundException(`Subscription for vehicle ID ${vehicleId} not found`);
     }
 
     return subscription;
@@ -498,78 +501,71 @@ export class SubscriptionsService {
     vehicle_id: number,
   ): Promise<{
     success: boolean;
-    oldSubscription: any;
-    newSubscription: any;
+    reNewSubscription: any;
     penaltyFee: number;
     message: string;
   }> {
-    // 1. Get old subscription
-    const oldSubscription = await this.findOne(subscriptionId);
+    try {
+      // 1. Get old subscription
+      const oldSubscription = await this.findOne(subscriptionId);
 
-    if (oldSubscription.status !== SubscriptionStatus.expired) {
-      throw new BadRequestException('Only expired subscriptions can be renewed');
-    }
+      if (oldSubscription.status !== SubscriptionStatus.expired) {
+        throw new BadRequestException('Only expired subscriptions can be renewed');
+      }
 
-    // 2. Check if distance exceeded base_distance (calculate penalty)
-    let penaltyFee = await this.feeCalculationService.calculateOverchargeFee(
-      oldSubscription.distance_traveled,
-    );
-
-    // 3. Create new subscription with reset counters
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + oldSubscription.package.duration_days);
-
-    const newSubscription = await this.prisma.$transaction(async (tx) => {
-      // Create new subscription
-      const subscription = await tx.subscription.create({
-        data: {
-          user_id: oldSubscription.user_id,
-          package_id: oldSubscription.package_id,
-          vehicle_id: vehicle_id,
-          start_date: startDate,
-          end_date: endDate,
-          status: SubscriptionStatus.active,
-          swap_used: 0, // Reset swap counter
-          distance_traveled: 0, // Reset distance counter
-          deposit_paid: oldSubscription.deposit_paid, // Keep deposit status
-        },
-        include: {
-          package: true,
-          user: {
-            select: {
-              user_id: true,
-              username: true,
-              email: true,
-              phone: true,
-            },
-          },
-          vehicle: true,
-        },
-      });
-
-      // Mark old subscription as renewed
-      await tx.subscription.update({
-        where: { subscription_id: subscriptionId },
-        data: {
-          status: SubscriptionStatus.cancelled, // Or create new status "renewed"
-        },
-      });
-
-      this.logger.log(
-        `Subscription ${subscriptionId} renewed. New subscription ID: ${subscription.subscription_id}. Penalty: ${penaltyFee}`,
+      // 2. Check if distance exceeded base_distance (calculate penalty)
+      let penaltyFee = await this.feeCalculationService.calculateOverchargeFee(
+        oldSubscription.distance_traveled,
       );
 
-      return subscription;
-    });
+      // 3. Create new subscription with reset counters
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + oldSubscription.package.duration_days);
 
-    return {
-      success: true,
-      oldSubscription,
-      newSubscription,
-      penaltyFee: penaltyFee.overcharge_fee,
-      message: `Subscription renewed successfully${penaltyFee.overcharge_fee > 0 ? ` with penalty fee: ${penaltyFee.overcharge_fee.toLocaleString('vi-VN')} VND` : ''}`,
-    };
+      this.logger.log(`Renewing subscription ID ${subscriptionId} for vehicle ID ${vehicle_id}. New period: ${startDate.toISOString()} - ${endDate.toISOString()}. Penalty fee: ${penaltyFee.overcharge_fee}`);
+      //4. Update old subscription
+      const reNewSubscription = await this.prisma.$transaction(async (tx) => {
+        const subscription = await tx.subscription.update({
+          where: { subscription_id: subscriptionId },
+          data: {
+            vehicle_id: vehicle_id,
+            start_date: startDate,
+            end_date: endDate,
+            status: SubscriptionStatus.active,
+            swap_used: 0, // Reset swap counter
+            distance_traveled: 0, // Reset distance counter
+            deposit_paid: oldSubscription.deposit_paid, // Keep deposit status
+          },
+          include: {
+            package: true,
+            user: {
+              select: {
+                user_id: true,
+                username: true,
+                email: true,
+                phone: true,
+              },
+            },
+            vehicle: true,
+          },
+        });
+        this.logger.log(
+          `Subscription ${subscriptionId} renewed. New subscription ID: ${subscription.subscription_id}. Penalty: ${penaltyFee}`,
+        );
+
+        return subscription;
+      });
+
+      return {
+        success: true,
+        reNewSubscription,
+        penaltyFee: penaltyFee.overcharge_fee,
+        message: `Subscription renewed successfully${penaltyFee.overcharge_fee > 0 ? ` with penalty fee: ${penaltyFee.overcharge_fee.toLocaleString('vi-VN')} VND` : ''}`,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
