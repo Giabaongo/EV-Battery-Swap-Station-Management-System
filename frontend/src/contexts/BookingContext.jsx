@@ -38,6 +38,8 @@ export const BookingProvider = ({ children }) => {
             const reservationEntity = created?.reservation_id ? created : (created?.reservation ?? created);
             setReservations((prev) => [...prev, reservationEntity]);
             setActiveReservation(reservationEntity);
+            // Persist to localStorage
+            localStorage.setItem('activeReservation', JSON.stringify(reservationEntity));
             return reservationEntity;
         } catch (err) {
             console.error('createReservation error', err);
@@ -131,6 +133,8 @@ export const BookingProvider = ({ children }) => {
 
     const clearActiveReservation = useCallback(() => {
         setActiveReservation(null);
+        // Remove from localStorage
+        localStorage.removeItem('activeReservation');
     }, []);
 
     // ============ SWAP REQUEST METHODS ============
@@ -204,6 +208,21 @@ export const BookingProvider = ({ children }) => {
     }, []);
 
     // ============ EFFECTS ============
+    // Initialize activeReservation from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('activeReservation');
+        if (saved) {
+            try {
+                const reservation = JSON.parse(saved);
+                setActiveReservation(reservation);
+                console.log('✅ Restored activeReservation from localStorage:', reservation.reservation_id);
+            } catch (err) {
+                console.error('Failed to parse activeReservation from localStorage:', err);
+                localStorage.removeItem('activeReservation');
+            }
+        }
+    }, []);
+
     // Save notifications to localStorage
     useEffect(() => {
         localStorage.setItem('swapNotifications', JSON.stringify(notifications));
