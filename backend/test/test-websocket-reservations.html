@@ -346,6 +346,7 @@
                         <h3>Statistics</h3>
                         <p>Total Events: <strong id="totalEvents">0</strong></p>
                         <p>Reservations Created: <strong id="reservationCount">0</strong></p>
+                        <p>Status Updates: <strong id="statusUpdateCount">0</strong></p>
                     </div>
                     <div class="card">
                         <h3>Latest Event</h3>
@@ -372,6 +373,7 @@
                     <h3 style="margin-top: 20px;">Events được emit:</h3>
                     <ul style="line-height: 2; color: #555;">
                         <li><span class="badge info">reservation.created</span> - Khi có reservation mới được tạo</li>
+                        <li><span class="badge warning">reservation.status.updated</span> - Khi status của reservation thay đổi (scheduled → completed/cancelled)</li>
                     </ul>
 
                     <h3 style="margin-top: 20px;">Payload structure:</h3>
@@ -409,6 +411,7 @@
         let socket = null;
         let totalEvents = 0;
         let reservationCount = 0;
+        let statusUpdateCount = 0;
 
         // Set default scheduled time to 30 minutes from now
         function setDefaultScheduledTime() {
@@ -469,6 +472,25 @@
                 `;
 
                 showNotification(`New reservation at ${data.stationName} by ${data.user.username}`);
+            });
+
+            // Listen for reservation.status.updated event
+            socket.on('reservation.status.updated', (data) => {
+                totalEvents++;
+                statusUpdateCount++;
+                updateStats();
+                
+                addLog('event', 'RESERVATION.STATUS.UPDATED', JSON.stringify(data, null, 2));
+                
+                const latestEventEl = document.getElementById('latestEvent');
+                latestEventEl.innerHTML = `
+                    <span class="badge warning">Status Updated</span><br>
+                    Station: ${data.stationName}<br>
+                    ${data.previousStatus} → ${data.currentStatus}<br>
+                    User: ${data.user.username}
+                `;
+
+                showNotification(`Reservation status: ${data.previousStatus} → ${data.currentStatus}`);
             });
 
             socket.on('error', (error) => {
@@ -599,6 +621,7 @@
             document.getElementById('eventLog').innerHTML = '';
             totalEvents = 0;
             reservationCount = 0;
+            statusUpdateCount = 0;
             updateStats();
             document.getElementById('latestEvent').textContent = 'No events yet';
         }
@@ -606,6 +629,7 @@
         function updateStats() {
             document.getElementById('totalEvents').textContent = totalEvents;
             document.getElementById('reservationCount').textContent = reservationCount;
+            document.getElementById('statusUpdateCount').textContent = statusUpdateCount;
         }
 
         function showNotification(message) {

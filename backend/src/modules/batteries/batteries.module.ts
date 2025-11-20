@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { BatteriesService } from './batteries.service';
 import { BatteriesController } from './batteries.controller';
+import { BatteriesGateway } from './batteries.gateway';
 import { DatabaseModule } from '../database/database.module';
 import { VehiclesModule } from '../vehicles/vehicles.module';
 import { StationsModule } from '../stations/stations.module';
@@ -12,7 +13,7 @@ import { StationsModule } from '../stations/stations.module';
     StationsModule
   ],
   controllers: [BatteriesController],
-  providers: [BatteriesService],
+  providers: [BatteriesService, BatteriesGateway],
   exports: [BatteriesService],
 })
 export class BatteriesModule { }

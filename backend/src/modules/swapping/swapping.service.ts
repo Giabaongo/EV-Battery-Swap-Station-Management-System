@@ -7,6 +7,7 @@ import { StationsService } from '../stations/stations.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { DatabaseService } from '../database/database.service';
 import { SwapTransactionsService } from '../swap-transactions/swap-transactions.service';
+import { SwapTransactionsGateway } from '../swap-transactions/swap-transactions.gateway';
 import { BatteryStatus, ReservationStatus, SubscriptionStatus, SwapTransactionStatus } from '@prisma/client';
 import { FirstSwapDto } from './dto/first-swap.dto';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -20,6 +21,7 @@ export class SwappingService {
         private batteriesService: BatteriesService,
         private stationsService: StationsService,
         private swapTransactionsService: SwapTransactionsService,
+        private swapTransactionsGateway: SwapTransactionsGateway,
         private subscriptionsService: SubscriptionsService,
         private reservationsService: ReservationsService,
     ) { }
@@ -134,6 +136,36 @@ export class SwappingService {
                 }
 
                 this.logger.log(`Battery swap completed successfully for user ID ${user_id}, vehicle ID ${vehicle_id}`);
+                
+                // 🔥 Emit WebSocket event for swap transaction created
+                this.swapTransactionsGateway.notifySwapCreated({
+                    transactionId: swapRecord.transaction_id,
+                    stationId: station_id,
+                    stationName: station.name,
+                    user: {
+                        userId: user_id,
+                        username: user.username,
+                        email: user.email,
+                    },
+                    vehicle: {
+                        vehicleId: vehicle_id,
+                        vin: vehicle.vin,
+                        batteryModel: vehicle.battery_model || 'Unknown',
+                    },
+                    batteryTaken: {
+                        batteryId: taken_battery_id,
+                        charge: 100, // Battery taken is always full
+                    },
+                    batteryReturned: {
+                        batteryId: return_battery_id,
+                        charge: Number(returnBattery.current_charge),
+                    },
+                    status: SwapTransactionStatus.completed,
+                    timestamp: new Date().toISOString(),
+                    distanceTraveled: distanceTraveled,
+                    batteryUsedPercent: batteryUsedPercent,
+                });
+
                 return {
                     message: 'Battery swap successful',
                     swap_used: subscription.swap_used + 1, // ✅ Return incremented value
@@ -154,6 +186,12 @@ export class SwappingService {
     async initializeBattery(firstSwapDto: FirstSwapDto) {
         const { user_id, station_id, vehicle_id, taken_battery_id, reservation_id, subscription_id } = firstSwapDto;
         try {
+            // Fetch data before transaction for WebSocket event
+            const user = await this.usersService.findOneById(user_id);
+            const station = await this.stationsService.findOne(station_id);
+            const vehicle = await this.vehiclesService.findOne(vehicle_id);
+            const takenBattery = await this.batteriesService.findOne(taken_battery_id);
+
             return await this.databaseService.$transaction(async (prisma) => {
 
                 // ✅ FIXED: assignBatteryToVehicle now updates both Battery AND Vehicle
@@ -173,6 +211,31 @@ export class SwappingService {
                 if (reservation_id) {
                     await this.reservationsService.updateReservationStatus(reservation_id, user_id, vehicle_id, ReservationStatus.completed, prisma);
                 }
+
+                this.logger.log(`Battery initialization completed for user ID ${user_id}, vehicle ID ${vehicle_id}`);
+
+                // 🔥 Emit WebSocket event for first swap (initialization)
+                this.swapTransactionsGateway.notifySwapCreated({
+                    transactionId: swapRecord.transaction_id,
+                    stationId: station_id,
+                    stationName: station.name,
+                    user: {
+                        userId: user_id,
+                        username: user.username,
+                        email: user.email,
+                    },
+                    vehicle: {
+                        vehicleId: vehicle_id,
+                        vin: vehicle.vin,
+                        batteryModel: vehicle.battery_model || 'Unknown',
+                    },
+                    batteryTaken: {
+                        batteryId: taken_battery_id,
+                        charge: Number(takenBattery.current_charge),
+                    },
+                    status: SwapTransactionStatus.completed,
+                    timestamp: new Date().toISOString(),
+                });
 
                 return {
                     message: 'Battery initialization successful',
