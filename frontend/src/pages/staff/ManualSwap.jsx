@@ -407,6 +407,10 @@ export default function ManualSwapTransaction() {
                 battery_returned_id: currentBatteryId,
             });
 
+            // Close the "Create New Swap Transaction" modal
+            setShowModal(false);
+
+            // Open the swap steps dialog
             setSwapDialogOpen(true);
             setIsSubmitting(false);
         } catch (error) {
