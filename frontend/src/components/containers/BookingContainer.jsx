@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import Booking from '../../pages/Booking';
+import Booking from '../../pages/driver/Booking';
 import { useAuth, useStation, useReservation, useSubscription, useVehicle } from '../../hooks/useContext';
 
 export default function BookingContainer() {

@@ -37,9 +37,9 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
       try {
         setLoadingSubscriptions(true);
         
-        // Fetch subscriptions
+        // Fetch subscriptions (both active and expired)
         const subs = await subscriptionService.getSubscriptionsByUserId(user.user_id);
-        setSubscriptions(Array.isArray(subs) ? subs.filter(s => s.status === 'active') : []);
+        setSubscriptions(Array.isArray(subs) ? subs.filter(s => s.status === 'active' || s.status === 'expired') : []);
 
         // Fetch vehicles to build map
         const vhcls = await vehicleService.getVehicleByUserId(user.user_id);
@@ -297,9 +297,16 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                 <div className="space-y-3">
                   {/* Package Name */}
                   <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Package className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs text-gray-600 font-medium">Package</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-blue-600" />
+                        <p className="text-xs text-gray-600 font-medium">Package</p>
+                      </div>
+                      {currentSubscription.status === 'expired' && (
+                        <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-bold text-red-700 border border-red-200">
+                          EXPIRED
+                        </span>
+                      )}
                     </div>
                     <p className="text-lg font-bold text-gray-900">
                       {currentSubscription.package?.name ||
@@ -405,6 +412,20 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                           </p>
                         </div>
                       )}
+                  </div>
+                </div>
+              ) : currentSubscription?.status === 'expired' ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="font-medium">Subscription Expired</p>
+                  <p className="text-sm mt-1">Your subscription has ended</p>
+                  <div className="mt-4">
+                    <Link
+                      to="/driver/plans"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      Renew
+                    </Link>
                   </div>
                 </div>
               ) : (
