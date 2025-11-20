@@ -29,6 +29,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateDirectPaymentDto } from './dto/create-direct-payment.dto';
 import { DirectRenewalPaymentDto } from './dto/direct-renewal-payment.dto';
+import { CreatePenaltyPaymentDto } from './dto/penalty-payment.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('payments')
@@ -70,7 +71,7 @@ export class PaymentsController {
    * ⭐ NEW ENDPOINT - Support multiple payment types
    * Create VNPAY payment URL with flexible payment types
    * POST /payments/create-vnpay-url-advanced
-   * 
+   *
    * Supported payment_type:
    * - subscription (default)
    * - subscription_with_deposit (first time + deposit)
@@ -203,7 +204,7 @@ export class PaymentsController {
   /**
    * ⭐ NEW ENDPOINT - Cancel expired pending payments
    * POST /payments/cancel-expired
-   * 
+   *
    * Manually trigger cancellation of payments that have expired
    */
   @Post('cancel-expired')
@@ -223,7 +224,7 @@ export class PaymentsController {
   /**
    * ⭐ NEW ENDPOINT - Create payment for battery deposit only
    * POST /payments/battery-deposit
-   * 
+   *
    * No subscription created, just save deposit
    */
   @Post('battery-deposit')
@@ -254,7 +255,7 @@ export class PaymentsController {
   /**
    * ⭐ NEW ENDPOINT - Create payment for damage fee
    * POST /payments/damage-fee
-   * 
+   *
    * Pay for damage without subscription
    */
   @Post('damage-fee')
@@ -396,19 +397,19 @@ export class PaymentsController {
   /**
    * ⭐ NEW ENDPOINT - Integrated Fee Calculation + VNPay Payment URL
    * Combines fee calculation with VNPAY URL creation in one endpoint
-   * 
+   *
    * Usage Examples:
    * 1. Subscription with deposit:
    *    { "user_id": 1, "package_id": 1, "vehicle_id": 1, "payment_type": "subscription_with_deposit" }
-   * 
+   *
    * 2. Damage fee:
    *    { "user_id": 1, "package_id": 1, "vehicle_id": 1, "payment_type": "damage_fee", "damage_type": "medium" }
-   * 
+   *
    * Response includes:
    * - paymentUrl: Ready-to-use VNPAY payment URL
    * - feeBreakdown: Detailed fee calculation breakdown
    * - payment_id & vnp_txn_ref: For tracking and reconciliation
-   * 
+   *
    * POST /payments/calculate-and-create-vnpay-url
    */
   @Post('calculate-and-create-vnpay-url')
@@ -435,13 +436,13 @@ export class PaymentsController {
   /**
  * ⭐ NEW ENDPOINT - Create direct payment with fees (no VNPAY)
  * POST /payments/direct-with-fees
- * 
+ *
  * Same as /calculate-and-create-vnpay-url but:
  * - Does NOT redirect to VNPAY
  * - Creates payment with success status immediately
  * - Creates subscription immediately (if applicable)
  * - Calculates and displays full fee breakdown
- * 
+ *
  * Use for:
  * - Demo without VNPAY
  * - Testing payment flows
@@ -485,22 +486,86 @@ export class PaymentsController {
   }
 
   /**
+   * ⭐ NEW ENDPOINT - Create direct penalty payment (without renewal)
+   * POST /payments/penalty-only
+   *
+   * User chỉ thanh toán phí phạt vượt km, không gia hạn gói:
+   * - Calculates penalty fee automatically
+   * - Creates payment with success status immediately
+   * - Updates subscription status to 'expired' (penalty cleared)
+   * - Does NOT create new subscription
+   * - User can renew later if needed
+   *
+   * Use cases:
+   * - Pay debt before deciding to renew
+   * - Pay penalty but stop using service
+   * - Clear penalty obligation
+   *
+   * Request body:
+   * {
+   *   "subscription_id": 1,
+   *   "payment_method": "cash", // optional: cash, bank_transfer, credit_card
+   *   "order_info": "Thanh toán phí phạt vượt km", // optional
+   *   "transaction_id": "CUSTOM_PENALTY_123" // optional (auto-generated if not provided)
+   * }
+   */
+  @Post('penalty-only')
+  @ApiOperation({
+    summary: 'Pay penalty fee only (without subscription renewal)',
+    description: 'User pays overcharge penalty for expired subscription. Subscription remains expired after payment.'
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Penalty payment successful',
+    schema: {
+      example: {
+        success: true,
+        payment: {
+          payment_id: 123,
+          amount: 50000,
+          status: 'success',
+          payment_type: 'damage_fee',
+          order_info: 'Penalty fee for subscription 45',
+          transaction_id: 'PENALTY_20250121153045'
+        },
+        subscription: {
+          subscription_id: 45,
+          status: 'expired',
+          distance_traveled: 4500,
+          package: {
+            base_distance: 4000
+          }
+        },
+        penaltyAmount: 50000,
+        message: 'Penalty fee paid successfully: 50.000 VND. Subscription remains expired.'
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'No penalty to pay or subscription not expired' })
+  @ApiResponse({ status: 404, description: 'Subscription not found' })
+  async createPenaltyPayment(
+    @Body() penaltyDto: CreatePenaltyPaymentDto,
+  ) {
+    return this.paymentsService.createDirectPenaltyPayment(penaltyDto);
+  }
+
+  /**
    * ⭐ NEW ENDPOINT - Create direct renewal payment (without VNPAY)
    * POST /payments/direct-renewal
-   * 
+   *
    * Renew expired subscription directly without VNPAY gateway:
    * - Calculates penalty fee automatically if overcharge exists
    * - Creates payment with success status immediately
    * - Creates new subscription immediately
    * - Marks old subscription as cancelled
    * - Returns detailed fee breakdown
-   * 
+   *
    * Use cases:
    * - When VNPAY is down/unavailable
    * - Manual payment at station
    * - Testing/demo purposes
    * - Staff-assisted renewals
-   * 
+   *
    * Request body:
    * {
    *   "subscription_id": 1,
@@ -511,8 +576,8 @@ export class PaymentsController {
    */
   @Post('direct-renewal')
   @ApiOperation({ summary: 'Renew subscription directly without VNPAY' })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Subscription renewed successfully with direct payment',
     schema: {
       example: {
