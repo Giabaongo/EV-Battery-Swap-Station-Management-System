@@ -49,7 +49,8 @@ export class BatteryTransferRequestService {
 
       if (availiableBatteries.length < dto.quantity) {
         throw new BadRequestException(
-          `Not enough available batteries at station ID ${from_station.station_id}, requested: ${dto.quantity}, available: ${availiableBatteries.length}`
+          `Not enough available batteries at station ${from_station.name}.
+          Requested: ${dto.quantity}, Available: ${availiableBatteries.length}`
         );
       }
 
@@ -61,7 +62,7 @@ export class BatteryTransferRequestService {
       }
 
       if (allEmptySlots.length < dto.quantity) {
-        throw new BadRequestException(`Not enough empty slots at station ${dto.to_station_id} for transfer!`);
+        throw new BadRequestException(`Not enough empty slots at station ${to_station.name} to import for transfer!`);
       }
 
       // Check for existing in-progress request
