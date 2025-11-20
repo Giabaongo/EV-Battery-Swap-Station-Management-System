@@ -1,12 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { DatabaseService } from '../database/database.service';
 import { CreateSupportDto } from './dto/create-support.dto';
 import { UpdateSupportDto } from './dto/update-support.dto';
-import { DatabaseService } from '../database/database.service';
 import { SupportStatus } from '@prisma/client';
+import { WebsocketService } from '../websocket/websocket.service';
 
 @Injectable()
 export class SupportsService {
-  constructor(private prisma: DatabaseService) {}
+  constructor(
+    private prisma: DatabaseService,
+    private websocketService: WebsocketService,
+  ) {}
 
   async create(createSupportDto: CreateSupportDto) {
     // Validate user exists
@@ -29,7 +37,8 @@ export class SupportsService {
       }
     }
 
-    return this.prisma.support.create({
+    // Create support ticket
+    const support = await this.prisma.support.create({
       data: createSupportDto,
       include: {
         user: {
@@ -43,6 +52,11 @@ export class SupportsService {
         station: true,
       },
     });
+
+    // Send real-time notification to admins
+    this.websocketService.notifyAdminsNewSupportTicket(support);
+
+    return support;
   }
 
   async findAll() {
@@ -159,7 +173,7 @@ export class SupportsService {
       }
     }
 
-    return this.prisma.support.update({
+    const support = await this.prisma.support.update({
       where: { support_id: id },
       data: updateSupportDto,
       include: {
@@ -174,12 +188,21 @@ export class SupportsService {
         station: true,
       },
     });
+
+    // Send real-time notification to user about the update
+    if (support.status === SupportStatus.closed) {
+      this.websocketService.notifyUserTicketResolved(support.user_id, support);
+    } else {
+      this.websocketService.notifyUserTicketUpdate(support.user_id, support);
+    }
+
+    return support;
   }
 
   async updateStatus(id: number, status: SupportStatus) {
     await this.findOne(id);
 
-    return this.prisma.support.update({
+    const support = await this.prisma.support.update({
       where: { support_id: id },
       data: { status },
       include: {
@@ -194,6 +217,15 @@ export class SupportsService {
         station: true,
       },
     });
+
+    // Send real-time notification to user about status change
+    if (status === SupportStatus.closed) {
+      this.websocketService.notifyUserTicketResolved(support.user_id, support);
+    } else {
+      this.websocketService.notifyUserTicketUpdate(support.user_id, support);
+    }
+
+    return support;
   }
 
   async addRating(id: number, rating: number) {
@@ -225,11 +257,16 @@ export class SupportsService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const support = await this.findOne(id);
 
-    return this.prisma.support.delete({
+    await this.prisma.support.delete({
       where: { support_id: id },
     });
+
+    // Notify user that their ticket was deleted
+    this.websocketService.notifyUserTicketDeleted(support.user_id, id);
+
+    return support;
   }
 
   async getStatistics() {

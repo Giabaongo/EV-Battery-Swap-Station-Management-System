@@ -1,0 +1,432 @@
+{
+  "info": {
+    "name": "WebSocket Reservations Testing",
+    "_postman_id": "reservation-ws-test-001",
+    "description": "Collection để test WebSocket notifications cho module Reservations\n\n## Setup:\n1. Login để lấy JWT token\n2. Tạo reservation qua API\n3. Observe WebSocket events\n\n## WebSocket Connection:\n- URL: ws://localhost:8080/reservations\n- Event: reservation.created",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "ws_url",
+      "value": "ws://localhost:8080/reservations",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "vehicle_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "station_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login - Get JWT Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    ",
+                  "    if (response.access_token) {",
+                  "        pm.collectionVariables.set('access_token', response.access_token);",
+                  "        pm.collectionVariables.set('user_id', response.user.user_id);",
+                  "        console.log('✅ Token saved to collection variables');",
+                  "        console.log('User ID:', response.user.user_id);",
+                  "        console.log('Email:', response.user.email);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"driver@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login để lấy JWT token. Token sẽ tự động được lưu vào collection variables."
+          },
+          "response": []
+        }
+      ],
+      "description": "Các API liên quan đến authentication"
+    },
+    {
+      "name": "2. Reservations",
+      "item": [
+        {
+          "name": "Create Reservation (Trigger WebSocket Event)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Set scheduled time to 30 minutes from now",
+                  "const now = new Date();",
+                  "now.setMinutes(now.getMinutes() + 30);",
+                  "pm.collectionVariables.set('scheduled_time', now.toISOString());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has reservation', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('reservation');",
+                  "    pm.expect(response).to.have.property('battery');",
+                  "});",
+                  "",
+                  "pm.test('Battery status updated to booked', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.battery.status).to.equal('booked');",
+                  "});",
+                  "",
+                  "console.log('✅ Reservation created!');",
+                  "console.log('🔔 Check WebSocket client for \"reservation.created\" event');",
+                  "",
+                  "const response = pm.response.json();",
+                  "console.log('Reservation ID:', response.reservation.reservation_id);",
+                  "console.log('Battery ID:', response.battery.battery_id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{user_id}},\n  \"vehicle_id\": {{vehicle_id}},\n  \"station_id\": {{station_id}},\n  \"scheduled_time\": \"{{scheduled_time}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations",
+              "host": ["{{base_url}}"],
+              "path": ["reservations"]
+            },
+            "description": "Tạo reservation mới. Sau khi tạo thành công, WebSocket sẽ emit event `reservation.created` tới tất cả connected clients.\n\n**WebSocket Event:**\n- Event name: `reservation.created`\n- Namespace: `/reservations`\n\n**Test Steps:**\n1. Connect WebSocket client tới `ws://localhost:8080/reservations`\n2. Run API này\n3. Observe event trong WebSocket client\n\n**Scheduled Time:**\nAutomatic set to 30 minutes from now (trong pre-request script)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reservations by User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is array', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "const reservations = pm.response.json();",
+                  "console.log(`Found ${reservations.length} reservation(s)`);",
+                  "",
+                  "if (reservations.length > 0) {",
+                  "    console.log('Latest reservation:', reservations[0]);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reservations/user/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "user", "{{user_id}}"]
+            },
+            "description": "Lấy danh sách reservations của user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reservations by Station ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is array', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});",
+                  "",
+                  "const reservations = pm.response.json();",
+                  "console.log(`Found ${reservations.length} reservation(s) at station`);",
+                  "",
+                  "if (reservations.length > 0) {",
+                  "    reservations.forEach((r, i) => {",
+                  "        console.log(`${i + 1}. Reservation ${r.reservation_id} - ${r.status} - ${new Date(r.scheduled_time).toLocaleString()}`);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reservations/station/{{station_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "station", "{{station_id}}"]
+            },
+            "description": "Lấy danh sách reservations tại một station (dành cho station staff)"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Reservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Reservation status is cancelled', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.equal('cancelled');",
+                  "});",
+                  "",
+                  "pm.test('Battery status reset to full', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.battery.status).to.equal('full');",
+                  "});",
+                  "",
+                  "console.log('✅ Reservation cancelled');",
+                  "console.log('Battery status reset to:', pm.response.json().battery.status);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{user_id}},\n  \"vehicle_id\": {{vehicle_id}},\n  \"status\": \"cancelled\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reservations/1",
+              "host": ["{{base_url}}"],
+              "path": ["reservations", "1"]
+            },
+            "description": "Cancel một reservation. Battery status sẽ được reset về 'full'.\n\n**Note:** Thay đổi ID trong URL (hiện tại là '1') thành reservation_id thực tế cần cancel."
+          },
+          "response": []
+        }
+      ],
+      "description": "APIs liên quan đến reservations và WebSocket events"
+    },
+    {
+      "name": "3. Supporting APIs",
+      "item": [
+        {
+          "name": "Get User Vehicles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const vehicles = pm.response.json();",
+                  "if (vehicles.length > 0) {",
+                  "    pm.collectionVariables.set('vehicle_id', vehicles[0].vehicle_id);",
+                  "    console.log('Vehicle ID saved:', vehicles[0].vehicle_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vehicles/user/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["vehicles", "user", "{{user_id}}"]
+            },
+            "description": "Lấy danh sách vehicles của user để chọn vehicle_id cho reservation"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Stations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const stations = pm.response.json();",
+                  "if (stations.length > 0) {",
+                  "    pm.collectionVariables.set('station_id', stations[0].station_id);",
+                  "    console.log('Station ID saved:', stations[0].station_id);",
+                  "    console.log('Station name:', stations[0].name);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stations",
+              "host": ["{{base_url}}"],
+              "path": ["stations"]
+            },
+            "description": "Lấy danh sách stations để chọn station_id cho reservation"
+          },
+          "response": []
+        }
+      ],
+      "description": "Supporting APIs để lấy data cần thiết cho testing"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": ["// Global pre-request script", "console.log('Request:', pm.info.requestName);"]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": ["// Global test script", "console.log('Response time:', pm.response.responseTime, 'ms');"]
+      }
+    }
+  ]
+}

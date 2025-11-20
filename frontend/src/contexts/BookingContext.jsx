@@ -38,6 +38,8 @@ export const BookingProvider = ({ children }) => {
             const reservationEntity = created?.reservation_id ? created : (created?.reservation ?? created);
             setReservations((prev) => [...prev, reservationEntity]);
             setActiveReservation(reservationEntity);
+            // Persist to localStorage
+            localStorage.setItem('activeReservation', JSON.stringify(reservationEntity));
             return reservationEntity;
         } catch (err) {
             console.error('createReservation error', err);
@@ -115,8 +117,12 @@ export const BookingProvider = ({ children }) => {
             if (activeReservation?.reservation_id === reservationId) {
                 if (status === 'completed' || status === 'cancelled') {
                     setActiveReservation(null);
+                    // Clear from localStorage when cancelled or completed
+                    localStorage.removeItem('activeReservation');
                 } else {
                     setActiveReservation(updated);
+                    // Update localStorage with new status
+                    localStorage.setItem('activeReservation', JSON.stringify(updated));
                 }
             }
             return updated;
@@ -131,6 +137,8 @@ export const BookingProvider = ({ children }) => {
 
     const clearActiveReservation = useCallback(() => {
         setActiveReservation(null);
+        // Remove from localStorage
+        localStorage.removeItem('activeReservation');
     }, []);
 
     // ============ SWAP REQUEST METHODS ============
@@ -204,6 +212,29 @@ export const BookingProvider = ({ children }) => {
     }, []);
 
     // ============ EFFECTS ============
+    // Initialize activeReservation from localStorage
+    // Only restore if status is 'scheduled' or 'pending', not 'cancelled' or 'completed'
+    useEffect(() => {
+        const saved = localStorage.getItem('activeReservation');
+        if (saved) {
+            try {
+                const reservation = JSON.parse(saved);
+                // Only restore if it's still active (scheduled or pending), not cancelled/completed
+                if (reservation.status === 'scheduled' || reservation.status === 'pending') {
+                    setActiveReservation(reservation);
+                    console.log('✅ Restored activeReservation from localStorage:', reservation.reservation_id, 'status:', reservation.status);
+                } else {
+                    // Don't restore cancelled/completed reservations
+                    console.log('⚠️ Skipped restoring cancelled/completed reservation:', reservation.reservation_id, 'status:', reservation.status);
+                    localStorage.removeItem('activeReservation');
+                }
+            } catch (err) {
+                console.error('Failed to parse activeReservation from localStorage:', err);
+                localStorage.removeItem('activeReservation');
+            }
+        }
+    }, []);
+
     // Save notifications to localStorage
     useEffect(() => {
         localStorage.setItem('swapNotifications', JSON.stringify(notifications));

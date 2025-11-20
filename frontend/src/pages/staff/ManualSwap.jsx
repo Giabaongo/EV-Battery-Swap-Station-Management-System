@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
 import { useBattery, useAuth, useSubscription, usePackage } from '../../hooks/useContext';
-import { swappingService } from '../../services/swappingService';
 import { vehicleService } from '../../services/vehicleService';
 import { reservationService } from '../../services/reservationService';
 import { subscriptionService } from '../../services/subscriptionService';
 import { stationService } from '../../services/stationService';
 import userService from '../../services/userService';
 import TransactionsTable from '../../components/staff-dashboard/TransactionsTable';
+import SwapStepsDialog from '../../components/staff/SwapStepsDialog';
 
 export default function ManualSwapTransaction() {
     const navigate = useNavigate();
@@ -65,39 +64,9 @@ export default function ManualSwapTransaction() {
     // Submit button loading state to prevent duplicate submissions
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Map backend error responses to friendly UI messages
-    const mapServerErrorToMessage = (resp) => {
-        // Try to normalize message(s) into an array
-        const msgs = [];
-        const raw = resp?.message ?? resp?.error ?? null;
-
-        if (Array.isArray(raw)) {
-            raw.forEach(r => msgs.push(String(r)));
-        } else if (typeof raw === 'string' && raw) {
-            msgs.push(raw);
-        } else if (resp && typeof resp === 'string') {
-            msgs.push(resp);
-        }
-
-        // If there's a specific subscription/vehicle mismatch, return the localized friendly message
-        const subscriptionMismatch = msgs.find(m => typeof m === 'string' && /Subscription with ID/i.test(m));
-        if (subscriptionMismatch) {
-            // Try to get VIN for the selected vehicle
-            const selectedVehicleId = formData.vehicle_id || urlVehicleId;
-            let vin = _vehicleData?.vin || null;
-            if (!vin && selectedVehicleId && Array.isArray(userVehicles)) {
-                const found = userVehicles.find(v => String(v.vehicle_id) === String(selectedVehicleId));
-                vin = found?.vin || found?.plate || null;
-            }
-
-            const idOrVin = vin ? String(vin) : `ID ${selectedVehicleId}`;
-            return [`User's vehicle (${idOrVin}) is not registered for a battery swap subscription, please register a subscription`];
-        }
-
-        // Fallback: return original messages if any, otherwise a generic message
-        if (msgs.length > 0) return msgs;
-        return ['An error occurred, please try again or contact support.'];
-    };
+    // Swap steps dialog state
+    const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+    const [swapFormData, setSwapFormData] = useState(null);
 
     // Update station_id when user changes (but don't trigger loading)
     useEffect(() => {
@@ -427,50 +396,64 @@ export default function ManualSwapTransaction() {
                 return;
             }
 
-            // Backend auto-selects battery, we only need to send user_id, vehicle_id, station_id
-            const swapPayload = {
+            // Get current battery ID from vehicle
+            const currentBatteryId = formData.battery_returned_id || _vehicleData?.battery_id;
+
+            // Store form data and open steps dialog
+            setSwapFormData({
                 user_id: userIdPayload,
                 vehicle_id: vehicleIdPayload,
-                station_id: stationIdPayload
-            };
+                station_id: stationIdPayload,
+                battery_returned_id: currentBatteryId,
+            });
 
-            console.log('🚀 Creating swap transaction with payload:', swapPayload);
+            // Close the "Create New Swap Transaction" modal
+            setShowModal(false);
 
-            // Call backend swapping endpoint which handles everything automatically
-            const resp = await swappingService.swapBatteries(swapPayload);
-            console.log('✅ Swap transaction created:', resp);
-
-            // If this was a reservation flow, backend already updated reservation status to completed
-            if (reservationId) {
-                console.log('📋 Reservation', reservationId, 'marked as completed by backend');
-            }
-
-            // Refresh battery list
-            try {
-                if (typeof getAllBatteries === 'function') {
-                    await getAllBatteries();
-                }
-            } catch (refreshErr) {
-                console.warn('Failed to refresh batteries after swap:', refreshErr);
-            }
-
-            // Show toast notification instead of alert
-            if (window && window.toast) {
-                window.toast.success('Swap transaction completed successfully!');
-            } else if (typeof toast !== 'undefined') {
-                toast.success('Swap transaction completed successfully!');
-            } else {
-                // fallback: alert
-                alert('Swap transaction completed successfully!');
-            }
+            // Open the swap steps dialog
+            setSwapDialogOpen(true);
             setIsSubmitting(false);
-            navigate('/staff/swap-requests');
         } catch (error) {
-            console.error('❌ Error creating swap transaction:', error);
-            const resp = error?.response?.data;
-            setApiErrors(mapServerErrorToMessage(resp));
+            console.error('❌ Error preparing swap transaction:', error);
+            setApiErrors(['Failed to prepare swap transaction']);
             setIsSubmitting(false);
         }
+    };
+
+    // Handle successful swap completion
+    const handleSwapSuccess = async (transaction) => {
+        console.log('✅ Swap completed successfully:', transaction);
+
+        // Refresh battery list
+        try {
+            if (typeof getAllBatteries === 'function') {
+                await getAllBatteries();
+            }
+        } catch (refreshErr) {
+            console.warn('Failed to refresh batteries after swap:', refreshErr);
+        }
+
+        // Close swap steps dialog
+        setSwapDialogOpen(false);
+
+        // Reset form data for next swap
+        setFormData({
+            user_id: '',
+            vehicle_id: '',
+            station_id: staffStationId || '',
+            subscription_id: '',
+            subscription_name: '',
+            battery_taken_id: '',
+            subscription_battery_returned_id: '',
+        });
+
+        // Clear other form states
+        setUsername('');
+        setVehicleVin('');
+        setFoundUser(null);
+        setUserEmail('');
+        setUserVehicles([]);
+        setApiErrors([]);
     };
 
     const handleCancel = () => {
@@ -866,6 +849,18 @@ export default function ManualSwapTransaction() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Swap Steps Dialog */}
+            {swapFormData && (
+                <SwapStepsDialog
+                    open={swapDialogOpen}
+                    onOpenChange={setSwapDialogOpen}
+                    userId={swapFormData.user_id}
+                    vehicleId={swapFormData.vehicle_id}
+                    stationId={swapFormData.station_id}
+                    onSuccess={handleSwapSuccess}
+                />
             )}
         </div>
     );

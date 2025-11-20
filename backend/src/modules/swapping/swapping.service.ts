@@ -6,6 +6,7 @@ import { StationsService } from '../stations/stations.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { DatabaseService } from '../database/database.service';
 import { SwapTransactionsService } from '../swap-transactions/swap-transactions.service';
+import { SwapTransactionsGateway } from '../swap-transactions/swap-transactions.gateway';
 import { BatteryStatus, CabinetStatus, ReservationStatus, SubscriptionStatus, SwapTransactionStatus } from '@prisma/client';
 import { FirstSwapDto } from './dto/first-swap.dto';
 import { ReservationsService } from '../reservations/reservations.service';
@@ -25,6 +26,7 @@ export class SwappingService {
         private batteriesService: BatteriesService,
         private stationsService: StationsService,
         private swapTransactionsService: SwapTransactionsService,
+        private swapTransactionsGateway: SwapTransactionsGateway,
         private subscriptionsService: SubscriptionsService,
         private reservationsService: ReservationsService,
         private cabinetsService: CabinetService,

@@ -48,6 +48,7 @@ import AdminReport from './pages/admin/reports/ReportDashboard'
 import UnauthorizedPage from './pages/shared/UnauthorizedPage'
 import StaffTransfer from './pages/staff/TransferRequests'
 import CreateBattery from './pages/staff/CreateBattery'
+import ReservationCountdownWidget from './components/booking/ReservationCountdownWidget'
 
 // import ProtectedRoute from './components/auth/ProtectedRoute'
 
@@ -55,6 +56,7 @@ function App() {
   return (
     <div className="App">
       <Toaster position="top-right" richColors closeButton />
+      <ReservationCountdownWidget />
       {/* <Navigation /> */}
       <Routes>
         {/* Public Routes */}

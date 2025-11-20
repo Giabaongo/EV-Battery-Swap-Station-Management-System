@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Cron, CronExpression, Interval } from '@nestjs/schedule';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { UpdateReservationDto } from './dto/update-reservation-status.dto';
 import { BatteriesService } from '../batteries/batteries.service';
 import { DatabaseService } from '../database/database.service';
 import { BatteryStatus, ReservationStatus, SubscriptionStatus } from '@prisma/client';
@@ -10,7 +11,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { ConfigService } from '@nestjs/config';
 import { StationsService } from '../stations/stations.service';
 import { CabinetService } from '../cabinets/cabinets.service';
-import { UpdateReservationDto } from './dto/update-reservation-status.dto';
+import { ReservationsGateway, ReservationCreatedEvent, ReservationStatusUpdatedEvent } from './reservations.gateway';
 
 @Injectable()
 export class ReservationsService {
@@ -24,7 +25,8 @@ export class ReservationsService {
     private subscriptionsService: SubscriptionsService,
     private stationsService: StationsService,
     private configService: ConfigService,
-    private cabinetsService: CabinetService
+    private cabinetsService: CabinetService,
+    private reservationsGateway: ReservationsGateway
   ) { }
 
 
@@ -35,7 +37,7 @@ export class ReservationsService {
       //1. Check user có tồn tại
       const user = await this.userService.findOneById(user_id);
 
-      await this.stationsService.findOne(station_id);
+      const station = await this.stationsService.findOne(station_id);
 
       const vehicle = await this.vehicleService.findOne(vehicle_id);
       if (vehicle.user_id !== user_id) {
@@ -115,6 +117,29 @@ export class ReservationsService {
       });
 
       this.logger.log(`New reservation created with ID ${newReservation.reservation_id} for user ID ${user_id} at station ID ${station_id}`);
+
+      const payload: ReservationCreatedEvent = {
+        reservationId: newReservation.reservation_id,
+        stationId: station.station_id,
+        stationName: station.name,
+        scheduledTime: newReservation.scheduled_time.toISOString(),
+        batteryId: reservationBattery.battery_id,
+        vehicle: {
+          id: vehicle.vehicle_id,
+          vin: vehicle.vin,
+          batteryModel: vehicle.battery_model,
+          batteryType: vehicle.battery_type
+        },
+        user: {
+          id: user.user_id,
+          username: user.username,
+          email: user.email,
+          phone: user.phone
+        }
+      };
+
+      this.reservationsGateway.notifyReservationCreated(payload);
+
       return {
         reservation: newReservation,
         cabinet: cabinet,
@@ -204,19 +229,27 @@ export class ReservationsService {
     const prisma = tx || this.databaseService;
 
     const reservationUpdate = await prisma.reservation.findUnique({
-      where: { reservation_id: id, vehicle_id: vehicle_id }
+      where: { reservation_id: id, vehicle_id: vehicle_id },
+      include: {
+        station: true,
+        vehicle: true,
+        user: true
+      }
     })
 
     if (!reservationUpdate || reservationUpdate.user_id != user_id) {
       throw new NotFoundException(`Reservation not found or made by user with ID ${user_id}`);
     }
 
+    // Store previous status for WebSocket event
+    const previousStatus = reservationUpdate.status;
+
     if (status === ReservationStatus.cancelled) {
       // If cancelling a reservation, update the battery status to 'full'
       await this.batteriesService.updateBatteryStatus(reservationUpdate.battery_id, BatteryStatus.full);
     }
 
-    return await prisma.reservation.update({
+    const updatedReservation = await prisma.reservation.update({
       where: { reservation_id: id },
       data: { status },
       include: {
@@ -228,6 +261,35 @@ export class ReservationsService {
         }
       },
     });
+
+    // Emit WebSocket event if status actually changed
+    if (previousStatus !== status) {
+      const payload: ReservationStatusUpdatedEvent = {
+        reservationId: reservationUpdate.reservation_id,
+        stationId: reservationUpdate.station.station_id,
+        stationName: reservationUpdate.station.name,
+        previousStatus,
+        currentStatus: status,
+        scheduledTime: reservationUpdate.scheduled_time.toISOString(),
+        vehicle: {
+          id: reservationUpdate.vehicle.vehicle_id,
+          vin: reservationUpdate.vehicle.vin
+        },
+        user: {
+          id: reservationUpdate.user.user_id,
+          username: reservationUpdate.user.username,
+          email: reservationUpdate.user.email
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      this.reservationsGateway.notifyReservationStatusUpdated(payload);
+      this.logger.log(
+        `Reservation ${id} status updated: ${previousStatus} → ${status}. WebSocket event emitted.`
+      );
+    }
+
+    return updatedReservation;
   }
 
   remove(id: number) {
