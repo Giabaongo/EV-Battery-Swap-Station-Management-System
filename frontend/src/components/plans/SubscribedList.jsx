@@ -9,6 +9,7 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [renewingId, setRenewingId] = useState(null);
+  const [renewingDirectId, setRenewingDirectId] = useState(null);
 
   const handleViewDetails = (subscription) => {
     setSelectedSubscription(subscription);
@@ -46,6 +47,33 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
       toast.error('Error renewing subscription');
     } finally {
       setRenewingId(null);
+    }
+  };
+
+  // Handle renew subscription directly (không qua VNPAY) - Gọi API renewSubscriptionDirect
+  const handleRenewSubscriptionDirect = async (subscription) => {
+    setRenewingDirectId(subscription.subscription_id);
+    try {
+      const res = await paymentService.renewSubscriptionDirect({
+        subscription_id: subscription.subscription_id
+      });
+      
+      // Success - API trả về data object với payment info
+      if (res && !res.error) {
+        // Success - show toast and reload page
+        toast.success('Subscription renewed successfully!');
+        // Reload page after 1s
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast.error(res?.message || 'Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription directly:', error);
+      toast.error(error.response?.data?.message || 'Error renewing subscription');
+    } finally {
+      setRenewingDirectId(null);
     }
   };
 
@@ -240,18 +268,30 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
                     <Eye className="w-4 h-4" />
                     View Details
                   </Button>
-                {/* Renewal Button */}
+                {/* Renewal Buttons */}
                   {subscription.status === 'expired' && (
-                    <Button
-                      onClick={() => handleRenewSubscription(subscription)}
-                      disabled={renewingId === subscription.subscription_id}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <RefreshCcw className="w-4 h-4" />
-                      {renewingId === subscription.subscription_id ? 'Renewing...' : 'Renew Subscription'}
-                    </Button>
+                    <div className="flex flex-col gap-2 w-full">
+                      <Button
+                        onClick={() => handleRenewSubscription(subscription)}
+                        disabled={renewingId === subscription.subscription_id || renewingDirectId === subscription.subscription_id}
+                        variant="default"
+                        size="sm"
+                        className="flex items-center gap-2 whitespace-nowrap bg-blue-700 hover:bg-blue-700"
+                      >
+                        <RefreshCcw className="w-4 h-4" />
+                        {renewingId === subscription.subscription_id ? 'Renewing...' : 'Renew (VNPAY)'}
+                      </Button>
+                      <Button
+                        onClick={() => handleRenewSubscriptionDirect(subscription)}
+                        disabled={renewingDirectId === subscription.subscription_id || renewingId === subscription.subscription_id}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <RefreshCcw className="w-4 h-4" />
+                        {renewingDirectId === subscription.subscription_id ? 'Renewing...' : 'Renew Direct'}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>

@@ -49,6 +49,18 @@ const renewSubscription = async (renewalData) => {
   }
 };
 
+const renewSubscriptionDirect = async (renewalData) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.PAYMENT.DIRECT_RENEW_SUBSCRIPTION, renewalData);  
+    console.log("Renewed direct subscription payment:", response.data);
+    return response.data;
+  }
+  catch (error) {
+    console.error("Error renewing direct subscription payment:", error);
+    throw error;
+  }
+};
+
 // const createDirectPayment = async (paymentData) => {
 //   try {
 //     const response = await api.post(API_ENDPOINTS.PAYMENT.DIRECT_PAYMENT, paymentData);   
@@ -79,6 +91,7 @@ export const paymentService = {
   createDirectPaymentWithFees,
   handleVnpayReturn,
   renewSubscription,
+  renewSubscriptionDirect,
 };
 
 
