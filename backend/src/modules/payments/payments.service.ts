@@ -1616,6 +1616,7 @@ export class PaymentsService {
       where: { subscription_id: subscription.subscription_id },
       data: {
         status: SubscriptionStatus.expired, // Change from pending_penalty_payment to expired
+        distance_traveled: 0 // Reset distance for renew without pay fee again
       },
       include: {
         package: true,
