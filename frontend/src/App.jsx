@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner'
-import GuestPage from './pages/GuestPage'
+import GuestPage from './pages/shared/GuestPage'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import GoogleCallback from './pages/auth/GoogleCallback'
 import AdminLayout from './pages/admin/AdminLayout'
 import StaffLayout from './pages/staff/StaffLayout'
-import NotFound from './pages/NotFound'
+import NotFound from './pages/shared/NotFound'
 import MapPage from './pages/driver/Map'
 import DriverLayout from './pages/driver/DriverLayout'
 import BookingContainer from './components/containers/BookingContainer'
@@ -29,6 +29,7 @@ import AdminStationList from './pages/admin/stations/StationList'
 import StationDetail from './pages/admin/stations/StationDetail'
 import EditStation from './pages/admin/stations/EditStation'
 import CreateStation from './pages/admin/stations/CreateStation'
+import CreateVehicle from './pages/admin/vehicles/CreateVehicle'
 import AdminUserList from './pages/admin/users/UserList'
 import UserDetail from './pages/admin/users/UserDetail'
 import EditUser from './pages/admin/users/EditUser'
@@ -44,6 +45,7 @@ import EditBatteryTransfer from './pages/admin/battery-transfers/EditTransfer'
 import AdminSupportList from './pages/admin/supports/SupportList'
 import SupportDetail from './pages/admin/supports/SupportDetail'
 import AdminReport from './pages/admin/reports/ReportDashboard'
+import UnauthorizedPage from './pages/shared/UnauthorizedPage'
 import StaffTransfer from './pages/staff/TransferRequests'
 import CreateBattery from './pages/staff/CreateBattery'
 import ReservationCountdownWidget from './components/booking/ReservationCountdownWidget'
@@ -107,6 +109,7 @@ function App() {
           <Route path="stations/create" element={<CreateStation />} />
           <Route path="stations/:id" element={<StationDetail />} />
           <Route path="stations/edit/:id" element={<EditStation />} />
+          <Route path="vehicles/create" element={<CreateVehicle />} />
 
           <Route path="users-list" element={<AdminUserList />} />
           <Route path="users/:id" element={<UserDetail />} />

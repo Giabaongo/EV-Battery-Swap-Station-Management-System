@@ -151,7 +151,7 @@ export default function StaffInventory() {
                 <div className="flex gap-3">
                     <button
                         onClick={handleCreateBattery}
-                        className="px-4 py-2 flex items-center justify-center gap-2 overflow-hidden rounded-lg h-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+                        className="px-4 py-2 flex items-center justify-center gap-2 overflow-hidden rounded-lg h-10 bg-blue-700 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
                     >
                         <Plus className="w-5 h-5" />
                         <span className="truncate">Create Battery</span>
@@ -159,7 +159,7 @@ export default function StaffInventory() {
                     <button
                         onClick={handleSimulateCharging}
                         disabled={simulatingCharge}
-                        className="px-4 py-2 bg-green-600 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-green-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {simulatingCharge ? 'Simulating...' : 'Simulate Charging'}
                     </button>
@@ -231,7 +231,7 @@ export default function StaffInventory() {
                                             key={pageNum}
                                             onClick={() => setCurrentPage(pageNum)}
                                             className={`text-sm font-medium flex h-9 w-9 items-center justify-center rounded-lg ${currentPage === pageNum
-                                                ? 'bg-blue-600 text-white'
+                                                ? 'bg-blue-700 text-white'
                                                 : 'text-gray-600 hover:bg-gray-100'
                                                 }`}
                                         >

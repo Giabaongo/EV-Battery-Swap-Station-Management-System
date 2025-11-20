@@ -537,7 +537,7 @@ export default function ManualSwapTransaction() {
                         </div>
                         <button
                             onClick={() => setShowModal(true)}
-                            className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-blue-600 text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2 shadow-sm hover:bg-blue-600/90"
+                            className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-blue-700 text-white text-sm font-bold leading-normal tracking-[0.015em] gap-2 shadow-sm hover:bg-blue-700/90"
                         >
                             <span className="material-icons text-base">add</span>
                             <span className="truncate">Create Manual Swap</span>
@@ -615,7 +615,7 @@ export default function ManualSwapTransaction() {
                                                 disabled={emailSearching || !userEmail}
                                                 className={`px-6 py-2 rounded-md font-semibold transition-colors flex items-center gap-2 ${emailSearching || !userEmail
                                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                    : 'bg-blue-700 text-white hover:bg-blue-700'
                                                     }`}
                                             >
                                                 {emailSearching ? (
@@ -865,3 +865,4 @@ export default function ManualSwapTransaction() {
         </div>
     );
 }
+

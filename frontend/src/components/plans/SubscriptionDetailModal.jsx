@@ -10,6 +10,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { subscriptionService } from '../../services/subscriptionService';
+import { paymentService } from '../../services/paymentService';
 
 // Helper function to format currency
 const formatPrice = (price) => {
@@ -73,6 +74,8 @@ const DetailRow = ({ label, value, tooltip, highlight }) => (
 export default function SubscriptionDetailModal({ subscription, open, onClose, onSubscriptionCancelled }) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [renewing, setRenewing] = useState(false);
+  const [renewingDirect, setRenewingDirect] = useState(false);
 
   if (!subscription) return null;
 
@@ -142,6 +145,57 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
       toast.error(error.response?.data?.message || 'Failed to cancel subscription. Please try again.');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  // Handle renew subscription - Gọi API renewSubscription
+  const handleRenewSubscription = async () => {
+    setRenewing(true);
+    try {
+      const res = await paymentService.renewSubscription({
+        subscription_id: subscription.subscription_id
+      });
+      
+      if (res?.paymentUrl) {
+        // Redirect to VNPAY
+        window.location.href = res.paymentUrl;
+      } else {
+        toast.error('Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription:', error);
+      toast.error('Error renewing subscription');
+    } finally {
+      setRenewing(false);
+    }
+  };
+
+  // Handle renew subscription directly (không qua VNPAY) - Gọi API renewSubscriptionDirect
+  const handleRenewSubscriptionDirect = async () => {
+    setRenewingDirect(true);
+    try {
+      const res = await paymentService.renewSubscriptionDirect({
+        subscription_id: subscription.subscription_id
+      });
+      
+      // Success - API trả về data object với payment info
+      if (res && !res.error) {
+        // Success - show toast and reload page
+        toast.success('Subscription renewed successfully!');
+        // Close modal
+        onClose();
+        // Reload page after 1s
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast.error(res?.message || 'Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription directly:', error);
+      toast.error(error.response?.data?.message || 'Error renewing subscription');
+    } finally {
+      setRenewingDirect(false);
     }
   };
 
@@ -257,17 +311,26 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
                 </Button>
               )}
               {subscription.status === 'expired' && (
-                <Button 
-                  variant="default"
-                  size="sm"
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => {
-                    // TODO: Implement renewal functionality
-                    console.log('Renew subscription:', subscription.subscription_id);
-                  }}
-                >
-                  Renew Subscription
-                </Button>
+                <>
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-2 bg-blue-700 hover:bg-blue-700 text-white"
+                    onClick={handleRenewSubscription}
+                    disabled={renewing || renewingDirect}
+                  >
+                    {renewing ? 'Renewing...' : 'Renew (VNPAY)'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={handleRenewSubscriptionDirect}
+                    disabled={renewingDirect || renewing}
+                  >
+                    {renewingDirect ? 'Renewing...' : 'Renew Direct'}
+                  </Button>
+                </>
               )}
             </div>
             
@@ -332,3 +395,4 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
   </>
   );
 }
+

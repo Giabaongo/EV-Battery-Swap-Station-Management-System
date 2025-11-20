@@ -103,7 +103,7 @@ export default function TransactionPagination({
                                     key={pageNum}
                                     onClick={() => onPageChange(pageNum)}
                                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${pageNum === currentPage
-                                            ? 'z-10 bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-white'
+                                            ? 'z-10 bg-blue-700/10 dark:bg-blue-700/20 text-blue-700 dark:text-white'
                                             : 'text-gray-900 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                                         } focus:z-20`}
                                 >
@@ -125,3 +125,4 @@ export default function TransactionPagination({
         </div>
     );
 }
+

@@ -28,7 +28,7 @@ export default function VehicleStatusCard({ vehicles = [], onFindStations, onVeh
         <CardContent>
           <div className="text-center py-8 text-gray-500">
             <p className="mb-4">No vehicles found</p>
-            <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+            <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
               Add a vehicle
             </Link>
           </div>
@@ -189,7 +189,7 @@ export default function VehicleStatusCard({ vehicles = [], onFindStations, onVeh
                 <span className="text-gray-900 text-sm">{currentVehicle.batteryLevel || 0}%</span>
               </div>
               <div className="h-2.5 rounded-full bg-gray-200">
-                <div className="h-2.5 rounded-full bg-blue-600" style={{ width: `${currentVehicle.batteryLevel || 0}%` }} />
+                <div className="h-2.5 rounded-full bg-blue-700" style={{ width: `${currentVehicle.batteryLevel || 0}%` }} />
               </div>
               <span className="text-gray-500 text-sm">Estimated Range: {currentVehicle.estimatedRange || 'N/A'}</span>
             </div>
@@ -213,7 +213,7 @@ export default function VehicleStatusCard({ vehicles = [], onFindStations, onVeh
 
           <div className="mt-3">
             <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2"
+              className="w-full bg-blue-700 hover:bg-blue-700 text-white font-medium py-2"
               onClick={() => {
                 setChargeInput((currentVehicle.batteryLevel || 0).toString());
                 setShowChargeModal(true);
@@ -276,7 +276,7 @@ export default function VehicleStatusCard({ vehicles = [], onFindStations, onVeh
               <button
                 onClick={handleUpdateCharge}
                 disabled={updatingCharge}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-700 text-white font-medium disabled:opacity-50 flex items-center gap-2"
               >
                 {updatingCharge && <Loader2 className="w-4 h-4 animate-spin" />}
                 Update
@@ -288,3 +288,4 @@ export default function VehicleStatusCard({ vehicles = [], onFindStations, onVeh
     </>
   );
 }
+

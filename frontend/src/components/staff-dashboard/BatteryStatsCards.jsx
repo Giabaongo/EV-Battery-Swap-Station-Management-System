@@ -14,7 +14,7 @@ export default function BatteryStatsCards({ stats, loading }) {
             value: stats.chargingBatteries,
             icon: BatteryCharging,
             bgColor: 'bg-blue-100 dark:bg-blue-900/50',
-            iconColor: 'text-blue-600 dark:text-blue-400'
+            iconColor: 'text-blue-700 dark:text-blue-400'
         },
         {
             title: 'Batteries Under Maintenance',

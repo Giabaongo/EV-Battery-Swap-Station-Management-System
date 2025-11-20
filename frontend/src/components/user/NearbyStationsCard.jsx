@@ -5,11 +5,14 @@ import { Button } from '../../components/ui/button';
 import { MapPin } from 'lucide-react';
 import { batteryService } from '../../services/batteryService';
 
+// Component hiển thị danh sách các trạm trao đổi pin gần kề user
 export default function NearbyStationsCard({ stations = [], onViewAll }) {
+  // State lưu danh sách trạm với thông tin số lượng pin sẵn có
   const [stationsWithBatteries, setStationsWithBatteries] = useState([]);
+  // State cho biết đang load dữ liệu pin của các trạm hay chưa
   const [loading, setLoading] = useState(false);
 
-  // Fetch battery data for each station
+  // Lấy dữ liệu pin cho mỗi trạm khi danh sách trạm thay đổi
   useEffect(() => {
     const fetchBatteryData = async () => {
       if (!stations || stations.length === 0) {
@@ -21,11 +24,11 @@ export default function NearbyStationsCard({ stations = [], onViewAll }) {
 
       setLoading(true);
       try {
-        // Fetch batteries for all stations in parallel
+        // Lấy thông tin pin của tất cả trạm song song
         const stationsWithBatteryCounts = await Promise.all(
           stations.map(async (station) => {
             try {
-              // Get station_id - might be 'station_id' or 'id'
+              // Lấy ID trạm (có thể là 'station_id' hoặc 'id')
               const stationId = station.station_id || station.id;
               
               console.log(`Fetching batteries for station:`, { 
@@ -43,6 +46,7 @@ export default function NearbyStationsCard({ stations = [], onViewAll }) {
                 };
               }
 
+              // Lấy danh sách pin của trạm này từ API
               const batteries = await batteryService.getBatteriesByStationId(stationId);
               
               console.log(`Station ${stationId} (${station.name}):`, batteries);
@@ -104,7 +108,7 @@ export default function NearbyStationsCard({ stations = [], onViewAll }) {
                 onViewAll();
               }
             }}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-blue-700 hover:underline"
           >
             View All
           </Link>
@@ -119,7 +123,7 @@ export default function NearbyStationsCard({ stations = [], onViewAll }) {
           displayStations.map((st) => (
             <div key={st.station_id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg transition-colors">
               <div className="flex items-center gap-3">
-                <MapPin className="text-blue-600" size={18} />
+                <MapPin className="text-blue-700" size={18} />
                 <div>
                   <p className="font-medium text-gray-900">{st.name}</p>
                   <p className="text-gray-500 text-sm">{st.address}</p>
@@ -135,3 +139,4 @@ export default function NearbyStationsCard({ stations = [], onViewAll }) {
     </Card>
   );
 }
+

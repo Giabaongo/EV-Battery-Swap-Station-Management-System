@@ -8,7 +8,7 @@
 //       {stats.map((s, idx) => (
 //         <div key={idx} className="bg-white p-6 rounded-xl shadow-sm">
 //           <div className="flex items-center gap-4">
-//             <div className={`p-3 rounded-full ${s.accent || 'text-blue-600 bg-blue-50'}`}>
+//             <div className={`p-3 rounded-full ${s.accent || 'text-blue-700 bg-blue-50'}`}>
 //               {s.icon ? <s.icon className="w-7 h-7" /> : null}
 //             </div>
 //             <div>

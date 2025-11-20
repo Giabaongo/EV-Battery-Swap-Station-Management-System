@@ -6,12 +6,18 @@ import { swapService } from '../../services/swapService';
 import { useAuth } from '../../hooks/useContext';
 import { stationService } from '../../services/stationService';
 
+// Component hiển thị lịch sử hoạt động trao đổi pin gần đây của user
 export default function RecentActivityCard({ onViewAll }) {
+  // State lưu danh sách giao dịch trao đổi pin của user
   const [swapTransactions, setSwapTransactions] = useState([]);
+  // State cho biết đang load dữ liệu hay chưa
   const [loading, setLoading] = useState(true);
+  // Lấy thông tin user từ Auth context
   const { user } = useAuth();
+  // State lưu danh sách tất cả các trạm
   const [stations, setStations] = useState([]);
 
+  // Lấy dữ liệu lịch sử trao đổi pin khi component mount hoặc user thay đổi
   useEffect(() => {
     const fetchSwapHistory = async () => {
       if (!user?.user_id) {
@@ -22,7 +28,7 @@ export default function RecentActivityCard({ onViewAll }) {
       }
 
       try {
-        // Fetch stations and transactions in parallel
+        // Lấy dữ liệu trạm và giao dịch song song
         const [allStations, transactions] = await Promise.all([
           stationService.getAllStations(),
           swapService.getAllSwapTransactionsByUserId(user.user_id)
@@ -30,7 +36,7 @@ export default function RecentActivityCard({ onViewAll }) {
 
         setStations(Array.isArray(allStations) ? allStations : []);
 
-        // Get recent 3 transactions
+        // Lấy 3 giao dịch gần đây nhất và định dạng ngày giờ
         const recentActivities = (transactions || [])
           .slice(0, 3)
           .map(transaction => ({
@@ -117,7 +123,7 @@ export default function RecentActivityCard({ onViewAll }) {
                 onViewAll();
               }
             }}
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-blue-700 hover:underline"
           >
             View All
           </Link>
@@ -126,7 +132,7 @@ export default function RecentActivityCard({ onViewAll }) {
       <CardContent className="flex flex-col gap-3">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
           </div>
         ) : swapTransactions.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -168,3 +174,4 @@ export default function RecentActivityCard({ onViewAll }) {
     </Card>
   );
 }
+

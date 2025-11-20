@@ -10,22 +10,6 @@ const helpOptions = [
     bgColor: "bg-blue-50",
     hoverColor: "hover:bg-blue-100",
     textColor: "text-blue-700"
-  },
-  {
-    icon: HelpCircle, 
-    title: "FAQ",
-    description: "Find answers to common questions",
-    bgColor: "bg-green-50",
-    hoverColor: "hover:bg-green-100", 
-    textColor: "text-green-700"
-  },
-  {
-    icon: MessageSquare,
-    title: "Send Feedback", 
-    description: "Help us improve our service",
-    bgColor: "bg-purple-50",
-    hoverColor: "hover:bg-purple-100",
-    textColor: "text-purple-700"
   }
 ]
 

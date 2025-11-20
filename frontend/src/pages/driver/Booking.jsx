@@ -2,30 +2,32 @@ import BookingHeader from '../../components/booking/BookingHeader';
 import StationInfoPanel from '../../components/booking/StationInfoPanel';
 import BookingSuccessView from '../../components/booking/BookingSuccessView';
 
+// Trang đặt lịch trao đổi pin cho người dùng - Cho phép user chọn xe, giờ, xác nhận đặt lịch
 export default function Booking({
-  // State props
-  stationInfo,
-  bookingState,
-  timeRemaining,
-  showCancelDialog,
-  bookingTime,
-  subscriptionLoading,
-  vehiclesLoading,
-  activeSubscription,
-  // vehicle props
-  vehicles,
-  selectedVehicleId,
-  onVehicleChange,
-  selectedVehicleSubscription,
+  // State props: Thông tin trạng thái của booking
+  stationInfo,             // Thông tin trạm (tên, địa chỉ, số slot sẵn có)
+  bookingState,            // Trạng thái booking hiện tại ('booking' hoặc 'booked')
+  timeRemaining,           // Thời gian còn lại cho booking (tính bằng giây)
+  showCancelDialog,        // Flag để hiển thị dialog hủy đặt lịch
+  bookingTime,             // Thời gian đặt lịch (ví dụ: "14:00")
+  subscriptionLoading,     // Flag cho biết đang load gói cước hay không
+  vehiclesLoading,         // Flag cho biết đang load danh sách xe hay không
+  activeSubscription,      // Gói cước hiện tại của user
+  // Props xe: Danh sách xe và lựa chọn của user
+  vehicles,                    // Danh sách xe của user
+  selectedVehicleId,           // ID của xe được chọn
+  onVehicleChange,             // Callback khi user chọn xe khác
+  selectedVehicleSubscription, // Gói cước của xe được chọn
 
-  // Handler props
-  onConfirmBooking,
-  onCancelClick,
-  onConfirmCancel,
-  onCancelDialogClose,
-  onBackToMap,
-  onNavigateToPlans
+  // Props callback: Các hàm xử lý khi user thực hiện hành động
+  onConfirmBooking,   // Callback khi user xác nhận đặt lịch
+  onCancelClick,      // Callback khi user click nút "Hủy đặt lịch"
+  onConfirmCancel,    // Callback khi user xác nhận hủy đặt lịch
+  onCancelDialogClose,// Callback khi user đóng dialog hủy
+  onBackToMap,        // Callback khi user quay lại bản đồ
+  onNavigateToPlans   // Callback khi user navigate đến trang gói cước
 }) {
+  // Nếu trạng thái booking là 'booked', hiển thị view thành công
   if (bookingState === 'booked') {
     return (
       <BookingSuccessView
@@ -43,10 +45,11 @@ export default function Booking({
     );
   }
 
-  // Utility function to check if subscription is active
+  // Hàm kiểm tra xem gói cước có đang hoạt động không
+  // Tính năng: Đảm bảo user chỉ có thể đặt lịch nếu có gói cước active
   const isSubscriptionActive = (subscription) => {
-    if (!subscription) return false;
-    return subscription.status === 'active';
+    if (!subscription) return false;  // Không có gói = không active
+    return subscription.status === 'active';  // Chỉ active status = active
   };
 
   // Utility function to get subscription status message

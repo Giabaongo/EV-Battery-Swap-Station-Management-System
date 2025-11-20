@@ -9,24 +9,32 @@ import { vehicleService } from '../../services/vehicleService';
 import { toast } from 'sonner';
 
 export default function VehicleSubscriptionCard({ vehicles = [], onFindStations, onVehiclesUpdate }) {
+  // State quản lý xe đang hiển thị (khi có nhiều xe, dùng để chuyển đổi giữa các xe)
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0);
+  // State điều khiển modal cập nhật pin
   const [showChargeModal, setShowChargeModal] = useState(false);
+  // State lưu giá trị pin người dùng nhập vào
   const [chargeInput, setChargeInput] = useState('');
+  // State cho biết đang cập nhật pin hay chưa (hiển thị loading)
   const [updatingCharge, setUpdatingCharge] = useState(false);
+  // State lưu danh sách xe cục bộ
   const [localVehicles, setLocalVehicles] = useState(vehicles);
+  // State lưu danh sách gói cước của user
   const [subscriptions, setSubscriptions] = useState([]);
+  // State lưu map xe (key: vehicle_id, value: thông tin xe) để tra cứu nhanh
   const [vehiclesMap, setVehiclesMap] = useState({});
+  // State cho biết đang load gói cước hay chưa
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
 
-  // Get user info from localStorage
+  // Lấy thông tin user từ localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Sync local vehicles with props
+  // Đồng bộ danh sách xe cục bộ với props khi props thay đổi
   useEffect(() => {
     setLocalVehicles(vehicles);
   }, [vehicles]);
 
-  // Fetch subscriptions and build vehicle map
+  // Lấy danh sách gói cước và tạo map xe khi component mount
   useEffect(() => {
     const fetchSubscriptions = async () => {
       if (!user?.user_id) {
@@ -37,11 +45,11 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
       try {
         setLoadingSubscriptions(true);
         
-        // Fetch subscriptions (both active and expired)
+        // Lấy danh sách gói cước (cả gói active và expired)
         const subs = await subscriptionService.getSubscriptionsByUserId(user.user_id);
         setSubscriptions(Array.isArray(subs) ? subs.filter(s => s.status === 'active' || s.status === 'expired') : []);
 
-        // Fetch vehicles to build map
+        // Lấy danh sách xe để tạo map tra cứu nhanh
         const vhcls = await vehicleService.getVehicleByUserId(user.user_id);
         const map = {};
         if (Array.isArray(vhcls)) {
@@ -60,7 +68,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
     fetchSubscriptions();
   }, [user?.user_id]);
 
-  // Return early if no vehicles
+  // Kiểm tra nếu không có xe, hiển thị thông báo
   if (!localVehicles || localVehicles.length === 0) {
     return (
       <Card className="bg-white border-gray-200">
@@ -70,7 +78,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
         <CardContent>
           <div className="text-center py-8 text-gray-500">
             <p className="mb-4">No vehicles found</p>
-            <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+            <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
               Add a vehicle
             </Link>
           </div>
@@ -79,50 +87,60 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
     );
   }
 
+  // Lấy xe hiện tại từ danh sách dựa vào chỉ số
   const currentVehicle = localVehicles[currentVehicleIndex];
+  // Tìm gói cước của xe hiện tại
   const currentSubscription = subscriptions.find(s => s.vehicle_id === currentVehicle?.vehicle_id);
 
+  // Chuyển sang xe trước đó (hoặc sang xe cuối cùng nếu ở đầu danh sách)
   const handlePreviousVehicle = () => {
     setCurrentVehicleIndex((prev) => (prev === 0 ? localVehicles.length - 1 : prev - 1));
   };
 
+  // Chuyển sang xe tiếp theo (hoặc sang xe đầu tiên nếu ở cuối danh sách)
   const handleNextVehicle = () => {
     setCurrentVehicleIndex((prev) => (prev === localVehicles.length - 1 ? 0 : prev + 1));
   };
 
+  // Xử lý cập nhật mức pin của xe hiện tại - Tính năng cho phép user cập nhật lại mức pin
   const handleUpdateCharge = async () => {
+    // Chuyển đổi chuỗi nhập vào thành số thập phân (ví dụ: "85" -> 85)
     const chargeValue = parseFloat(chargeInput);
 
-    // Validation
+    // Kiểm tra #1: Giá trị nhập vào có rỗng không - Tránh user submit form trống
     if (chargeInput.trim() === '') {
       toast.error('Please enter a charge value');
       return;
     }
 
+    // Kiểm tra #2: Giá trị có phải số hợp lệ không - Đảm bảo input là numeric
     if (isNaN(chargeValue)) {
       toast.error('Please enter a valid number');
       return;
     }
 
+    // Kiểm tra #3: Kiểm tra range pin hợp lệ (0-100%) - Đảm bảo % pin hợp lệ
     if (chargeValue < 0 || chargeValue > 100) {
       toast.error('Charge value must be between 0 and 100');
       return;
     }
 
+    // Kiểm tra #4: Xe có pin gán chưa - Tránh lỗi khi cập nhật pin không tồn tại
     if (!currentVehicle?.battery_id) {
       toast.error('No battery assigned to this vehicle');
       return;
     }
 
+    // Bật loading flag để hiển thị spinner - UX feedback đến user
     setUpdatingCharge(true);
     try {
-      // Update the battery charge of the current selected vehicle
+      // Bước 1: Gọi API backend cập nhật mức pin theo battery_id
       const updatedBattery = await batteryService.updateBatteryCharge(
-        currentVehicle.battery_id,
-        chargeValue
+        currentVehicle.battery_id,  // ID pin cần cập nhật
+        chargeValue  // Mức pin mới (0-100%)
       );
 
-      // Update local vehicles state with new charge value
+      // Cập nhật danh sách xe cục bộ với mức pin mới
       const updatedVehicles = localVehicles.map((vehicle, index) => {
         if (index === currentVehicleIndex) {
           return {
@@ -138,7 +156,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
       });
       setLocalVehicles(updatedVehicles);
 
-      // Notify parent if callback is provided
+      // Gọi callback để thông báo cho parent component nếu có
       if (onVehiclesUpdate) {
         onVehiclesUpdate(updatedVehicles);
       }
@@ -154,7 +172,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
     }
   };
 
-  // Format price helper
+  // Định dạng giá tiền thành định dạng VND
   const formatPrice = (price) => {
     const numPrice = Number(price) || 0;
     return numPrice.toLocaleString('en-US', {
@@ -252,7 +270,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                     <span className="text-gray-900 text-sm">{currentVehicle.batteryLevel || 0}%</span>
                   </div>
                   <div className="h-2.5 rounded-full bg-gray-200">
-                    <div className="h-2.5 rounded-full bg-blue-600" style={{ width: `${currentVehicle.batteryLevel || 0}%` }} />
+                    <div className="h-2.5 rounded-full bg-blue-700" style={{ width: `${currentVehicle.batteryLevel || 0}%` }} />
                   </div>
                   <span className="text-gray-500 text-sm">Estimated Range: {currentVehicle.estimatedRange || 'N/A'}</span>
                 </div>
@@ -274,7 +292,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                 </Button>
 
                 <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2"
+                  className="w-full bg-blue-700 hover:bg-blue-700 text-white font-medium py-2"
                   onClick={() => {
                     setChargeInput((currentVehicle.batteryLevel || 0).toString());
                     setShowChargeModal(true);
@@ -291,7 +309,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
 
               {loadingSubscriptions ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
                 </div>
               ) : currentSubscription ? (
                 <div className="space-y-3">
@@ -299,7 +317,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                   <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-blue-600" />
+                        <Package className="w-4 h-4 text-blue-700" />
                         <p className="text-xs text-gray-600 font-medium">Package</p>
                       </div>
                       {currentSubscription.status === 'expired' && (
@@ -358,7 +376,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                     {currentSubscription.swap_used !== undefined && (
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-gray-600">Swaps Used</p>
-                        <p className="text-lg font-bold text-blue-600">
+                        <p className="text-lg font-bold text-blue-700">
                           {currentSubscription.swap_used}
                           {currentSubscription.package?.swap_count &&
                             <span className="text-sm text-gray-500 font-normal">
@@ -422,7 +440,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                   <div className="mt-4">
                     <Link
                       to="/driver/plans"
-                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                     >
                       Renew
                     </Link>
@@ -436,7 +454,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
                   <div className="mt-4">
                     <Link
                       to="/driver/plans"
-                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                     >
                       Subscribe
                     </Link>
@@ -499,7 +517,7 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
               <button
                 onClick={handleUpdateCharge}
                 disabled={updatingCharge}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-700 text-white font-medium disabled:opacity-50 flex items-center gap-2"
               >
                 {updatingCharge && <Loader2 className="w-4 h-4 animate-spin" />}
                 Update
@@ -511,3 +529,4 @@ export default function VehicleSubscriptionCard({ vehicles = [], onFindStations,
     </>
   );
 }
+

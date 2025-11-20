@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader } from "../ui/card"
 import { Button } from "../ui/button"
+import { Check } from 'lucide-react'
 
 const plans = [
   {
@@ -69,17 +70,17 @@ export default function PricingPlans() {
           {plans.map((plan, index) => (
             <Card 
               key={index} 
-              className={`relative ${plan.popular ? 'border-blue-600 shadow-xl scale-105' : 'border-gray-200 shadow-lg'}`}
+              className={`relative ${plan.popular ? 'border-blue-700 shadow-xl scale-105' : 'border-gray-200 shadow-lg'}`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-blue-700 text-white px-4 py-1 rounded-full text-sm font-medium">
                     Most Popular
                   </span>
                 </div>
               )}
               
-              <CardHeader className={`text-center ${plan.popular ? 'bg-blue-600 text-white' : 'bg-white'} rounded-t-lg`}>
+              <CardHeader className={`text-center ${plan.popular ? 'bg-blue-700 text-white' : 'bg-white'} rounded-t-lg`}>
                 <h3 className="text-2xl font-bold mb-2">
                   {plan.name}
                 </h3>
@@ -98,14 +99,14 @@ export default function PricingPlans() {
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
-                      <span className="text-blue-600 mr-3">✓</span>
+                      <Check className="w-5 h-5 text-blue-700 mr-3 flex-shrink-0" />
                       <span className="text-gray-700">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 
                 <Button 
-                  className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                  className={`w-full ${plan.popular ? 'bg-blue-700 hover:bg-blue-700 text-white' : ''}`}
                   variant={plan.buttonVariant}
                   size="lg"
                 >

@@ -114,7 +114,7 @@ export default function Login() {
                   <label className="block text-sm font-medium text-gray-700">Password</label>
                   <Link 
                     to="/forget-password" 
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    className="text-sm text-blue-700 hover:text-blue-700 hover:underline"
                   >
                     Forgot Password?
                   </Link>
@@ -150,7 +150,7 @@ export default function Login() {
                 disabled={loading || success}
                 className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${loading || success
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
+                  : "bg-blue-700 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
                   }`}
               >
                 {loading ? (
@@ -195,7 +195,7 @@ export default function Login() {
                     Signed in successfully!
                   </span>
                 ) : (
-                  "🔑 Sign In"
+                  "Sign In"
                 )}
               </button>
             </form>
@@ -214,7 +214,7 @@ export default function Login() {
             <div className="text-center mt-6">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link to="/register" className="text-blue-600 hover:underline">
+                <Link to="/register" className="text-blue-700 hover:underline">
                   Register now
                 </Link>
               </p>

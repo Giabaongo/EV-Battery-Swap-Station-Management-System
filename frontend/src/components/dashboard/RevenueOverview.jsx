@@ -37,7 +37,7 @@ export default function RevenueOverview({ data }) {
     <Card className="p-5">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
         <Package className="w-5 h-5" />
-        Revenue Overview
+        Revenue Overview - {currentMonth?.month}/{currentMonth?.year}
       </h3>
 
       <div className="grid grid-cols-2 lg:grid-cols-2 gap-6">
@@ -45,7 +45,7 @@ export default function RevenueOverview({ data }) {
         <div>
           <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
             <Package className="w-4 h-4" />
-            By Package
+            By Package (This Month)
           </h4>
           {byPackageData.length > 0 ? (
             <ChartContainer config={chartConfig} className="w-full h-[280px]">
