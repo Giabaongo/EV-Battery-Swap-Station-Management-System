@@ -3,7 +3,7 @@ import { CreateCabinetDto } from './dto/create-cabinet.dto';
 import { UpdateCabinetDto } from './dto/update-cabinet.dto';
 import { DatabaseService } from '../database/database.service';
 import { BatteryStatus, CabinetStatus } from '@prisma/client';
-import { NotFoundError } from 'rxjs';
+import { UpdateSlotDto } from './dto/update-slot.dto';
 
 @Injectable()
 export class CabinetsService {
@@ -110,14 +110,33 @@ export class CabinetsService {
     }
   }
 
-  async update(id: number, updateCabinetDto: UpdateCabinetDto) {
+  async updateCabinet(id: number, updateCabinetDto: UpdateCabinetDto, tx?: any) {
+    const prisma = tx || this.databaseService;
     try {
-      const updatedCabinet = await this.databaseService.cabinet.update({
+      const updatedCabinet = await prisma.cabinet.update({
         where: { cabinet_id: id },
         data: { ...updateCabinetDto },
       });
 
       return updatedCabinet;
+    } catch (error) {
+      throw new error;
+    }
+  }
+
+  async updateSlot(id: number | null, updateSlotDto: UpdateSlotDto, tx?: any) {
+    try {
+      if (id === null) {
+        throw new BadRequestException('Slot ID cannot be null');
+      }
+      const prisma = tx || this.databaseService;
+
+      const updatedSlot = await prisma.slot.update({
+        where: { slot_id: id },
+        data: { ...updateSlotDto },
+      });
+
+      return updatedSlot;
     } catch (error) {
       throw new error;
     }

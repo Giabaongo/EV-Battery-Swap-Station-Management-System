@@ -284,15 +284,6 @@ export class SwappingService {
 
         // Perform all updates within a transaction
         return await this.databaseService.$transaction(async (prisma) => {
-            const batteryTakeUpdate = {
-                station_id: null,
-                cabinet_id: null,
-                slot_id: null,
-                vehicle_id: dto.vehicle_id
-            };
-
-            const vehicleUpdate = { battery_id: dto.taken_battery_id };
-
             const swapTransactionUpdate = {
                 battery_taken_id: dto.taken_battery_id,
                 status: SwapTransactionStatus.completed
@@ -301,8 +292,31 @@ export class SwappingService {
             // Execute all updates in parallel within transaction
             const [updatedBattery, updatedVehicle, completedSwapTransaction, updatedSubscription] =
                 await Promise.all([
-                    this.batteriesService.update(dto.taken_battery_id, batteryTakeUpdate, prisma),
-                    this.vehiclesService.update(dto.vehicle_id, vehicleUpdate, prisma),
+                    // Update battery to assign to vehicle
+                    this.batteriesService.update(dto.taken_battery_id,
+                        {
+                            station_id: null,
+                            cabinet_id: null,
+                            slot_id: null,
+                            vehicle_id: dto.vehicle_id
+                        },
+                        prisma
+                    ),
+                    // Update vehicle to assign battery
+                    this.cabinetsService.updateSlot(takenBattery.slot_id,
+                        {
+                            is_occupied: false
+                        },
+                        prisma
+                    ),
+                    // Update vehicle to assign battery
+                    this.vehiclesService.update(dto.vehicle_id,
+                        {
+                            battery_id: dto.taken_battery_id
+                        },
+                        prisma
+                    ),
+                    // Update swap transaction to completed
                     this.swapTransactionsService.update(
                         existingSwapTransaction.transaction_id,
                         swapTransactionUpdate,
