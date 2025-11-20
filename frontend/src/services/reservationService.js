@@ -66,7 +66,10 @@ const updateReservationStatus = async (reservationId, userId, status) => {
 const getReservationsByUserId = async (userId, options = {}) => {
   try {
     const { signal } = options;
-    const response = await api.get(`/reservations/user/${userId}`, { signal });
+    const response = await api.get(
+      API_ENDPOINTS.RESERVATION.GET_BY_USER(userId),
+      { signal }
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching user reservations:", error);

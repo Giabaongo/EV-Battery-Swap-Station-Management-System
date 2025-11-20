@@ -27,7 +27,61 @@ const initializeBattery = async (payload) => {
   }
 };
 
+// Get empty slot for returning battery
+const getEmptySlot = async (data) => {
+  try {
+    const response = await api.post(
+      API_ENDPOINTS.SWAPPING.GET_EMPTY_SLOT,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error getting empty slot:", error);
+    throw error;
+  }
+};
+
+// Return battery to cabinet slot
+const returnBattery = async (data) => {
+  try {
+    const response = await api.post(
+      API_ENDPOINTS.SWAPPING.RETURN_BATTERY,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error returning battery:", error);
+    throw error;
+  }
+};
+
+// Get full slot for taking battery
+const getFullSlot = async (data) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.SWAPPING.GET_FULL_SLOT, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error getting full slot:", error);
+    throw error;
+  }
+};
+
+// Take battery from cabinet
+const takeBattery = async (data) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.SWAPPING.TAKE_BATTERY, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error taking battery:", error);
+    throw error;
+  }
+};
+
 export const swappingService = {
   swapBatteries,
   initializeBattery,
+  getEmptySlot,
+  returnBattery,
+  getFullSlot,
+  takeBattery,
 };
