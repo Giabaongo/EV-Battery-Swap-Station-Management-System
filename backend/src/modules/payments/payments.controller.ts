@@ -28,6 +28,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateDirectPaymentDto } from './dto/create-direct-payment.dto';
+import { DirectRenewalPaymentDto } from './dto/direct-renewal-payment.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('payments')
@@ -455,12 +456,13 @@ export class PaymentsController {
   // }
 
   /**
-   * Create subscription renewal payment with penalty fee
+   * Create subscription renewal payment with penalty fee (via VNPAY)
    * POST /payments/subscription-renewal
    */
   @Post('subscription-renewal')
+  @UseGuards(AuthGuard, RolesGuard)
   @Roles('driver', 'admin')
-  @ApiOperation({ summary: 'Create payment for subscription renewal' })
+  @ApiOperation({ summary: 'Create payment for subscription renewal (via VNPAY)' })
   @ApiResponse({ status: 201, description: 'Renewal payment URL created' })
   async createSubscriptionRenewalPayment(
     @Body() body: { subscription_id: number },
@@ -480,6 +482,76 @@ export class PaymentsController {
       body.subscription_id,
       ipAddr,
     );
+  }
+
+  /**
+   * ⭐ NEW ENDPOINT - Create direct renewal payment (without VNPAY)
+   * POST /payments/direct-renewal
+   * 
+   * Renew expired subscription directly without VNPAY gateway:
+   * - Calculates penalty fee automatically if overcharge exists
+   * - Creates payment with success status immediately
+   * - Creates new subscription immediately
+   * - Marks old subscription as cancelled
+   * - Returns detailed fee breakdown
+   * 
+   * Use cases:
+   * - When VNPAY is down/unavailable
+   * - Manual payment at station
+   * - Testing/demo purposes
+   * - Staff-assisted renewals
+   * 
+   * Request body:
+   * {
+   *   "subscription_id": 1,
+   *   "payment_method": "cash", // optional: cash, bank_transfer, credit_card
+   *   "order_info": "Gia hạn gói trực tiếp", // optional
+   *   "transaction_id": "CUSTOM_TXN_123" // optional (auto-generated if not provided)
+   * }
+   */
+  @Post('direct-renewal')
+  @ApiOperation({ summary: 'Renew subscription directly without VNPAY' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Subscription renewed successfully with direct payment',
+    schema: {
+      example: {
+        success: true,
+        payment: {
+          payment_id: 123,
+          amount: 250000,
+          method: 'cash',
+          status: 'success',
+          transaction_id: 'DIRECT_RENEWAL_20250121123456'
+        },
+        oldSubscription: {
+          subscription_id: 1,
+          end_date: '2025-01-15T00:00:00.000Z',
+          distance_traveled: 550,
+          base_distance: 500
+        },
+        newSubscription: {
+          subscription_id: 124,
+          start_date: '2025-01-21T00:00:00.000Z',
+          end_date: '2025-02-20T00:00:00.000Z',
+          status: 'active'
+        },
+        feeBreakdown: {
+          baseAmount: 200000,
+          penaltyFee: 50000,
+          totalAmount: 250000,
+          breakdown_text: 'Gói: 200.000 VND, Phí phạt: 50.000 VND, Tổng: 250.000 VND'
+        },
+        message: 'Subscription renewed successfully with penalty fee: 50.000 VND'
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Only expired subscriptions can be renewed' })
+  @ApiResponse({ status: 404, description: 'Subscription not found' })
+  async createDirectRenewalPayment(
+    @Body() directRenewalDto: DirectRenewalPaymentDto,
+  ) {
+    return this.paymentsService.createDirectRenewalPayment(directRenewalDto);
   }
 }
 

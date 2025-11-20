@@ -23,6 +23,7 @@ import { PaymentMethod, PaymentStatus, PaymentType, SubscriptionStatus } from '@
 import { FeeCalculationService } from './services/fee-calculation.service';
 import { BatteryServicePackagesService } from '../battery-service-packages/battery-service-packages.service';
 import { CreateDirectPaymentDto } from './dto/create-direct-payment.dto';
+import { DirectRenewalPaymentDto } from './dto/direct-renewal-payment.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { SystemConfigService } from '../config/system-config.service';
 
@@ -1394,6 +1395,140 @@ export class PaymentsService {
       data: { subscription_id: newSubscription.subscription_id },
     });
 
+  }
+
+  /**
+   * Create direct renewal payment (without VNPAY)
+   * This method:
+   * 1. Gets expired subscription
+   * 2. Calculates penalty fee if any
+   * 3. Creates payment with success status immediately
+   * 4. Creates new subscription immediately
+   * 5. Returns detailed breakdown
+   */
+  async createDirectRenewalPayment(
+    directRenewalDto: DirectRenewalPaymentDto,
+  ): Promise<{
+    success: boolean;
+    payment: any;
+    oldSubscription: any;
+    newSubscription: any;
+    feeBreakdown: any;
+    message: string;
+  }> {
+    // 1. Get old subscription
+    const oldSubscription = await this.prisma.subscription.findUnique({
+      where: { subscription_id: directRenewalDto.subscription_id },
+      include: { package: true, vehicle: true },
+    });
+
+    if (!oldSubscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+
+    if (oldSubscription.status !== SubscriptionStatus.expired) {
+      throw new BadRequestException('Only expired subscriptions can be renewed');
+    }
+
+    // 2. Calculate penalty fee
+    const overChargeFee = await this.feeCalculationService.calculateOverchargeFee(
+      oldSubscription.subscription_id,
+    );
+
+    const penaltyFee = overChargeFee.overcharge_fee;
+    const basePrice = oldSubscription.package?.base_price.toNumber() || 0;
+    const totalAmount = basePrice + penaltyFee;
+
+    this.logger.log(`💰 Renewal fee calculation: Base=${basePrice}, Penalty=${penaltyFee}, Total=${totalAmount}`);
+
+    // 3. Create payment record with SUCCESS status (direct payment confirmed)
+    const payment = await this.prisma.payment.create({
+      data: {
+        user_id: oldSubscription.user_id,
+        package_id: oldSubscription.package_id,
+        vehicle_id: oldSubscription.vehicle_id,
+        amount: totalAmount,
+        method: directRenewalDto.payment_method || PaymentMethod.cash,
+        status: PaymentStatus.success, // Immediate success
+        payment_type: PaymentType.subscription,
+        payment_time: new Date(),
+        transaction_id: directRenewalDto.transaction_id || `DIRECT_RENEWAL_${moment().format('YYYYMMDDHHmmss')}`,
+        order_info:
+          directRenewalDto.order_info ||
+          `Direct renewal for ${oldSubscription.package.name}${penaltyFee > 0 ? ' + penalty fee' : ''}`,
+      },
+      include: {
+        package: true,
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(`✅ Direct renewal payment created: ${payment.payment_id}`);
+
+    // 4. Create new subscription
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + oldSubscription.package.duration_days);
+
+    const newSubscription = await this.prisma.subscription.create({
+      data: {
+        user_id: oldSubscription.user_id,
+        package_id: oldSubscription.package_id,
+        vehicle_id: oldSubscription.vehicle_id,
+        start_date: startDate,
+        end_date: endDate,
+        status: SubscriptionStatus.active,
+        swap_used: 0,
+        distance_traveled: 0,
+        deposit_paid: oldSubscription.deposit_paid, // Keep deposit status
+      },
+      include: {
+        package: true,
+        vehicle: true,
+      },
+    });
+
+    this.logger.log(`✅ New subscription created: ${newSubscription.subscription_id}`);
+
+    // 5. Link payment to new subscription
+    await this.prisma.payment.update({
+      where: { payment_id: payment.payment_id },
+      data: { subscription_id: newSubscription.subscription_id },
+    });
+
+    // 6. Mark old subscription as cancelled
+    await this.prisma.subscription.update({
+      where: { subscription_id: oldSubscription.subscription_id },
+      data: { status: SubscriptionStatus.cancelled },
+    });
+
+    this.logger.log(`✅ Old subscription marked as cancelled: ${oldSubscription.subscription_id}`);
+
+    // 7. Return detailed response
+    return {
+      success: true,
+      payment,
+      oldSubscription: {
+        subscription_id: oldSubscription.subscription_id,
+        end_date: oldSubscription.end_date,
+        distance_traveled: oldSubscription.distance_traveled,
+        base_distance: oldSubscription.package?.base_distance || 0,
+      },
+      newSubscription,
+      feeBreakdown: {
+        baseAmount: basePrice,
+        penaltyFee: penaltyFee,
+        totalAmount: totalAmount,
+        breakdown_text: `Gói: ${basePrice.toLocaleString('vi-VN')} VND${penaltyFee > 0 ? `, Phí phạt: ${penaltyFee.toLocaleString('vi-VN')} VND` : ''}, Tổng: ${totalAmount.toLocaleString('vi-VN')} VND`,
+      },
+      message: `Subscription renewed successfully${penaltyFee > 0 ? ` with penalty fee: ${penaltyFee.toLocaleString('vi-VN')} VND` : ''}`,
+    };
   }
 }
 
