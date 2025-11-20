@@ -6,6 +6,7 @@ import {
   WebSocketServer
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { ReservationStatus } from '@prisma/client';
 
 export interface ReservationCreatedEvent {
   reservationId: number;
@@ -25,6 +26,30 @@ export interface ReservationCreatedEvent {
     email: string;
     phone: string;
   };
+}
+
+export interface ReservationStatusUpdatedEvent {
+  reservationId: number;
+  stationId: number;
+  stationName: string;
+  previousStatus: ReservationStatus;
+  currentStatus: ReservationStatus;
+  scheduledTime: string;
+  updatedBy?: {
+    userId: number;
+    username: string;
+    role: string;
+  };
+  vehicle: {
+    id: number;
+    vin: string;
+  };
+  user: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  timestamp: string;
 }
 
 @WebSocketGateway({
@@ -54,6 +79,38 @@ export class ReservationsGateway implements OnGatewayConnection, OnGatewayDiscon
       return;
     }
 
+    this.logger.log(`Broadcasting reservation.created for reservation ${payload.reservationId}`);
     this.server.emit('reservation.created', payload);
+  }
+
+  /**
+   * Notify all clients about reservation status update
+   */
+  notifyReservationStatusUpdated(payload: ReservationStatusUpdatedEvent) {
+    if (!this.server) {
+      this.logger.warn('Reservation gateway not initialized. Cannot notify.');
+      return;
+    }
+
+    this.logger.log(
+      `Broadcasting reservation.status.updated for reservation ${payload.reservationId}: ${payload.previousStatus} → ${payload.currentStatus}`
+    );
+    this.server.emit('reservation.status.updated', payload);
+  }
+
+  /**
+   * Notify specific station about reservation update
+   */
+  notifyStation(stationId: number, event: string, payload: any) {
+    this.logger.log(`Emitting ${event} to station-${stationId}`);
+    this.server.to(`station-${stationId}`).emit(event, payload);
+  }
+
+  /**
+   * Notify specific user about their reservation update
+   */
+  notifyUser(userId: number, event: string, payload: any) {
+    this.logger.log(`Emitting ${event} to user-${userId}`);
+    this.server.to(`user-${userId}`).emit(event, payload);
   }
 }

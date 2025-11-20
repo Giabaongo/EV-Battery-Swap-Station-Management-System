@@ -10,8 +10,8 @@ import { BatteryStatus } from '@prisma/client';
 
 export interface BatteryStatusChangedEvent {
   batteryId: number;
-  stationId: number;
-  stationName: string;
+  stationId: number | null;
+  stationName: string | null;
   previousStatus: BatteryStatus;
   currentStatus: BatteryStatus;
   currentCharge: number;
@@ -25,12 +25,12 @@ export interface BatteryStatusChangedEvent {
 
 export interface BatteryChargeUpdatedEvent {
   batteryId: number;
-  stationId: number;
+  stationId: number | null;
   previousCharge: number;
   currentCharge: number;
   chargeChange: number;
-  chargingRate?: number;
-  estimatedFullTime?: string;
+  chargingRate?: number | null;
+  estimatedFullTime?: string | null;
   status: BatteryStatus;
   timestamp: string;
 }
@@ -98,12 +98,12 @@ export class BatteriesGateway
    * Calculate estimated time to full charge
    * @param currentCharge - Current battery charge percentage
    * @param chargingRate - Charging rate in % per hour
-   * @returns ISO timestamp
+   * @returns ISO timestamp or null if charging rate is invalid
    */
   private calculateEstimatedFullTime(
     currentCharge: number,
     chargingRate: number,
-  ): string {
+  ): string | null {
     if (!chargingRate || chargingRate <= 0) return null;
 
     const remainingCharge = 100 - currentCharge;

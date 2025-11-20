@@ -20,6 +20,6 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
   ],
   controllers: [SwapTransactionsController],
   providers: [SwapTransactionsService, SwapTransactionsGateway],
-  exports: [SwapTransactionsService],
+  exports: [SwapTransactionsService, SwapTransactionsGateway],
 })
 export class SwapTransactionsModule { }
