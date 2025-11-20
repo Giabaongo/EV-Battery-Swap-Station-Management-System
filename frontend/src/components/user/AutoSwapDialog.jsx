@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { CheckCircle2 } from 'lucide-react';
+import SwapSuccessDialog from '../dashboard/SwapSuccessDialog';
 import { useStation } from '../../hooks/useContext';
 import { swappingService } from '../../services/swappingService';
 import { vehicleService } from '../../services/vehicleService';
@@ -689,13 +690,12 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                     >
                                         Back
                                     </Button>
-                                    <Button
-                                        variant="destructive"
-                                        onClick={handleBatteryHealthFailed}
-                                        disabled={loading}
+                                    <Link
+                                        to="/driver/support"
+                                        className="inline-flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
                                     >
                                         Contact Support
-                                    </Button>
+                                    </Link>
                                 </>
                             )}
 
@@ -766,53 +766,17 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 )}
 
                 {/* STEP 5: Swap Success */}
-                {currentStep === SWAP_STEPS.SWAP_SUCCESS && (
-                    <>
-                        <div className="bg-white dark:bg-background rounded-xl">
-                            <div className="flex flex-col items-center px-6 pt-6">
-                                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
-                                    <CheckCircle2 className="h-9 w-9 text-green-600 dark:text-green-400" />
-                                </div>
-                                <DialogHeader className="text-center">
-                                    <DialogTitle className="text-2xl font-bold">Swapped Successfully!</DialogTitle>
-                                    <DialogDescription>Battery swap completed. Here are the details.</DialogDescription>
-                                </DialogHeader>
-                            </div>
-
-                            <div className="px-6 py-4">
-                                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    <div className="flex justify-between gap-x-6 py-3">
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">User</p>
-                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-medium text-right">
-                                            {swapTransaction?.vehicle?.user?.username || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div className="flex justify-between gap-x-6 py-3">
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Station</p>
-                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-medium text-right">
-                                            {selectedStation?.name || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div className="flex justify-between gap-x-6 py-3">
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Vehicle</p>
-                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-medium text-right">
-                                            {swapTransaction?.vehicle?.vin || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div className="flex justify-between gap-x-6 py-3">
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Transaction ID</p>
-                                        <p className="text-slate-900 dark:text-slate-200 text-sm font-mono font-semibold text-right">
-                                            {swapTransaction?.swapTransaction?.transaction_id || 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <DialogFooter className="px-6 pb-6">
-                                <Button className="w-full" onClick={handleSuccessClose}>Back to Dashboard</Button>
-                            </DialogFooter>
-                        </div>
-                    </>
+                {currentStep === SWAP_STEPS.SWAP_SUCCESS && swapTransaction && (
+                    <SwapSuccessDialog
+                        open={currentStep === SWAP_STEPS.SWAP_SUCCESS}
+                        onOpenChange={handleSuccessClose}
+                        summary={{
+                            user: swapTransaction?.vehicle?.user?.username || 'N/A',
+                            station: selectedStation?.name || 'N/A',
+                            vehicle: swapTransaction?.vehicle?.vin || 'N/A',
+                            plan: 'Premium Subscription',
+                        }}
+                    />
                 )}
             </DialogContent>
         </Dialog>

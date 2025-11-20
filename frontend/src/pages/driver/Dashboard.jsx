@@ -8,7 +8,6 @@ import VehicleSubscriptionCard from '../../components/user/VehicleSubscriptionCa
 import RecentActivityCard from '../../components/user/RecentActivityCard';
 import NearbyStationsCard from '../../components/user/NearbyStationsCard';
 import HelpLinksCard from '../../components/user/HelpLinksCard';
-import SwapSuccessDialog from '../../components/dashboard/SwapSuccessDialog';
 import AutoSwapDialog from '../../components/user/AutoSwapDialog';
 
 export default function User() {
@@ -18,7 +17,6 @@ export default function User() {
   const { activeSubscription, getActiveSubscription } = useSubscription();
   const [vehicleData, setVehicleData] = useState([]);
   const [showAutoSwap, setShowAutoSwap] = useState(false);
-  const [swapResult, setSwapResult] = useState(null);
 
   // Fetch user's active subscription on component mount
   useEffect(() => {
@@ -79,28 +77,6 @@ export default function User() {
     console.log('✅ Swap successful - Full response:', response);
     console.log('📋 Swap transaction object:', response?.swapTransaction);
     console.log('🔍 Transaction ID:', response?.swapTransaction?.transaction_id);
-
-    // Find the vehicle from vehicleData
-    const vehicle = vehicleData.find(v => v.vehicle_id === response.swapTransaction?.vehicle_id);
-
-    // Find the station from stations
-    const station = stations.find(s => s.station_id === response.swapTransaction?.station_id);
-
-    // Prepare summary data for success dialog
-    const summary = {
-      user: user?.username || user?.full_name || 'Driver',
-      station: station?.name || 'Unknown Station',
-      vehicle: vehicle?.vin || vehicle?.plate || `Vehicle #${response.swapTransaction?.vehicle_id}`,
-      plan: activeSubscription?.package?.package_name || activeSubscription?.package_name || 'Active Subscription',
-    };
-
-    console.log('📊 Summary for dialog:', summary);
-    setSwapResult(summary);
-
-    // Auto-hide success dialog after 5 seconds
-    setTimeout(() => {
-      setSwapResult(null);
-    }, 5000);
 
     // Refresh vehicle data after swap
     if (user?.user_id) {
@@ -172,15 +148,6 @@ export default function User() {
         userId={user?.user_id}
         onSuccess={handleSwapSuccess}
       />
-
-      {/* Swap Success Notification */}
-      {swapResult && (
-        <SwapSuccessDialog
-          open={Boolean(swapResult)}
-          onOpenChange={() => setSwapResult(null)}
-          summary={swapResult}
-        />
-      )}
     </div>
   );
 }
