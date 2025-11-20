@@ -138,7 +138,7 @@ export class CabinetService {
 
       return updatedSlot;
     } catch (error) {
-      throw new error;
+      throw error;
     }
   }
 }
