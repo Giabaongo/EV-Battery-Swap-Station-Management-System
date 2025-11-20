@@ -117,8 +117,12 @@ export const BookingProvider = ({ children }) => {
             if (activeReservation?.reservation_id === reservationId) {
                 if (status === 'completed' || status === 'cancelled') {
                     setActiveReservation(null);
+                    // Clear from localStorage when cancelled or completed
+                    localStorage.removeItem('activeReservation');
                 } else {
                     setActiveReservation(updated);
+                    // Update localStorage with new status
+                    localStorage.setItem('activeReservation', JSON.stringify(updated));
                 }
             }
             return updated;
@@ -209,13 +213,21 @@ export const BookingProvider = ({ children }) => {
 
     // ============ EFFECTS ============
     // Initialize activeReservation from localStorage
+    // Only restore if status is 'scheduled' or 'pending', not 'cancelled' or 'completed'
     useEffect(() => {
         const saved = localStorage.getItem('activeReservation');
         if (saved) {
             try {
                 const reservation = JSON.parse(saved);
-                setActiveReservation(reservation);
-                console.log('✅ Restored activeReservation from localStorage:', reservation.reservation_id);
+                // Only restore if it's still active (scheduled or pending), not cancelled/completed
+                if (reservation.status === 'scheduled' || reservation.status === 'pending') {
+                    setActiveReservation(reservation);
+                    console.log('✅ Restored activeReservation from localStorage:', reservation.reservation_id, 'status:', reservation.status);
+                } else {
+                    // Don't restore cancelled/completed reservations
+                    console.log('⚠️ Skipped restoring cancelled/completed reservation:', reservation.reservation_id, 'status:', reservation.status);
+                    localStorage.removeItem('activeReservation');
+                }
             } catch (err) {
                 console.error('Failed to parse activeReservation from localStorage:', err);
                 localStorage.removeItem('activeReservation');

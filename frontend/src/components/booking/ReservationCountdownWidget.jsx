@@ -71,6 +71,26 @@ export default function ReservationCountdownWidget() {
     }, [activeReservation, user, updateReservationStatus]);
 
 
+    // Force clear widget when status becomes cancelled or completed
+    useEffect(() => {
+        if (reservationStatus === 'cancelled' || reservationStatus === 'completed') {
+            console.log('🔴 Force clearing widget due to status:', reservationStatus);
+            const clearTimer = setTimeout(() => {
+                clearActiveReservation();
+            }, 1500);
+            return () => clearTimeout(clearTimer);
+        }
+    }, [reservationStatus, clearActiveReservation]);
+
+    // Reset reservationStatus when activeReservation changes
+    useEffect(() => {
+        if (activeReservation) {
+            console.log('📍 Resetting reservationStatus to:', activeReservation.status, '(activeReservation changed)');
+            setReservationStatus(activeReservation.status);
+            lastStatusRef.current = activeReservation.status;
+        }
+    }, [activeReservation?.reservation_id]);
+
     // Dùng hook WebSocket cho reservation status update
     useReservationWebSocket(
         null,
@@ -95,9 +115,8 @@ export default function ReservationCountdownWidget() {
                     clearInterval(countdownIntervalRef.current);
                 }
                 localStorage.removeItem('countdownTimeRemaining');
-                setTimeout(() => {
-                    clearActiveReservation();
-                }, 2000);
+                // Clear immediately to avoid showing old cancelled widget
+                clearActiveReservation();
             }
         },
         true
@@ -105,7 +124,7 @@ export default function ReservationCountdownWidget() {
 
     // Polling fallback (3s) - only if activeReservation exists
     useEffect(() => {
-        if (!activeReservation?.reservation_id || !user?.user_id) {
+        if (!activeReservation?.reservation_id || !user?.user_id && !user?.id) {
             console.log('⏭️ Polling skipped - missing reservation or user');
             return;
         }
@@ -113,7 +132,7 @@ export default function ReservationCountdownWidget() {
         console.log('🔍 Polling setup - activeReservation:', {
             reservation_id: activeReservation.reservation_id,
             status: activeReservation.status,
-            user_id: user.user_id,
+            user_id: user?.user_id || user?.id,
         });
 
         // Initialize last status
@@ -132,11 +151,11 @@ export default function ReservationCountdownWidget() {
                 }
 
                 console.log(`\n🔄 [${new Date().toLocaleTimeString()}] Polling check...`);
-                console.log(`   User ID: ${user.user_id}, Reservation ID: ${activeReservation.reservation_id}`);
+                console.log(`   User ID: ${user?.user_id || user?.id}, Reservation ID: ${activeReservation.reservation_id}`);
 
                 // Try direct endpoint first (use /reservations NOT /api/reservations since base URL already has /api/v1)
                 let response = await fetch(
-                    `${import.meta.env.VITE_API_BASE_URL}/reservations/user/${user.user_id}`,
+                    `${import.meta.env.VITE_API_BASE_URL}/reservations/user/${user?.user_id || user?.id}`,
                     {
                         method: 'GET',
                         headers: {
@@ -156,7 +175,7 @@ export default function ReservationCountdownWidget() {
 
                     // Try alternative: get swap transactions instead
                     response = await fetch(
-                        `${import.meta.env.VITE_API_BASE_URL}/swap-transactions/user/${user.user_id}`,
+                        `${import.meta.env.VITE_API_BASE_URL}/swap-transactions/user/${user?.user_id || user?.id}`,
                         {
                             method: 'GET',
                             headers: {
@@ -372,18 +391,24 @@ export default function ReservationCountdownWidget() {
         setIsCancelling(true);
 
         try {
+            const userId = user.user_id || user.id;
+            console.log('Cancelling reservation:', {
+                reservationId: activeReservation.reservation_id,
+                userId: userId,
+            });
+
             await updateReservationStatus(
                 activeReservation.reservation_id,
-                user.user_id,
+                userId,
                 'cancelled'
             );
             toast.success('Reservation cancelled successfully.');
             localStorage.removeItem('countdownTimeRemaining');
+            // Clear immediately to remove old widget completely
             clearActiveReservation();
         } catch (error) {
             console.error('Error cancelling:', error);
             toast.error('Error: Unable to cancel reservation');
-        } finally {
             setIsCancelling(false);
         }
     };
@@ -399,6 +424,12 @@ export default function ReservationCountdownWidget() {
 
     if (!activeReservation) {
         console.log('👻 Widget not rendering - no active reservation');
+        return null;
+    }
+
+    // Don't render if status is cancelled or completed (widget should be cleared from context)
+    if (reservationStatus === 'cancelled' || reservationStatus === 'completed') {
+        console.log('👻 Widget not rendering - reservation', reservationStatus);
         return null;
     }
 
