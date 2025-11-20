@@ -97,36 +97,61 @@ export class BatteriesService {
   async findBestBatteryForVehicle(
     vehicle_id: number,
     station_id: number,
+    cabinet_id?: number
   ) {
+    try {
+      // Fetch vehicle details
+      const vehicle = await this.vehiclesService.findOne(vehicle_id);
 
-    const { battery_model, battery_type } = await this.vehiclesService.findOne(vehicle_id);
-
-    if (!battery_model || !battery_type) {
-      throw new NotFoundException('Vehicle not found or missing battery model/type');
-    }
-
-    const bestBattery = await this.databaseService.battery.findFirst({
-      where: {
-        station_id,
-        model: battery_model,
-        type: battery_type,
-        status: 'full'
-      },
-      orderBy: {
-        soh: 'desc'
+      if (!vehicle?.battery_model || !vehicle?.battery_type) {
+        throw new NotFoundException('Vehicle not found or missing battery model/type');
       }
-    });
 
-    if (!bestBattery) {
-      throw new NotFoundException('No compatible battery found');
+      // Build query conditions
+      const whereConditions: any = {
+        station_id,
+        model: vehicle.battery_model,
+        type: vehicle.battery_type,
+        status: BatteryStatus.full,
+      };
+
+      // Add cabinet filter if provided
+      if (cabinet_id !== undefined) {
+        whereConditions.cabinet_id = cabinet_id;
+      }
+
+      // Find best battery sorted by charge level (if available) or created date
+      const bestBattery = await this.databaseService.battery.findFirst({
+        where: whereConditions,
+        include: {
+          cabinet: true,
+          slot: true
+        },
+      });
+
+      if (!bestBattery) {
+        throw new NotFoundException(
+          `No compatible battery found for vehicle ${vehicle_id} at station ${station_id} ${cabinet_id ? 'in cabinet ' + cabinet_id : ''}`
+        );
+      }
+
+      this.logger.log(
+        `Found best battery ${bestBattery.battery_id} for vehicle ${vehicle_id}`
+      );
+
+      return bestBattery;
+    } catch (error) {
+      throw error;
     }
-
-    return bestBattery;
   }
 
   async findOne(id: number) {
     const battery = await this.databaseService.battery.findUnique({
       where: { battery_id: id },
+      include: {
+        cabinet: true,
+        slot: true
+      }
     });
     if (!battery) {
       throw new NotFoundException(`Battery with ID ${id} not found`);
@@ -210,6 +235,8 @@ export class BatteriesService {
   async returnBatteryToStation(
     battery_id: number,
     station_id: number,
+    cabinet_id: number,
+    slot_number: number,
     tx?: any // transaction instance
   ) {
     try {
@@ -290,23 +317,20 @@ export class BatteriesService {
   }
 
   async update(id: number, updateBatteryDto: UpdateBatteryDto, tx?: any) {
-    try {
-      const prisma = tx ?? this.databaseService;
+    const prisma = tx ?? this.databaseService;
 
-      const battery = await this.findOne(id);
-
-      const updatedBattery = await prisma.battery.update({
-        where: { battery_id: id },
-        data: {
-          ...updateBatteryDto,
-        },
-      });
-
-      this.logger.log(`Battery ID ${id} updated successfully`);
-      return updatedBattery;
-    } catch (error) {
-      throw error;
+    const battery = await this.findOne(id);
+    if (!battery) {
+      throw new NotFoundException(`Battery with ID ${id} not found`);
     }
+
+    const updatedBattery = await prisma.battery.update({
+      where: { battery_id: id },
+      data: { ...updateBatteryDto },
+    });
+    this.logger.log(`Updated battery ID ${id} with data ${JSON.stringify(updateBatteryDto)}`);
+
+    return updatedBattery;
   }
 
   remove(id: number) {

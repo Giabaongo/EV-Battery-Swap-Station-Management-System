@@ -224,48 +224,33 @@ export class VehiclesService {
     }
   }
 
-  async removeVehicleFromUser(
-    assignVehicleDto: { vin: string; user_id: number },
-  ) {
+  async removeVehicleFromUser(vin: string, user_id: number) {
     try {
-      // ✅ Check if user exists
-      const user = await this.userService.findOneById(assignVehicleDto.user_id);
       // ✅ Check if vehicle exists
-      const vehicle = await this.findByVin(assignVehicleDto.vin);
-
-      // ✅ Check if vehicle is assigned to the user
-      if (vehicle.user_id !== assignVehicleDto.user_id) {
+      const vehicle = await this.findByVin(vin);
+      if (vehicle.user_id !== user_id) {
         throw new BadRequestException(
-          `Vehicle with VIN ${assignVehicleDto.vin} is not assigned to User with ID ${assignVehicleDto.user_id}`
+          `Vehicle with VIN ${vin} is not assigned to user ID ${user_id}`
         );
       }
 
-      const subscription = await this.subscriptionsService.findOneByVehicleId(vehicle.vehicle_id);
-      if (subscription) {
-        const updatedSubscription = await this.subscriptionsService.update(subscription.subscription_id, {
-          status: SubscriptionStatus.cancelled // SubscriptionStatus.cancelled
-        });
-      }
-
-      this.logger.log(
-        `Removing Vehicle with VIN ${assignVehicleDto.vin} from User with ID ${assignVehicleDto.user_id}`
-      );
-      const updatedVehicle = await this.databaseService.vehicle.update({
-        where: { vin: assignVehicleDto.vin },
+      const removedVehicle = await this.databaseService.vehicle.update({
+        where: { vin },
         data: { user_id: null, status: VehicleStatus.inactive },
       });
 
-      return updatedVehicle;
-    } catch (error) {
+      return removedVehicle;
+    }
+    catch (error) {
       throw error;
     }
   }
 
-  async update(id: number, updateVehicleDto: UpdateVehicleDto) {
+  async update(id: number, updateVehicleDto: UpdateVehicleDto, tx?: any) {
+    const prisma = tx ?? this.databaseService;
     try {
       await this.findOne(id); // Check if vehicle exists
-
-      return await this.databaseService.vehicle.update({
+      const updatedVehicle = await prisma.vehicle.update({
         where: { vehicle_id: id },
         data: updateVehicleDto,
         include: {
@@ -279,19 +264,13 @@ export class VehiclesService {
           },
         },
       });
+
+      return updatedVehicle;
     } catch (error) {
       if (error.code === 'P2002') {
         throw new ConflictException('VIN already exists');
       }
       throw error;
     }
-  }
-
-  async remove(id: number) {
-    await this.findOne(id); // Check if vehicle exists
-
-    return await this.databaseService.vehicle.delete({
-      where: { vehicle_id: id },
-    });
   }
 }

@@ -1,0 +1,12 @@
+model Slot {
+  slot_id     Int     @id @default(autoincrement())
+  cabinet_id  Int
+  slot_number Int
+  is_occupied Boolean @default(false)
+
+  cabinet   Cabinet   @relation(fields: [cabinet_id], references: [cabinet_id])
+  batteries Battery[] // ← Quan hệ ngược lại
+
+  @@unique([cabinet_id, slot_number])
+  @@map("slots")
+}

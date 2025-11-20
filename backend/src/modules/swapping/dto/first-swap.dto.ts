@@ -9,9 +9,5 @@ export class FirstSwapDto extends SwappingDto {
     @IsInt({ message: 'subscription_id must be an integer' })
     @IsNotEmpty({ message: 'subscription_id is required' })
     subscription_id: number;
-
-    @IsInt({ message: 'reservation_id must be an integer' })
-    @IsOptional()
-    reservation_id?: number;
 }
 

@@ -11,7 +11,7 @@ model Payment {
   order_info        String?                @db.VarChar(255)
   package_id        Int?
   subscription_id   Int?
-  vehicle_id        Int?                   // Vehicle for this payment/subscription
+  vehicle_id        Int? // Vehicle for this payment/subscription
   transaction_id    String?                @db.VarChar(100)
   updated_at        DateTime               @updatedAt
   vnp_bank_code     String?                @db.VarChar(50)
@@ -45,10 +45,10 @@ enum PaymentStatus {
 }
 
 enum PaymentType {
-  subscription               // Thanh toán gói đăng ký
-  subscription_with_deposit  // Thanh toán gói + tiền đặt cọc pin
-  battery_deposit            // Chỉ thanh toán tiền đặt cọc pin
-  battery_replacement        // Thanh toán thay thế pin
-  damage_fee                 // Thanh toán phí hư hỏng
-  other                      // Thanh toán khác
+  subscription // Thanh toán gói đăng ký
+  subscription_with_deposit // Thanh toán gói + tiền đặt cọc pin
+  battery_deposit // Chỉ thanh toán tiền đặt cọc pin
+  battery_replacement // Thanh toán thay thế pin
+  damage_fee // Thanh toán phí hư hỏng
+  other // Thanh toán khác
 }

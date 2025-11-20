@@ -1,12 +1,12 @@
 enum ConfigType {
-  deposit          // Tiền cọc
-  penalty          // Phí phạt
-  service_fee      // Phí dịch vụ
-  swap_fee         // Phí swap
-  late_fee         // Phí trễ hạn
-  damage_fee       // Phí hư hỏng
-  system           // System configs (payment expiry, etc.)
-  other            // Khác
+  deposit // Tiền cọc
+  penalty // Phí phạt
+  service_fee // Phí dịch vụ
+  swap_fee // Phí swap
+  late_fee // Phí trễ hạn
+  damage_fee // Phí hư hỏng
+  system // System configs (payment expiry, etc.)
+  other // Khác
 }
 
 model Config {
@@ -14,12 +14,12 @@ model Config {
   type         ConfigType
   name         String     @unique @db.VarChar(100)
   value        Decimal?   @db.Decimal(12, 2) // For numeric values (pricing)
-  string_value String?    @db.VarChar(255)   // For string values (system configs)
+  string_value String?    @db.VarChar(255) // For string values (system configs)
   description  String?    @db.VarChar(500)
   is_active    Boolean    @default(true) // Enable/disable config
   created_at   DateTime   @default(now())
   updated_at   DateTime   @updatedAt
 
-  @@map("configs")
   @@index([type])
+  @@map("configs")
 }

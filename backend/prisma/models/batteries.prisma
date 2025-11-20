@@ -1,19 +1,26 @@
 model Battery {
-  battery_id              Int                 @id @default(autoincrement())
-  vehicle_id              Int?                @unique
-  station_id              Int?
-  model                   String              @db.VarChar(100)
-  type                    String              @db.VarChar(50)
-  capacity                Decimal             @db.Decimal(5, 2)
-  current_charge          Decimal             @db.Decimal(5, 2)
-  soh                     Decimal             @db.Decimal(5, 2)
-  status                  BatteryStatus
+  battery_id     Int           @id @default(autoincrement())
+  vehicle_id     Int?          @unique
+  station_id     Int?
+  cabinet_id     Int?
+  slot_id        Int?          @unique // ← Chỉ lưu ở Battery
+  serial_number  String        @unique @db.VarChar(100)
+  model          String        @db.VarChar(100)
+  type           String        @db.VarChar(50)
+  capacity       Decimal       @db.Decimal(5, 2)
+  current_charge Decimal       @default(0) @db.Decimal(5, 2)
+  soh            Decimal       @default(100) @db.Decimal(5, 2)
+  status         BatteryStatus
+
+  //Relations
   station                 Station?            @relation(fields: [station_id], references: [station_id])
   batteriesTransfer       BatteriesTransfer[]
   Reservation             Reservation[]
   SwapTransactionReturned SwapTransaction[]   @relation("BatteryReturned")
   SwapTransactionTaken    SwapTransaction[]   @relation("BatteryTaken")
   vehicle                 Vehicle?
+  cabinet                 Cabinet?            @relation(fields: [cabinet_id], references: [cabinet_id])
+  slot                    Slot?               @relation(fields: [slot_id], references: [slot_id])
 
   @@map("batteries")
 }

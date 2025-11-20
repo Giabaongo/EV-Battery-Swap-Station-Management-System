@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, Logger } from '@nestjs/common';
 import { CreateSwapTransactionDto } from './dto/create-swap-transaction.dto';
 import { UpdateSwapTransactionDto } from './dto/update-swap-transaction.dto';
 import { UsersService } from '../users/users.service';
@@ -12,6 +12,8 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class SwapTransactionsService {
+  private readonly logger = new Logger(SwapTransactionsService.name);
+
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly usersService: UsersService,
@@ -25,59 +27,29 @@ export class SwapTransactionsService {
     createDto: CreateSwapTransactionDto,
     tx?: any // transaction object
   ) {
-    const [user, vehicle, station, battery_taken, subscription] = await Promise.all([
+    const [user, vehicle, station, battery_returned, subscription] = await Promise.all([
       this.usersService.findOneById(createDto.user_id),
       this.vehiclesService.findOne(createDto.vehicle_id),
       this.stationsService.findOne(createDto.station_id),
-      this.batteriesService.findOne(createDto.battery_taken_id),
+      this.batteriesService.findOne(createDto.battery_returned_id),
       this.subcriptionsService.findOne(createDto.subscription_id),
     ]);
 
     const prisma = tx || this.databaseService;
 
     try {
-      if (!user) {
-        throw new NotFoundException({ message: `User with ID ${createDto.user_id} not found` });
-      }
-
-      if (!vehicle) {
-        throw new NotFoundException({ message: `Vehicle with ID ${createDto.vehicle_id} not found` });
-      }
+      const battery_returned = await this.batteriesService.findOne(createDto.battery_returned_id);
 
       if (vehicle.user_id !== createDto.user_id) {
-        throw new NotFoundException({ message: `Vehicle with ID ${createDto.vehicle_id} not owned by user with ID ${createDto.user_id}` });
+        throw new BadRequestException({ message: `Vehicle with ID ${vehicle.vehicle_id} not owned by user with ID ${createDto.user_id}` });
       }
 
-      if (!station) {
-        throw new NotFoundException({ message: `Station with ID ${createDto.station_id} not found` });
-      }
-
-      if (!battery_taken) {
-        throw new NotFoundException({ message: `Battery with ID ${createDto.battery_taken_id} not found` });
-      }
-
-      if (battery_taken.station_id !== createDto.station_id) {
-        throw new NotFoundException({ message: `Battery with ID ${createDto.battery_taken_id} not located at station with ID ${createDto.station_id}` });
-      }
-
-      if (battery_taken.status !== BatteryStatus.full) {
-        throw new NotFoundException({ message: `Battery with ID ${createDto.battery_taken_id} is not full` });
-      }
-
-      if (createDto.battery_returned_id) {
-        const battery_returned = await this.batteriesService.findOne(createDto.battery_returned_id);
-
-        if (!battery_returned) {
-          throw new NotFoundException({ message: `Battery with ID ${createDto.battery_returned_id} not found` });
-        }
-      }
-
-      if (!subscription) {
-        throw new NotFoundException({ message: `No active subscription found for vehicle ID ${createDto.vehicle_id}` });
+      if (battery_returned.battery_id !== vehicle.battery_id) {
+        throw new BadRequestException({ message: `Battery with ID ${battery_returned.battery_id} not in vehicle with ID ${vehicle.vehicle_id}` });
       }
 
       if (subscription.user_id !== createDto.user_id) {
-        throw new NotFoundException({ message: `Subscription with ID ${subscription.subscription_id} not owned by user with ID ${createDto.user_id}` });
+        throw new BadRequestException({ message: `Subscription with ID ${subscription.subscription_id} not owned by user with ID ${createDto.user_id}` });
       }
 
       if (subscription.vehicle_id !== createDto.vehicle_id) {
@@ -85,19 +57,21 @@ export class SwapTransactionsService {
       }
 
       // Create swap transaction
+      this.logger.log(`Creating swap transaction for user ID ${createDto.user_id}, vehicle ID ${createDto.vehicle_id} at station ID ${createDto.station_id}`);
       return await prisma.swapTransaction.create({
         data: {
           user_id: createDto.user_id,
           vehicle_id: createDto.vehicle_id,
           station_id: createDto.station_id,
-          battery_taken_id: createDto.battery_taken_id,
-          battery_returned_id: createDto.battery_returned_id || null,
+          cabinet_id: createDto.cabinet_id,
+          battery_taken_id: null,
+          battery_returned_id: createDto.battery_returned_id,
           subscription_id: createDto.subscription_id,
           status: createDto.status,
         }
       });
     } catch (error) {
-      throw new InternalServerErrorException({ message: `Failed to create swap transaction: ${error.message}` });
+      throw error;
     }
   }
 
@@ -173,6 +147,15 @@ export class SwapTransactionsService {
     });
   }
 
+  async findPendingTransactionByVehicle(vehicleId: number) {
+    return this.databaseService.swapTransaction.findFirst({
+      where: {
+        vehicle_id: vehicleId,
+        status: SwapTransactionStatus.pending
+      }
+    });
+  }
+
   async updateStatus(
     id: number,
     status: SwapTransactionStatus
@@ -188,8 +171,17 @@ export class SwapTransactionsService {
   }
 
 
-  update(id: number, updateSwapTransactionDto: UpdateSwapTransactionDto) {
-    return `This action updates a #${id} swapTransaction`;
+  update(id: number, updateSwapTransactionDto: UpdateSwapTransactionDto, tx?: any) {
+    const prisma = tx || this.databaseService;
+    try {
+      const updatedTransaction = prisma.swapTransaction.update({
+        where: { transaction_id: id },
+        data: { ...updateSwapTransactionDto }
+      });
+      return updatedTransaction;
+    } catch (error) {
+      throw error;
+    }
   }
 
   remove(id: number) {
