@@ -14,20 +14,20 @@ export class CreateSwapTransactionDto {
     @IsNotEmpty({ message: 'station_id should not be empty' })
     station_id: number;
 
-    @IsInt({ message: 'battery_taken_id must be an integer' })
-    @IsNotEmpty({ message: 'battery_taken_id should not be empty' })
-    battery_taken_id: number;
+    @IsInt({ message: 'cabinet_id must be an integer' })
+    @IsNotEmpty({ message: 'cabinet_id should not be empty' })
+    cabinet_id: number;
 
     @IsInt({ message: 'battery_returned_id must be an integer' })
     @IsOptional()
-    battery_returned_id?: number;
+    battery_returned_id: number;
 
     @IsInt({ message: 'subscription_id must be an integer' })
     @IsNotEmpty({ message: 'subscription_id should not be empty' })
     subscription_id: number;
 
     @IsNotEmpty({ message: 'status should not be empty' })
-    @IsEnum(SwapTransactionStatus, { message: `status must be following ${Object.values(SwapTransactionStatus).join(', ')}` })
+    @IsEnum(SwapTransactionStatus, { message: 'status must be a valid SwapTransactionStatus' })
     status: SwapTransactionStatus;
 }
 

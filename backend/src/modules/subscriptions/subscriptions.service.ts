@@ -296,34 +296,39 @@ export class SubscriptionsService {
 
   async incrementSwapUsed(id: number, tx?: any) {
     const db = tx ?? this.prisma;
-    const subscription = await this.findOne(id);
+    try {
+      const subscription = await this.findOne(id);
 
-    // Check if subscription is active
-    if (subscription.status !== SubscriptionStatus.active) {
-      throw new BadRequestException('Subscription is not active');
-    }
+      // Check if subscription is active
+      if (subscription.status !== SubscriptionStatus.active) {
+        throw new BadRequestException('Subscription is not active');
+      }
 
-    this.logger.log(`Incrementing swap used for subscription ID ${id}. Current swap used: ${subscription.swap_used}`);
-    return db.subscription.update({
-      where: { subscription_id: id },
-      data: {
-        swap_used: {
-          increment: 1,
-        },
-      },
-      include: {
-        package: true,
-        user: {
-          select: {
-            user_id: true,
-            username: true,
-            email: true,
-            phone: true,
+      this.logger.log(`Incrementing swap used for subscription ID ${id}. Current swap used: ${subscription.swap_used}`);
+      const updatedSubscription = await db.subscription.update({
+        where: { subscription_id: id },
+        data: {
+          swap_used: {
+            increment: 1,
           },
         },
-        vehicle: true,
-      },
-    });
+        include: {
+          package: true,
+          user: {
+            select: {
+              user_id: true,
+              username: true,
+              email: true,
+              phone: true,
+            },
+          },
+          vehicle: true,
+        },
+      });
+      return updatedSubscription;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async updateDistanceTraveled(id: number, distance: number, tx?: any) {

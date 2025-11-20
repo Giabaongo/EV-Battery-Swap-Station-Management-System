@@ -9,6 +9,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { DatabaseModule } from '../database/database.module';
 import { SwapTransactionsModule } from '../swap-transactions/swap-transactions.module';
 import { ReservationsModule } from '../reservations/reservations.module';
+import { CabinetsModule } from '../cabinets/cabinets.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { ReservationsModule } from '../reservations/reservations.module';
     StationsModule,
     SwapTransactionsModule,
     SubscriptionsModule,
-    ReservationsModule
+    ReservationsModule,
+    CabinetsModule,
   ],
   controllers: [SwappingController],
   providers: [SwappingService],

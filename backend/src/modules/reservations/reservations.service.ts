@@ -9,6 +9,8 @@ import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { ConfigService } from '@nestjs/config';
 import { StationsService } from '../stations/stations.service';
+import { CabinetsService } from '../cabinets/cabinets.service';
+import { UpdateReservationDto } from './dto/update-reservation-status.dto';
 
 @Injectable()
 export class ReservationsService {
@@ -21,7 +23,8 @@ export class ReservationsService {
     private userService: UsersService,
     private subscriptionsService: SubscriptionsService,
     private stationsService: StationsService,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private cabinetsService: CabinetsService
   ) { }
 
 
@@ -54,7 +57,20 @@ export class ReservationsService {
 
       // 3. tìm pin phù hợp với xe tại trạm 
       const reservationBattery = await this.batteriesService.findBestBatteryForVehicle(vehicle.vehicle_id, station_id);
-      const updatedBatteryStatus = await this.batteriesService.updateBatteryStatus(reservationBattery.battery_id, BatteryStatus.booked);
+
+      //4. chuyển status của battery được d
+      const updatedBattery = await this.batteriesService.update(reservationBattery.battery_id, {
+        status: BatteryStatus.booked
+      });
+
+      const cabinet = await this.cabinetsService.findOneCabinet(updatedBattery.cabinet_id);
+
+      if (cabinet.station_id !== station_id) {
+        throw new BadRequestException('No compatible battery available at this station for your vehicle');
+      }
+
+      const slot = await this.cabinetsService.findEmptySlotAtCabinet(cabinet.cabinet_id);
+
 
       const now = new Date();
       // chuyển string sang date
@@ -101,10 +117,9 @@ export class ReservationsService {
       this.logger.log(`New reservation created with ID ${newReservation.reservation_id} for user ID ${user_id} at station ID ${station_id}`);
       return {
         reservation: newReservation,
-        battery: {
-          battery_id: reservationBattery.battery_id,
-          status: updatedBatteryStatus.status
-        }
+        cabinet: cabinet,
+        slot: slot,
+        battery: updatedBattery
       };
     } catch (error) {
       throw error;
@@ -129,8 +144,16 @@ export class ReservationsService {
     });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} reservation`;
+  async findOne(id: number) {
+    const reservation = await this.databaseService.reservation.findUnique({
+      where: { reservation_id: id }
+    })
+
+    if (!reservation) {
+      throw new NotFoundException(`Not found reservation with ID: ${id}`);
+    }
+
+    return reservation;
   }
 
   async findOneScheduledForVehicleByUserId(user_id: number, vehicle_id: number) {
@@ -158,6 +181,17 @@ export class ReservationsService {
       }
       throw error;
     }
+  }
+
+  async update(id: number, dto: UpdateReservationDto) {
+    const reservation = this.findOne(id);
+
+    const updatedReservation = this.databaseService.reservation.update({
+      where: { reservation_id: id },
+      data: {
+        ...dto
+      }
+    })
   }
 
   async updateReservationStatus(

@@ -4,6 +4,4 @@ import { BatteryStatus } from '@prisma/client';
 import { IsEnum } from 'class-validator';
 
 export class UpdateBatteryDto extends PartialType(CreateBatteryDto) {
-    @IsEnum(BatteryStatus)
-    status: BatteryStatus;
 }
