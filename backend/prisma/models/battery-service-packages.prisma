@@ -1,12 +1,12 @@
 model BatteryServicePackage {
   package_id    Int            @id @default(autoincrement())
   name          String         @db.VarChar(100)
-  battery_count Int            @default(1)  // Số lượng pin trong gói (default: 1)
-  base_distance Int            // Quãng đường cơ bản (km)
+  battery_count Int            @default(1) // Số lượng pin trong gói (default: 1)
+  base_distance Int // Quãng đường cơ bản (km)
   base_price    Decimal        @db.Decimal(12, 2)
   swap_count    Int
   penalty_fee   Int
-  duration_days Int            // Deprecated: kept for compatibility
+  duration_days Int // Deprecated: kept for compatibility
   description   String?        @db.VarChar(255)
   active        Boolean
   payments      Payment[]

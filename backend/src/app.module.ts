@@ -21,6 +21,7 @@ import { BatteryTransferTicketModule } from './modules/battery-transfer-ticket/b
 import { MailModule } from './modules/mail/mail.module';
 import { SystemConfigModule } from './modules/config/config.module';
 import { AiModule } from './modules/ai/ai.module';
+import { CabinetsModule } from './modules/cabinets/cabinets.module';
 import { AdminDashboardModule } from './modules/admin-statistics/admin-statistics.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -50,6 +51,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     MailModule,
     SystemConfigModule,
     AiModule,
+    CabinetsModule,
     AdminDashboardModule,
     WebsocketModule,
   ],

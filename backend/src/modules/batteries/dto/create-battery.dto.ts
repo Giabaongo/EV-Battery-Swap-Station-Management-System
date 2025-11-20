@@ -3,11 +3,12 @@ import {
     IsString,
     IsNumber,
     Min,
-    Max,
     MinLength,
     MaxLength,
-    IsOptional,
     IsEnum,
+    Max,
+    IsOptional,
+    IsInt,
 } from "class-validator";
 import { Type } from 'class-transformer';
 import { ApiProperty } from "@nestjs/swagger";
@@ -15,12 +16,27 @@ import { Battery, BatteryStatus } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
 export class CreateBatteryDto {
-    @ApiProperty({ description: 'ID of the station where the battery is located', example: 1 })
-    @IsNotEmpty({ message: 'station_id is required' })
-    @IsNumber({}, { message: 'station_id must be a number' })
-    station_id: number;
+    @IsNotEmpty({ message: 'Serial number is required' })
+    @IsString({ message: 'Serial number must be a string' })
+    @MinLength(12, { message: 'Serial number must be at least 2 characters long' })
+    serial_number: string;
 
-    @ApiProperty({ description: 'Battery model name', example: 'Model X' })
+    @IsOptional()
+    @IsInt()
+    vehicle_id: number | null; // Optional, can be null if not assigned to a vehicle
+
+    @IsOptional()
+    @IsInt()
+    station_id: number | null; // Optional, can be null if not assigned to a station
+
+    @IsOptional()
+    @IsInt()
+    cabinet_id: number | null; // Optional, can be null if not assigned to a cabinet
+
+    @IsOptional()
+    @IsInt()
+    slot_id: number | null; // Optional, can be null if not assigned to a slot
+
     @IsOptional()
     @IsString({ message: 'Model must be a string' })
     @MinLength(2, { message: 'Model must be at least 2 characters long' })
@@ -34,11 +50,11 @@ export class CreateBatteryDto {
     type: string = "Lithium-ion";
 
     @ApiProperty({ description: 'Battery capacity in kWh', example: 75.5 })
-    @IsNotEmpty({ message: 'capacity is required' })
-    @IsNumber({ maxDecimalPlaces: 2 }, { message: 'capacity must be a number with max 2 decimal places' })
-    @Type(() => Decimal)
-    @Min(1, { message: 'capacity must be at least 1 kWh' })
-    capacity: number;
+    @IsNotEmpty({ message: 'Capacity is required' })
+    @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Capacity must be a number with max 2 decimal places' })
+    @Type(() => Number)
+    @Min(1, { message: 'Capacity must be at least 1 kWh' })
+    capacity: number = 30.0;
 
     @ApiProperty({ description: 'Current charge percentage', example: 85.5 })
     @IsOptional()

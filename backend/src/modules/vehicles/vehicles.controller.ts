@@ -85,10 +85,7 @@ export class VehiclesController {
       throw new UnauthorizedException('User information not found in token');
     }
 
-    return this.vehiclesService.removeVehicleFromUser({
-      vin: removeDto.vin,
-      user_id: user.sub, // user.sub contains the user_id from JWT payload
-    });
+    return this.vehiclesService.removeVehicleFromUser(removeDto.vin, user.sub);
   }
 
   @Roles($Enums.Role.driver)
@@ -112,9 +109,9 @@ export class VehiclesController {
     return this.vehiclesService.update(id, updateVehicleDto);
   }
 
-  @Delete(':id')
-  @Roles('admin')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.vehiclesService.remove(id);
-  }
+  // @Delete(':id')
+  // @Roles('admin')
+  // remove(@Param('id', ParseIntPipe) id: number) {
+  //   return this.vehiclesService.remove(id);
+  // }
 }

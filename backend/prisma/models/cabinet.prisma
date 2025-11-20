@@ -1,0 +1,21 @@
+model Cabinet {
+  cabinet_id   Int           @id @default(autoincrement())
+  station_id   Int
+  cabinet_name String        @db.VarChar(100)
+  total_slots  Int
+  status       CabinetStatus
+  // Relations
+
+  Station          Station           @relation(fields: [station_id], references: [station_id])
+  Slots            Slot[]
+  Batteries        Battery[]
+  SwapTransactions SwapTransaction[]
+
+  @@map("cabinets")
+}
+
+enum CabinetStatus {
+  active
+  inactive
+  maintenance
+}

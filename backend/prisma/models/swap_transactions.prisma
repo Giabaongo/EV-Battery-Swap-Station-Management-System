@@ -3,24 +3,29 @@ model SwapTransaction {
   user_id             Int
   vehicle_id          Int
   station_id          Int
-  battery_taken_id    Int
+  cabinet_id          Int
+  battery_taken_id    Int?
   battery_returned_id Int?
   status              SwapTransactionStatus
   createAt            DateTime              @default(now())
   updateAt            DateTime              @updatedAt
   subscription_id     Int
-  battery_returned    Battery?              @relation("BatteryReturned", fields: [battery_returned_id], references: [battery_id])
-  battery_taken       Battery               @relation("BatteryTaken", fields: [battery_taken_id], references: [battery_id])
-  station             Station               @relation(fields: [station_id], references: [station_id])
-  subscription        Subscription          @relation(fields: [subscription_id], references: [subscription_id])
-  user                User                  @relation(fields: [user_id], references: [user_id])
-  vehicle             Vehicle               @relation(fields: [vehicle_id], references: [vehicle_id])
+
+  //Relations
+  battery_returned Battery?     @relation("BatteryReturned", fields: [battery_returned_id], references: [battery_id])
+  battery_taken    Battery?     @relation("BatteryTaken", fields: [battery_taken_id], references: [battery_id])
+  station          Station      @relation(fields: [station_id], references: [station_id])
+  subscription     Subscription @relation(fields: [subscription_id], references: [subscription_id])
+  user             User         @relation(fields: [user_id], references: [user_id])
+  vehicle          Vehicle      @relation(fields: [vehicle_id], references: [vehicle_id])
+  cabinet          Cabinet?     @relation(fields: [cabinet_id], references: [cabinet_id])
 
   @@map("swap_transactions")
 }
 
 enum SwapTransactionStatus {
   completed
+  pending
   failed
   cancelled
 }

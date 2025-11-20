@@ -137,6 +137,10 @@ export const API_ENDPOINTS = {
   SWAPPING: {
     AUTOMATIC_SWAP: "/swapping/automatic-swap",
     INITIALIZE_BATTERY: "/swapping/initialize-battery",
+    GET_EMPTY_SLOT: "/swapping/get-empty-slot", // POST
+    RETURN_BATTERY: "/swapping/return-battery", // POST
+    GET_FULL_SLOT: "/swapping/get-full-slot", // POST
+    TAKE_BATTERY: "/swapping/take-battery", // POST
   },
 
   SUPPORT: {
