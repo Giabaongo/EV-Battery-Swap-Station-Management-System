@@ -132,18 +132,31 @@ export class SwappingService {
 
         // Perform all updates within a transaction
         return await this.databaseService.$transaction(async (prisma) => {
-            const batteryReturnUpdate = {
-                station_id: dto.station_id,
-                cabinet_id: dto.cabinet_id,
-                slot_id: dto.slot_id,
-                vehicle_id: null
-            };
-
 
             // Execute updates in parallel within transaction
-            const [updatedBattery, updatedVehicle, swapRecord] = await Promise.all([
-                this.batteriesService.update(returnBattery.battery_id, batteryReturnUpdate, prisma),
-                this.vehiclesService.update(dto.vehicle_id, { battery_id: null }, prisma),
+            const [updatedBattery, updatedVehicle, updatedSlot, swapRecord] = await Promise.all([
+                this.batteriesService.update(returnBattery.battery_id,
+                    {
+                        station_id: dto.station_id,
+                        cabinet_id: dto.cabinet_id,
+                        slot_id: dto.slot_id,
+                        vehicle_id: null,
+                        status: returnBattery.current_charge.equals(new Decimal(100)) ? BatteryStatus.full : BatteryStatus.charging
+                    },
+                    prisma
+                ),
+                this.vehiclesService.update(dto.vehicle_id,
+                    {
+                        battery_id: null
+                    },
+                    prisma),
+                this.cabinetsService.updateSlot(dto.slot_id,
+                    {
+                        battery_id: returnBattery.battery_id,
+                        is_occupied: true
+                    },
+                    prisma
+                ),
                 this.swapTransactionsService.create(
                     {
                         user_id: dto.user_id,
@@ -166,6 +179,7 @@ export class SwappingService {
                 message: 'Battery returned to cabinet successfully',
                 battery: updatedBattery,
                 vehicle: updatedVehicle,
+                slot: updatedSlot,
                 swapTransaction: swapRecord
             };
         });
@@ -305,6 +319,7 @@ export class SwappingService {
                     // Update vehicle to assign battery
                     this.cabinetsService.updateSlot(takenBattery.slot_id,
                         {
+                            battery_id: null,
                             is_occupied: false
                         },
                         prisma
