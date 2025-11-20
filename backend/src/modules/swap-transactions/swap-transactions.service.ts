@@ -29,24 +29,26 @@ export class SwapTransactionsService {
     createDto: CreateSwapTransactionDto,
     tx?: any // transaction object
   ) {
-    const [user, vehicle, station, battery_returned, subscription] = await Promise.all([
+    const [user, vehicle, station, subscription] = await Promise.all([
       this.usersService.findOneById(createDto.user_id),
       this.vehiclesService.findOne(createDto.vehicle_id),
       this.stationsService.findOne(createDto.station_id),
-      this.batteriesService.findOne(createDto.battery_returned_id),
       this.subcriptionsService.findOne(createDto.subscription_id),
     ]);
 
     const prisma = tx || this.databaseService;
 
     try {
-      const battery_returned = await this.batteriesService.findOne(createDto.battery_returned_id);
+      // Only fetch battery_returned if it's provided (not null for first-time swaps)
+      const battery_returned = createDto.battery_returned_id 
+        ? await this.batteriesService.findOne(createDto.battery_returned_id)
+        : null;
 
       if (vehicle.user_id !== createDto.user_id) {
         throw new BadRequestException({ message: `Vehicle with ID ${vehicle.vehicle_id} not owned by user with ID ${createDto.user_id}` });
       }
 
-      if (battery_returned.battery_id !== vehicle.battery_id) {
+      if (battery_returned && battery_returned.battery_id !== vehicle.battery_id) {
         throw new BadRequestException({ message: `Battery with ID ${battery_returned.battery_id} not in vehicle with ID ${vehicle.vehicle_id}` });
       }
 

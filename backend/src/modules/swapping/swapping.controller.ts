@@ -54,18 +54,4 @@ export class SwappingController {
   async takeBatteryFromCabinet(@Body() takeBatteryDto: TakeBatteryDto) {
     return this.swappingService.takeBatteryFromCabinet(takeBatteryDto);
   }
-
-  // ========================
-  // DEPRECATED/FUTURE ENDPOINTS
-  // ========================
-
-  // @Post('automatic-swap')
-  // async swapBatteries(@Body() swapDto: SwappingDto) {
-  //   return this.swappingService.swapBatteries(swapDto);
-  // }
-
-  // @Post('initialize-battery')
-  // async initializeBattery(@Body() firstSwapDto: FirstSwapDto) {
-  //   return this.swappingService.initializeBattery(firstSwapDto);
-  // }
 }
