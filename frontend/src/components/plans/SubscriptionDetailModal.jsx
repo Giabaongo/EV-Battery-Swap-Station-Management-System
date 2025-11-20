@@ -75,6 +75,7 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [renewing, setRenewing] = useState(false);
+  const [renewingDirect, setRenewingDirect] = useState(false);
 
   if (!subscription) return null;
 
@@ -166,6 +167,35 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
       toast.error('Error renewing subscription');
     } finally {
       setRenewing(false);
+    }
+  };
+
+  // Handle renew subscription directly (không qua VNPAY) - Gọi API renewSubscriptionDirect
+  const handleRenewSubscriptionDirect = async () => {
+    setRenewingDirect(true);
+    try {
+      const res = await paymentService.renewSubscriptionDirect({
+        subscription_id: subscription.subscription_id
+      });
+      
+      // Success - API trả về data object với payment info
+      if (res && !res.error) {
+        // Success - show toast and reload page
+        toast.success('Subscription renewed successfully!');
+        // Close modal
+        onClose();
+        // Reload page after 1s
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast.error(res?.message || 'Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription directly:', error);
+      toast.error(error.response?.data?.message || 'Error renewing subscription');
+    } finally {
+      setRenewingDirect(false);
     }
   };
 
@@ -281,15 +311,26 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
                 </Button>
               )}
               {subscription.status === 'expired' && (
-                <Button 
-                  variant="default"
-                  size="sm"
-                  className="flex items-center gap-2 bg-blue-700 hover:bg-blue-700 text-white"
-                  onClick={handleRenewSubscription}
-                  disabled={renewing}
-                >
-                  {renewing ? 'Renewing...' : 'Renew Subscription'}
-                </Button>
+                <>
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-2 bg-blue-700 hover:bg-blue-700 text-white"
+                    onClick={handleRenewSubscription}
+                    disabled={renewing || renewingDirect}
+                  >
+                    {renewing ? 'Renewing...' : 'Renew (VNPAY)'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={handleRenewSubscriptionDirect}
+                    disabled={renewingDirect || renewing}
+                  >
+                    {renewingDirect ? 'Renewing...' : 'Renew Direct'}
+                  </Button>
+                </>
               )}
             </div>
             
