@@ -2,15 +2,14 @@ import { User } from 'lucide-react';
 
 export default function PendingSwapRequestCard({ reservation, onProcessSwap }) {
     // Get user name from reservation data
-    const userName = reservation.user?.username || reservation.user?.name || `User #${reservation.user_id}`;
-    const vehicleModel = reservation.vehicle?.model || 'Unknown Model';
+    const userName = reservation.user?.username || reservation.user?.name || `User ${reservation.user_id}`;
     const vehicleVin = reservation.vehicle?.vin || `VIN${reservation.vehicle_id}`;
 
     // Get battery info - show battery_id and slot_number if available
     const batteryInfo = reservation.battery
-        ? `Battery #${reservation.battery.battery_id}${reservation.battery.slot_number ? ` - Slot ${reservation.battery.slot_number}` : ''}`
+        ? `Battery ${reservation.battery.battery_id}${reservation.battery.slot_number ? ` - Slot ${reservation.battery.slot_number}` : ''}`
         : reservation.battery_id
-            ? `Battery #${reservation.battery_id}`
+            ? `Battery ${reservation.battery_id}`
             : 'Not assigned';
 
     return (
@@ -28,10 +27,6 @@ export default function PendingSwapRequestCard({ reservation, onProcessSwap }) {
 
             {/* Details */}
             <div className="text-sm space-y-2 pt-2">
-                <p>
-                    <strong className="text-gray-600 font-medium">Returning:</strong>{' '}
-                    <span className="text-gray-900">{vehicleModel}</span>
-                </p>
                 <p>
                     <strong className="text-gray-600 font-medium">VIN:</strong>{' '}
                     <span className="text-gray-900 font-mono text-xs">{vehicleVin}</span>
