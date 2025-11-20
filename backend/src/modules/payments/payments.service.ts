@@ -24,6 +24,7 @@ import { FeeCalculationService } from './services/fee-calculation.service';
 import { BatteryServicePackagesService } from '../battery-service-packages/battery-service-packages.service';
 import { CreateDirectPaymentDto } from './dto/create-direct-payment.dto';
 import { DirectRenewalPaymentDto } from './dto/direct-renewal-payment.dto';
+import { CreatePenaltyPaymentDto } from './dto/penalty-payment.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { SystemConfigService } from '../config/system-config.service';
 
@@ -847,7 +848,7 @@ export class PaymentsService {
 
   /**
    * Create VNPAY payment URL with integrated fee calculation
-   * 
+   *
    * Flow:
    * 1. Get package base price
    * 2. Calculate fee amount based on fee type and parameters
@@ -1078,7 +1079,7 @@ export class PaymentsService {
    * 2. Creates payment record with success status immediately
    * 3. Creates subscription immediately (if applicable)
    * 4. Returns detailed fee breakdown
-   * 
+   *
    * Use for: Demo, testing, or when VNPAY is unavailable
    */
   // async createDirectPaymentWithFees(
@@ -1528,6 +1529,108 @@ export class PaymentsService {
         breakdown_text: `Gói: ${basePrice.toLocaleString('vi-VN')} VND${penaltyFee > 0 ? `, Phí phạt: ${penaltyFee.toLocaleString('vi-VN')} VND` : ''}, Tổng: ${totalAmount.toLocaleString('vi-VN')} VND`,
       },
       message: `Subscription renewed successfully${penaltyFee > 0 ? ` with penalty fee: ${penaltyFee.toLocaleString('vi-VN')} VND` : ''}`,
+    };
+  }
+
+  /**
+   * Create direct penalty payment (without subscription renewal)
+   * User chỉ muốn thanh toán phí phạt, không gia hạn gói
+   *
+   * Flow:
+   * 1. Get subscription (status = expired or pending_penalty_payment)
+   * 2. Calculate penalty fee (overcharge fee)
+   * 3. Create payment with success status
+   * 4. Update subscription status to 'expired' (payment cleared)
+   * 5. DO NOT create new subscription
+   */
+  async createDirectPenaltyPayment(
+    penaltyDto: CreatePenaltyPaymentDto,
+  ): Promise<{
+    success: boolean;
+    payment: any;
+    subscription: any;
+    penaltyAmount: number;
+    message: string;
+  }> {
+    // 1. Get subscription
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { subscription_id: penaltyDto.subscription_id },
+      include: { package: true, vehicle: true },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+
+    // Allow payment for both 'expired' and 'pending_penalty_payment' status
+    if (subscription.status !== SubscriptionStatus.pending_penalty_payment) {
+      throw new BadRequestException('Only expired or pending_penalty_payment subscriptions can pay penalty');
+    }
+
+    // 2. Calculate penalty fee
+    const overChargeFee = await this.feeCalculationService.calculateOverchargeFee(
+      subscription.subscription_id,
+    );
+
+    const penaltyAmount = overChargeFee.overcharge_fee;
+
+    // if (penaltyAmount === 0) {
+    //   throw new BadRequestException('No penalty fee to pay (distance not exceeded)');
+    // }
+
+    this.logger.log(`💰 Penalty fee calculation: ${penaltyAmount} VND for subscription ${subscription.subscription_id}`);
+
+    // 3. Create payment record with SUCCESS status
+    const payment = await this.prisma.payment.create({
+      data: {
+        user_id: subscription.user_id,
+        package_id: subscription.package_id,
+        vehicle_id: subscription.vehicle_id,
+        amount: penaltyAmount,
+        method: penaltyDto.payment_method || PaymentMethod.cash,
+        status: PaymentStatus.success,
+        payment_type: PaymentType.damage_fee, // Use damage_fee type for penalty
+        payment_time: new Date(),
+        transaction_id: penaltyDto.transaction_id || `PENALTY_${moment().format('YYYYMMDDHHmmss')}`,
+        order_info:
+          penaltyDto.order_info ||
+          `Penalty fee for subscription ${subscription.subscription_id} - ${subscription.package.name}`,
+        subscription_id: subscription.subscription_id, // Link to subscription
+      },
+      include: {
+        package: true,
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(`✅ Penalty payment created: ${payment.payment_id} - Amount: ${penaltyAmount}`);
+
+    // 4. Update subscription status back to 'expired' (penalty paid, but subscription still expired)
+    const updatedSubscription = await this.prisma.subscription.update({
+      where: { subscription_id: subscription.subscription_id },
+      data: {
+        status: SubscriptionStatus.expired, // Change from pending_penalty_payment to expired
+      },
+      include: {
+        package: true,
+        vehicle: true,
+      },
+    });
+
+    this.logger.log(`✅ Subscription status updated to 'expired': ${subscription.subscription_id}`);
+
+    return {
+      success: true,
+      payment,
+      subscription: updatedSubscription,
+      penaltyAmount,
+      message: `Penalty fee paid successfully: ${penaltyAmount.toLocaleString('vi-VN')} VND. Subscription remains expired.`,
     };
   }
 }
