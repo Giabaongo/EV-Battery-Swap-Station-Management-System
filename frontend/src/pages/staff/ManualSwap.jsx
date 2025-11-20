@@ -91,12 +91,12 @@ export default function ManualSwapTransaction() {
             }
 
             const idOrVin = vin ? String(vin) : `ID ${selectedVehicleId}`;
-            return [`Xe (${idOrVin}) của người dùng chưa đăng ký gói đổi pin, vui lòng đăng ký gói`];
+            return [`User's vehicle (${idOrVin}) is not registered for a battery swap subscription, please register a subscription`];
         }
 
         // Fallback: return original messages if any, otherwise a generic message
         if (msgs.length > 0) return msgs;
-        return ['Đã xảy ra lỗi, vui lòng thử lại hoặc liên hệ bộ phận hỗ trợ.'];
+        return ['An error occurred, please try again or contact support.'];
     };
 
     // Update station_id when user changes (but don't trigger loading)
@@ -140,7 +140,7 @@ export default function ManualSwapTransaction() {
     // Handler to search user by email (Luồng 2)
     const handleEmailSearch = async () => {
         if (!userEmail || !userEmail.includes('@')) {
-            setEmailError('Vui lòng nhập email hợp lệ');
+            setEmailError('Please enter a valid email address');
             return;
         }
 
@@ -162,14 +162,14 @@ export default function ManualSwapTransaction() {
                 }));
                 setEmailError('');
             } else {
-                setEmailError('Không tìm thấy user với email này');
+                setEmailError('Cannot find user with this email');
             }
         } catch (error) {
             console.error('Error searching user by email:', error);
             if (error.response?.status === 404) {
-                setEmailError('Không tìm thấy user với email này');
+                setEmailError('Cannot find user with this email');
             } else {
-                setEmailError('Lỗi khi tìm kiếm user, vui lòng thử lại');
+                setEmailError('Error searching user, please try again');
             }
         } finally {
             setEmailSearching(false);
@@ -321,13 +321,13 @@ export default function ManualSwapTransaction() {
                             // Get package name from subscription
                             let packageName = subscription.package?.package_name
                                 || subscription.package?.name
-                                || 'Chưa đăng ký';
+                                || 'You are not subscribed';
 
                             // If package not included, try to fetch it
-                            if (packageName === 'Chưa đăng ký' && subscription.package_id) {
+                            if (packageName === 'You are not subscribed' && subscription.package_id) {
                                 try {
                                     const pkg = await getPackageById(subscription.package_id);
-                                    packageName = pkg?.package_name || pkg?.name || 'Chưa đăng ký';
+                                    packageName = pkg?.package_name || pkg?.name || 'You are not subscribed';
                                 } catch (err) {
                                     console.warn('Failed to fetch package:', err);
                                 }
@@ -344,7 +344,7 @@ export default function ManualSwapTransaction() {
                             setFormData(prev => ({
                                 ...prev,
                                 subscription_id: '',
-                                subscription_name: 'Chưa đăng ký'
+                                subscription_name: 'You are not subscribed'
                             }));
                         }
                     } catch (err) {
@@ -352,7 +352,7 @@ export default function ManualSwapTransaction() {
                         setFormData(prev => ({
                             ...prev,
                             subscription_id: '',
-                            subscription_name: 'Chưa đăng ký'
+                            subscription_name: 'You are not subscribed'
                         }));
                     }
                 }

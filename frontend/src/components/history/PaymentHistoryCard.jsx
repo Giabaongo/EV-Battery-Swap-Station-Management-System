@@ -2,6 +2,10 @@ import React from 'react';
 import { ArrowUpDown } from 'lucide-react';
 import FilterControls from './FilterControls';
 import PaginationControls from './PaginationControls';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Eye } from 'lucide-react';
 
 export default function PaymentHistoryCard({
   paymentHistory,
@@ -31,6 +35,14 @@ export default function PaymentHistoryCard({
     ) : (
       <ArrowUpDown size={16} className="text-green-600" />
     );
+  };
+
+  const [selectedSwap, setSelectedSwap] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const handleViewDetail = (swap) => {
+    setSelectedSwap(swap);
+    setDetailOpen(true);
   };
 
   return (
@@ -78,6 +90,11 @@ export default function PaymentHistoryCard({
               <th className="px-6 py-4 text-left">
                 <span className="font-semibold text-gray-700">Time</span>
               </th>
+
+              {/* Detail Column */}
+              <th className="px-6 py-4 text-center">
+                <span className="font-semibold text-gray-700">Detail</span>
+              </th>
             </tr>
           </thead>
 
@@ -110,17 +127,29 @@ export default function PaymentHistoryCard({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      item.status === 'success' 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : item.status === 'pending'
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${item.status === 'success'
+                      ? 'bg-blue-100 text-blue-800'
+                      : item.status === 'pending'
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {item.amount.toLocaleString()} VND
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-600">{item.time}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewDetail(item)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>Detail</span>
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -138,6 +167,11 @@ export default function PaymentHistoryCard({
         onPrevious={onPrevious}
         onNext={onNext}
       />
+
+
+
+
+
     </div>
   );
 }
