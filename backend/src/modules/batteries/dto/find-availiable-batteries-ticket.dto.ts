@@ -23,9 +23,4 @@ export class findBatteryAvailibleForTicket {
     @IsInt()
     @Min(1)
     quantity: number;
-
-    @ApiProperty({ description: 'Status of the battery', example: 'AVAILABLE' })
-    @IsNotEmpty()
-    @IsEnum(BatteryStatus)
-    status: BatteryStatus;
 }

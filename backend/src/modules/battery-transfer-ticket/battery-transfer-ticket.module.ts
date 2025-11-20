@@ -6,7 +6,7 @@ import { StationsModule } from '../stations/stations.module';
 import { UsersModule } from '../users/users.module';
 import { BatteriesModule } from '../batteries/batteries.module';
 import { BatteryTransferRequestModule } from '../battery-transfer-request/battery-transfer-request.module';
-
+import { CabinetsModule } from '../cabinets/cabinets.module';
 @Module({
   imports: [
     DatabaseModule,
@@ -14,6 +14,7 @@ import { BatteryTransferRequestModule } from '../battery-transfer-request/batter
     UsersModule,
     BatteriesModule,
     BatteryTransferRequestModule,
+    CabinetsModule,
   ],
   controllers: [BatteryTransferTicketController],
   providers: [BatteryTransferTicketService],

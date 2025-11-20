@@ -4,12 +4,14 @@ import { BatteryTransferRequestController } from './battery-transfer-request.con
 import { StationsModule } from '../stations/stations.module';
 import { DatabaseModule } from '../database/database.module';
 import { BatteriesModule } from '../batteries/batteries.module';
+import { CabinetsModule } from '../cabinets/cabinets.module';
 
 @Module({
   imports: [
     StationsModule,
     DatabaseModule,
     BatteriesModule,
+    CabinetsModule
   ],
   controllers: [BatteryTransferRequestController],
   providers: [BatteryTransferRequestService],

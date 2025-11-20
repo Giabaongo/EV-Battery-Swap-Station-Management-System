@@ -10,7 +10,7 @@ import { SwapTransactionsService } from '../swap-transactions/swap-transactions.
 import { BatteryStatus, CabinetStatus, ReservationStatus, SubscriptionStatus, SwapTransactionStatus } from '@prisma/client';
 import { FirstSwapDto } from './dto/first-swap.dto';
 import { ReservationsService } from '../reservations/reservations.service';
-import { CabinetsService } from '../cabinets/cabinets.service';
+import { CabinetService } from '../cabinets/cabinets.service';
 
 import { ReturnBatteryDto } from './dto/return-battery.dto';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -29,7 +29,7 @@ export class SwappingService {
         private swapTransactionsService: SwapTransactionsService,
         private subscriptionsService: SubscriptionsService,
         private reservationsService: ReservationsService,
-        private cabinetsService: CabinetsService,
+        private cabinetsService: CabinetService,
     ) { }
 
     /**

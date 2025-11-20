@@ -37,7 +37,7 @@ export default function PlanCard({ plan, onSubscribe, subscribed, loading }) {
           disabled={loading || inUse}
           variant={inUse ? "outline" : "default"}
         >
-          {inUse ? 'Already subscribed' : 'Subscribe'}
+          {inUse ? 'Subscribed' : 'Subscribe'}
         </Button>
       </div>
     </div>

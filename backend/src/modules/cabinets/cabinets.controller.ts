@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
-import { CabinetsService } from './cabinets.service';
+import { CabinetService } from './cabinets.service';
 import { CreateCabinetDto } from './dto/create-cabinet.dto';
 import { UpdateCabinetDto } from './dto/update-cabinet.dto';
 
 @Controller('cabinets')
 export class CabinetsController {
-  constructor(private readonly cabinetsService: CabinetsService) { }
+  constructor(private readonly cabinetsService: CabinetService) { }
 
   @Post()
   create(@Body() createCabinetDto: CreateCabinetDto) {
