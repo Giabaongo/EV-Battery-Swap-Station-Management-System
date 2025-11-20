@@ -1,51 +1,51 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import GuestPage from './pages/GuestPage'
-import Login from './components/auth/Login'
-import Register from './components/auth/Register'
-import GoogleCallback from './components/auth/GoogleCallback'
-import AdminPage from './pages/admin/AdminPage'
-import StaffPage from './pages/StaffPage'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import GoogleCallback from './pages/auth/GoogleCallback'
+import AdminLayout from './pages/admin/AdminLayout'
+import StaffLayout from './pages/staff/StaffLayout'
 import NotFound from './pages/NotFound'
-import MapPage from './pages/Map'
-import Driver from './pages/Driver'
+import MapPage from './pages/driver/Map'
+import DriverLayout from './pages/driver/DriverLayout'
 import BookingContainer from './components/containers/BookingContainer'
-import SwapHistory from './pages/SwapHistory'
-import Plans from './pages/Plans'
-import Profile from './pages/Profile'
-import Support from './pages/Support'
-import StaffDashboard from './components/dashboard/StaffDashboard'
-import StaffInventory from './components/dashboard/StaffInventory'
-import StaffInspection from './components/dashboard/StaffInspection'
-import User from './pages/User'
-import StaffSwapRequests from './components/swap/StaffSwapRequests'
-import ManualSwapTransaction from './components/swap/ManualSwapTransaction'
-import Payment from './pages/Payment'
-import VerifyEmail from './pages/VerifyEmail'
-import ResetPassword from './pages/ResetPassword'
-import ForgetPassword from './pages/ForgetPassword'
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminStationList from './pages/admin/AdminStationList'
-import AdminUserList from './pages/admin/AdminUserList'
-import AdminPackageList from './pages/admin/AdminPackageList'
-import AdminBatteryTransferReq from './pages/admin/AdminBatteryTransferReq'
-import BatteryTransferDetail from './pages/admin/BatteryTransferDetail'
-import AdminBatteryTransferList from './pages/admin/AdminBatteryTransferList'
-import EditBatteryTransfer from './pages/admin/EditBatteryTransfer'
-import AdminSupportList from './pages/admin/AdminSupportList'
-import AdminReport from './pages/admin/AdminReport'
-import StationDetail from './pages/admin/StationDetail'
-import EditStation from './pages/admin/EditStation'
-import CreateStation from './pages/admin/CreateStation'
-import UserDetail from './pages/admin/UserDetail'
-import EditUser from './pages/admin/EditUser'
-import CreateUser from './pages/admin/CreateUser'
-import EditPackage from './pages/admin/EditPackage'
-import CreatePackage from './pages/admin/CreatePackage'
-import PackageDetail from './pages/admin/PackageDetail'
-import StaffTransfer from './components/dashboard/StaffTransfer'
-import CreateBattery from './components/dashboard/CreateBattery'
-import SupportDetail from './pages/admin/SupportDetail'
+import SwapHistory from './pages/driver/SwapHistory'
+import Plans from './pages/driver/Plans'
+import Profile from './pages/driver/Profile'
+import Support from './pages/driver/Support'
+import StaffDashboard from './pages/staff/Dashboard'
+import StaffInventory from './pages/staff/Inventory'
+import StaffInspection from './pages/staff/Inspection'
+import DriverDashboard from './pages/driver/Dashboard'
+import StaffSwapRequests from './pages/staff/SwapRequests'
+import ManualSwapTransaction from './pages/staff/ManualSwap'
+import Payment from './pages/driver/Payment'
+import VerifyEmail from './pages/auth/VerifyEmail'
+import ResetPassword from './pages/auth/ResetPassword'
+import ForgetPassword from './pages/auth/ForgetPassword'
+import AdminDashboard from './pages/admin/Dashboard'
+import AdminStationList from './pages/admin/stations/StationList'
+import StationDetail from './pages/admin/stations/StationDetail'
+import EditStation from './pages/admin/stations/EditStation'
+import CreateStation from './pages/admin/stations/CreateStation'
+import AdminUserList from './pages/admin/users/UserList'
+import UserDetail from './pages/admin/users/UserDetail'
+import EditUser from './pages/admin/users/EditUser'
+import CreateUser from './pages/admin/users/CreateUser'
+import AdminPackageList from './pages/admin/packages/PackageList'
+import PackageDetail from './pages/admin/packages/PackageDetail'
+import EditPackage from './pages/admin/packages/EditPackage'
+import CreatePackage from './pages/admin/packages/CreatePackage'
+import AdminBatteryTransferReq from './pages/admin/battery-transfers/TransferRequestList'
+import AdminBatteryTransferList from './pages/admin/battery-transfers/TransferList'
+import BatteryTransferDetail from './pages/admin/battery-transfers/TransferDetail'
+import EditBatteryTransfer from './pages/admin/battery-transfers/EditTransfer'
+import AdminSupportList from './pages/admin/supports/SupportList'
+import SupportDetail from './pages/admin/supports/SupportDetail'
+import AdminReport from './pages/admin/reports/ReportDashboard'
+import StaffTransfer from './pages/staff/TransferRequests'
+import CreateBattery from './pages/staff/CreateBattery'
 
 // import ProtectedRoute from './components/auth/ProtectedRoute'
 
@@ -68,9 +68,9 @@ function App() {
         <Route path="/auth/reset-password" element={<ResetPassword />} />
 
         {/* Driver Routes with Nested Routing */}
-        <Route path="/driver" element={<Driver />}>
+        <Route path="/driver" element={<DriverLayout />}>
           {/* Route container for User */}
-          <Route index element={<User />} />
+          <Route index element={<DriverDashboard />} />
           <Route path="booking" element={<BookingContainer />} />
           <Route path="booking/:stationId" element={<BookingContainer />} />
           <Route path="swap-history" element={<SwapHistory />} />
@@ -85,7 +85,7 @@ function App() {
         </Route>
 
         {/* Staff Routes with Nested Routing */}
-        <Route path="/staff" element={<StaffPage />}>
+        <Route path="/staff" element={<StaffLayout />}>
           {/* Route container for Staff */}
           <Route index element={<StaffDashboard />} />
           <Route path="inventory" element={<StaffInventory />} />
@@ -98,7 +98,7 @@ function App() {
         </Route>
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminPage />}>
+        <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           {/* Add nested routes for Admin here */}
           <Route path="stations-list" element={<AdminStationList />} />
