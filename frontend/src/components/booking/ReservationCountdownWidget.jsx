@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, X, Clock, MapPin, Battery } from 'lucide-react';
 import { toast } from 'sonner';
 import { useReservation, useAuth } from '../../hooks/useContext';
-import io from 'socket.io-client';
+import { useReservationWebSocket } from '../../hooks/useReservationWebSocket';
 
 export default function ReservationCountdownWidget() {
     const { activeReservation, updateReservationStatus, clearActiveReservation } = useReservation();
@@ -41,7 +41,6 @@ export default function ReservationCountdownWidget() {
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
 
-    const socketRef = useRef(null);
     const countdownIntervalRef = useRef(null);
     const pollIntervalRef = useRef(null);
     const lastStatusRef = useRef(null); // Track last known status
@@ -71,70 +70,38 @@ export default function ReservationCountdownWidget() {
         }
     }, [activeReservation, user, updateReservationStatus]);
 
-    // Setup WebSocket listener (run once, regardless of activeReservation)
-    useEffect(() => {
-        const wsUrl = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8080';
-        const socket = io(`${wsUrl}/reservations`, {
-            transports: ['websocket', 'polling'],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            query: {
-                token: localStorage.getItem('token'),
-            },
-        });
 
-        socketRef.current = socket;
+    // Dùng hook WebSocket cho reservation status update
+    useReservationWebSocket(
+        null,
+        (data) => {
+            // Lắng nghe event reservation.status.updated
+            if (!activeReservation) return;
+            if (activeReservation.reservation_id !== data.reservationId) return;
+            setReservationStatus(data.currentStatus);
 
-        socket.on('connect', () => {
-            console.log(`✅ WebSocket connected: ${socket.id}`);
-        });
-
-        // Listen for ALL reservation updates
-        socket.on('reservation.updated', (data) => {
-            console.log('📢 Reservation updated:', data);
-
-            // Check if this update is for the current active reservation
-            if (activeReservation?.reservation_id === data.reservationId) {
-                setReservationStatus(data.status);
-
-                if (data.status === 'completed') {
-                    console.log('✨ Reservation completed!');
-                    toast.success('🎉 Pin đã được đổi thành công!');
-                    // Stop countdown
-                    if (countdownIntervalRef.current) {
-                        clearInterval(countdownIntervalRef.current);
-                    }
-                    localStorage.removeItem('countdownTimeRemaining');
-                    // Hide widget after 3 seconds
-                    setTimeout(() => {
-                        clearActiveReservation();
-                    }, 3000);
-                } else if (data.status === 'cancelled') {
-                    console.log('❌ Reservation cancelled!');
-                    toast.info('Lịch đặt đã bị hủy');
-                    if (countdownIntervalRef.current) {
-                        clearInterval(countdownIntervalRef.current);
-                    }
-                    localStorage.removeItem('countdownTimeRemaining');
-                    setTimeout(() => {
-                        clearActiveReservation();
-                    }, 2000);
+            if (data.currentStatus === 'completed') {
+                toast.success('Your reservation has been completed!');
+                if (countdownIntervalRef.current) {
+                    clearInterval(countdownIntervalRef.current);
                 }
+                localStorage.removeItem('countdownTimeRemaining');
+                setTimeout(() => {
+                    clearActiveReservation();
+                }, 3000);
+            } else if (data.currentStatus === 'cancelled') {
+                toast.info('Your reservation has been cancelled.');
+                if (countdownIntervalRef.current) {
+                    clearInterval(countdownIntervalRef.current);
+                }
+                localStorage.removeItem('countdownTimeRemaining');
+                setTimeout(() => {
+                    clearActiveReservation();
+                }, 2000);
             }
-        });
-
-        socket.on('disconnect', (reason) => {
-            console.warn(`🔌 WebSocket disconnected: ${reason}`);
-        });
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.off('reservation.updated');
-                socketRef.current.disconnect();
-            }
-        };
-    }, [activeReservation?.reservation_id, clearActiveReservation]);
+        },
+        true
+    );
 
     // Polling fallback (3s) - only if activeReservation exists
     useEffect(() => {

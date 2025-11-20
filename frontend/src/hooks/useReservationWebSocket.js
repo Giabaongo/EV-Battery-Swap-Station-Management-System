@@ -6,23 +6,35 @@ import io from "socket.io-client";
  * Listens to reservation.created events from backend
  * Provides fallback polling if WebSocket not connected
  *
+
+/**
+ * useReservationWebSocket - Real-time hook for reservation updates via WebSocket
+ * Listens to reservation.created and reservation.status.updated events from backend
+ * Provides fallback polling if WebSocket not connected
+ *
  * @param {Function} onReservationCreated - Callback when new reservation created
+ * @param {Function} onReservationStatusUpdated - Callback when reservation status updated
  * @param {Boolean} enabled - Enable/disable listening (default: true)
  * @returns {Object} { isConnected, socketId }
  */
 export const useReservationWebSocket = (
   onReservationCreated,
+  onReservationStatusUpdated,
   enabled = true
 ) => {
   const socketRef = useRef(null);
   const listenerRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
-  const callbackRef = useRef(onReservationCreated);
+  const createdCallbackRef = useRef(onReservationCreated);
+  const updatedCallbackRef = useRef(onReservationStatusUpdated);
 
-  // Update callback ref whenever it changes (without triggering reconnect)
+  // Update callback refs whenever they change
   useEffect(() => {
-    callbackRef.current = onReservationCreated;
+    createdCallbackRef.current = onReservationCreated;
   }, [onReservationCreated]);
+  useEffect(() => {
+    updatedCallbackRef.current = onReservationStatusUpdated;
+  }, [onReservationStatusUpdated]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -51,13 +63,18 @@ export const useReservationWebSocket = (
       reconnectAttemptsRef.current = 0;
       console.log(`✅ Connected to Reservation WebSocket: ${socket.id}`);
 
-      // Register listener if not already done
+      // Register listeners if not already done
       if (!listenerRef.current) {
         socket.on("reservation.created", (data) => {
           console.log("📢 New reservation event received:", data);
-          // Use callback ref to always get latest version
-          if (callbackRef.current) {
-            callbackRef.current(data);
+          if (createdCallbackRef.current) {
+            createdCallbackRef.current(data);
+          }
+        });
+        socket.on("reservation.status.updated", (data) => {
+          console.log("📢 Reservation status updated event received:", data);
+          if (updatedCallbackRef.current) {
+            updatedCallbackRef.current(data);
           }
         });
         listenerRef.current = true;
@@ -81,6 +98,7 @@ export const useReservationWebSocket = (
     return () => {
       if (socketRef.current) {
         socketRef.current.off("reservation.created");
+        socketRef.current.off("reservation.status.updated");
         socketRef.current.disconnect();
         socketRef.current = null;
         listenerRef.current = false;
