@@ -85,11 +85,18 @@ export default function ReservationCountdownWidget() {
     // Reset reservationStatus when activeReservation changes
     useEffect(() => {
         if (activeReservation) {
-            console.log('📍 Resetting reservationStatus to:', activeReservation.status, '(activeReservation changed)');
+            console.log('📋 Reset effect - new activeReservation:', activeReservation.reservation_id);
             setReservationStatus(activeReservation.status);
             lastStatusRef.current = activeReservation.status;
+            // CRITICAL: Reset cancelling state for new reservation so cancel button works
+            setIsCancelling(false);
+        } else {
+            console.log('📋 Reset effect - activeReservation cleared, resetting all state');
+            setReservationStatus(null);
+            lastStatusRef.current = null;
+            setIsCancelling(false);
         }
-    }, [activeReservation?.reservation_id]);
+    }, [activeReservation?.reservation_id, activeReservation]);
 
     // Dùng hook WebSocket cho reservation status update
     useReservationWebSocket(
@@ -392,24 +399,59 @@ export default function ReservationCountdownWidget() {
 
         try {
             const userId = user.user_id || user.id;
-            console.log('Cancelling reservation:', {
+            if (!userId) throw new Error('User ID missing');
+
+            console.log('🔴 Cancelling reservation:', {
                 reservationId: activeReservation.reservation_id,
                 userId: userId,
             });
 
+            // Clear intervals FIRST
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+                countdownIntervalRef.current = null;
+            }
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
+
+            // Call API
             await updateReservationStatus(
                 activeReservation.reservation_id,
                 userId,
                 'cancelled'
             );
+
+            console.log('✅ API success - status updated to cancelled');
+
+            // Update local status immediately
+            setReservationStatus('cancelled');
+            lastStatusRef.current = 'cancelled';
+
             toast.success('Reservation cancelled successfully.');
             localStorage.removeItem('countdownTimeRemaining');
-            // Clear immediately to remove old widget completely
-            clearActiveReservation();
+
+            // Clear context to remove widget
+            setTimeout(() => {
+                console.log('🗑️ Clearing activeReservation from context');
+                clearActiveReservation();
+            }, 300);
+
         } catch (error) {
-            console.error('Error cancelling:', error);
-            toast.error('Error: Unable to cancel reservation');
+            console.error('❌ Cancel error:', error?.message);
+            const errorMsg = error?.response?.data?.message || error?.message || 'Unable to cancel reservation';
+            toast.error('Error: ' + errorMsg);
+
+            // CRITICAL: Always reset isCancelling on error so dialog can be retried
+            console.log('🔧 Resetting isCancelling state for retry');
             setIsCancelling(false);
+
+            // Force clear widget anyway (might be stale)
+            setReservationStatus('cancelled');
+            setTimeout(() => {
+                clearActiveReservation();
+            }, 1000);
         }
     };
 
