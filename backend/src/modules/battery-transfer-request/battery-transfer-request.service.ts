@@ -5,12 +5,14 @@ import { StationsService } from '../stations/stations.service';
 import { DatabaseService } from '../database/database.service';
 import { BatteryStatus, TransferStatus } from '@prisma/client/wasm';
 import { BatteriesService } from '../batteries/batteries.service';
+import { CabinetService } from '../cabinets/cabinets.service';
 
 @Injectable()
 export class BatteryTransferRequestService {
   private readonly logger = new Logger(BatteryTransferRequestService.name);
 
   constructor(
+    private readonly cabinetService: CabinetService,
     private readonly stationsService: StationsService,
     private readonly databaseService: DatabaseService,
     private readonly batteriesService: BatteriesService,
@@ -49,6 +51,17 @@ export class BatteryTransferRequestService {
         throw new BadRequestException(
           `Not enough available batteries at station ID ${from_station.station_id}, requested: ${dto.quantity}, available: ${availiableBatteries.length}`
         );
+      }
+
+      const activeCabinets = await this.cabinetService.findManyByStation(dto.to_station_id);
+      let allEmptySlots: any[] = [];
+      for (const cabinet of activeCabinets) {
+        const emptySlots = await this.cabinetService.findEmptySlotAtCabinet(cabinet.cabinet_id);
+        allEmptySlots.push(...[emptySlots]);
+      }
+
+      if (allEmptySlots.length < dto.quantity) {
+        throw new BadRequestException(`Not enough empty slots at station ${dto.to_station_id} for transfer!`);
       }
 
       // Check for existing in-progress request

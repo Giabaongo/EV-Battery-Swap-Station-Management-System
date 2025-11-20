@@ -9,7 +9,7 @@ import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { ConfigService } from '@nestjs/config';
 import { StationsService } from '../stations/stations.service';
-import { CabinetsService } from '../cabinets/cabinets.service';
+import { CabinetService } from '../cabinets/cabinets.service';
 import { UpdateReservationDto } from './dto/update-reservation-status.dto';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class ReservationsService {
     private subscriptionsService: SubscriptionsService,
     private stationsService: StationsService,
     private configService: ConfigService,
-    private cabinetsService: CabinetsService
+    private cabinetsService: CabinetService
   ) { }
 
 
