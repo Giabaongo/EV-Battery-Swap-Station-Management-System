@@ -64,7 +64,7 @@ export default function PersonalInfoEdit({ onUpdated }) {
     <div>
       <Dialog>
         <DialogTrigger asChild>
-          <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+          <Button variant="ghost" className="text-blue-700 hover:text-blue-700 hover:bg-blue-50">
             Edit
           </Button>
         </DialogTrigger>
@@ -120,3 +120,4 @@ export default function PersonalInfoEdit({ onUpdated }) {
     </div>
   );
 }
+

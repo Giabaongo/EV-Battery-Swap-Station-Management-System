@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Component tiêu đề trang hồ sơ cá nhân
 export default function ProfileHeader({ title = 'My Profile', subtitle = 'Manage your personal and vehicle information.' }) {
   return (
     <header className="flex items-center justify-between mb-8">
@@ -10,3 +11,4 @@ export default function ProfileHeader({ title = 'My Profile', subtitle = 'Manage
     </header>
   );
 }
+

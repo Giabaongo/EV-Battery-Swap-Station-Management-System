@@ -44,7 +44,7 @@ export default function Card({ type = "battery-stats" }) {
         {/* Batteries Currently Charging */}
         <div className="flex items-start gap-4 rounded-xl p-6 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <div className="flex items-center justify-center size-12 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256" className="text-blue-600 dark:text-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256" className="text-blue-700 dark:text-blue-400">
               <path d="M256,96v64a8,8,0,0,1-16,0V96a8,8,0,0,1,16,0ZM224,56V200a24,24,0,0,1-24,24H56a24,24,0,0,1-24-24V56A24,24,0,0,1,56,32H200A24,24,0,0,1,224,56Zm-16,0a8,8,0,0,0-8-8H56a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H200a8,8,0,0,0,8-8ZM144,96.8l-34-20.4A8,8,0,0,0,98,83.2v41.6a8,8,0,0,0,12,6.93l34-20.4A8,8,0,0,0,144,96.8Z"></path>
             </svg>
           </div>
@@ -76,3 +76,4 @@ export default function Card({ type = "battery-stats" }) {
 
   return null;
 }
+

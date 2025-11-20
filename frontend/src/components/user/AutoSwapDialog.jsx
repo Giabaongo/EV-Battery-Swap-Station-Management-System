@@ -315,7 +315,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                         {vehicles.length === 0 && (
                             <>
                                 <p className="text-sm text-gray-500 mt-1">No vehicles found</p>
-                                <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                                <Link to="/driver/profile" className="inline-flex items-center justify-center px-4 py-2 bg-blue-700 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
                                     Add a vehicle
                                 </Link>
                             </>
@@ -444,3 +444,4 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         </Dialog>
     );
 }
+

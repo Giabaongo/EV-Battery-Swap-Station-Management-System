@@ -2,17 +2,22 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, XCircle, Calendar, CreditCard } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 
+// Component danh sách subscription bị hủy - Hiển thị collapsible list
 export default function CancelledSubscriptions({ subscriptions = [] }) {
+  // State mở/đóng expandable list
   const [isOpen, setIsOpen] = useState(false)
 
+  // Lọc các subscription bị hủy (status = cancelled/CANCELLED/canceled)
   const cancelledSubs = subscriptions.filter(sub => 
     sub.status === 'cancelled' || sub.status === 'CANCELLED' || sub.status === 'canceled'
   )
 
+  // Nếu không có subscription hủy: không render component
   if (cancelledSubs.length === 0) {
     return null
   }
 
+  // Hàm format ngày - Chuyển ISO string thành readable format
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A'
     try {
@@ -27,6 +32,7 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
     }
   }
 
+  // Hàm format tiền tệ - Format số với dấu phân cách
   const formatCurrency = (amount) => {
     if (!amount || isNaN(amount)) return amount
     return Number(amount).toLocaleString('en-US')
@@ -34,21 +40,25 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
 
   return (
     <div className="mb-6">
+      {/* Header button - Toggle expand/collapse */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors border border-gray-200 dark:border-slate-700"
       >
+        {/* Phần trái: Icon + Tiêu đề + Số lượng */}
         <div className="flex items-center gap-3">
-          <XCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <XCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />  {/* Icon X đỏ */}
           <div className="text-left">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               Cancelled Subscriptions
             </h3>
+            {/* Hiển thị số subscription hủy */}
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {cancelledSubs.length} {cancelledSubs.length === 1 ? 'subscription' : 'subscriptions'} cancelled
             </p>
           </div>
         </div>
+        {/* Phần phải: Icon chevron (up/down) */}
         {isOpen ? (
           <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
         ) : (
@@ -56,28 +66,34 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
         )}
       </button>
 
+      {/* Danh sách chi tiết subscription hủy - Hiển thị nếu isOpen=true */}
       {isOpen && (
         <div className="mt-4 space-y-4">
           {cancelledSubs.map((sub, index) => (
             <Card key={sub.subscription_id || index} className="border-gray-200 dark:border-slate-700 opacity-75">
+              {/* Header card: Tên gói + Badge "Cancelled" */}
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div>
+                    {/* Tên subscription */}
                     <CardTitle className="text-lg">
                       {sub.name || sub.package?.name || 'Subscription'}
                     </CardTitle>
+                    {/* Mô tả */}
                     <CardDescription>
                       {sub.description || sub.package?.description || 'No description'}
                     </CardDescription>
                   </div>
+                  {/* Badge status "Cancelled" */}
                   <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                     Cancelled
                   </span>
                 </div>
               </CardHeader>
+              {/* Body card: Thông tin chi tiết */}
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {/* Start Date */}
+                  {/* Ngày bắt đầu */}
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                     <Calendar className="w-4 h-4" />
                     <div>
@@ -88,7 +104,7 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
                     </div>
                   </div>
 
-                  {/* End Date */}
+                  {/* Ngày hủy */}
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                     <Calendar className="w-4 h-4" />
                     <div>
@@ -99,7 +115,7 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
                     </div>
                   </div>
 
-                  {/* Price */}
+                  {/* Giá gói */}
                   {(sub.price || sub.package?.base_price) && (
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <CreditCard className="w-4 h-4" />
@@ -112,7 +128,7 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
                     </div>
                   )}
 
-                  {/* Distance Used */}
+                  {/* Quãng đường đã sử dụng */}
                   {sub.distance_traveled !== undefined && (
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <div>
@@ -125,7 +141,7 @@ export default function CancelledSubscriptions({ subscriptions = [] }) {
                   )}
                 </div>
 
-                {/* Vehicle Info */}
+                {/* Thông tin xe (nếu có) */}
                 {sub.vehicle && (
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
                     <p className="text-xs text-gray-500 dark:text-gray-500 mb-1">Vehicle</p>

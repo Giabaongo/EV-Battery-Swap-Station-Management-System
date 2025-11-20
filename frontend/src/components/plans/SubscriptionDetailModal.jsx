@@ -10,6 +10,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { subscriptionService } from '../../services/subscriptionService';
+import { paymentService } from '../../services/paymentService';
 
 // Helper function to format currency
 const formatPrice = (price) => {
@@ -73,6 +74,7 @@ const DetailRow = ({ label, value, tooltip, highlight }) => (
 export default function SubscriptionDetailModal({ subscription, open, onClose, onSubscriptionCancelled }) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [renewing, setRenewing] = useState(false);
 
   if (!subscription) return null;
 
@@ -142,6 +144,28 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
       toast.error(error.response?.data?.message || 'Failed to cancel subscription. Please try again.');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  // Handle renew subscription - Gọi API renewSubscription
+  const handleRenewSubscription = async () => {
+    setRenewing(true);
+    try {
+      const res = await paymentService.renewSubscription({
+        subscription_id: subscription.subscription_id
+      });
+      
+      if (res?.paymentUrl) {
+        // Redirect to VNPAY
+        window.location.href = res.paymentUrl;
+      } else {
+        toast.error('Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription:', error);
+      toast.error('Error renewing subscription');
+    } finally {
+      setRenewing(false);
     }
   };
 
@@ -260,13 +284,11 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
                 <Button 
                   variant="default"
                   size="sm"
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => {
-                    // TODO: Implement renewal functionality
-                    console.log('Renew subscription:', subscription.subscription_id);
-                  }}
+                  className="flex items-center gap-2 bg-blue-700 hover:bg-blue-700 text-white"
+                  onClick={handleRenewSubscription}
+                  disabled={renewing}
                 >
-                  Renew Subscription
+                  {renewing ? 'Renewing...' : 'Renew Subscription'}
                 </Button>
               )}
             </div>
@@ -332,3 +354,4 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
   </>
   );
 }
+

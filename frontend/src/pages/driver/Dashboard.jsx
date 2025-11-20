@@ -13,14 +13,21 @@ import AutoSwapDialog from '../../components/user/AutoSwapDialog';
 
 export default function User() {
   const navigate = useNavigate();
+  // Lấy thông tin user từ layout context
   const { user } = useOutletContext();
+  // Lấy danh sách trạm từ context
   const { stations } = useStation();
+  // Lấy thông tin gói cước hiện tại từ context
   const { activeSubscription, getActiveSubscription } = useSubscription();
+  
+  // State lưu danh sách xe của user
   const [vehicleData, setVehicleData] = useState([]);
+  // State điều khiển hiển thị dialog đổi pin tự động
   const [showAutoSwap, setShowAutoSwap] = useState(false);
+  // State lưu kết quả cuối cùng của lần đổi pin
   const [swapResult, setSwapResult] = useState(null);
 
-  // Fetch user's active subscription on component mount
+  // Lấy gói cước hiện tại của user khi component mount hoặc user_id thay đổi
   useEffect(() => {
     const fetchActiveSubscription = async () => {
       if (!user?.user_id) return;
@@ -35,13 +42,14 @@ export default function User() {
     fetchActiveSubscription();
   }, [user?.user_id, getActiveSubscription]);
 
-  // Fetch vehicle data by user ID
+  // Lấy danh sách xe của user khi component mount hoặc user_id thay đổi
   useEffect(() => {
     const fetchVehicleData = async () => {
       if (!user?.user_id) return;
 
       try {
         console.log('Fetching enriched vehicles for user ID:', user.user_id);
+        // Gọi API lấy xe kèm thông tin pin hiện tại
         const vehicles = await vehicleService.getVehiclesByUserIdWithBattery(user.user_id);
         console.log('Enriched vehicle data fetched:', vehicles);
         setVehicleData(Array.isArray(vehicles) ? vehicles : []);

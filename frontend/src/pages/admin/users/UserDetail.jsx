@@ -242,7 +242,7 @@ export default function UserDetail() {
                     </span>
                     <a
                       href={`mailto:${user.email}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                      className="text-blue-700 dark:text-blue-400 hover:underline break-all"
                     >
                       {user.email}
                     </a>
@@ -296,3 +296,4 @@ export default function UserDetail() {
     </div>
   );
 }
+

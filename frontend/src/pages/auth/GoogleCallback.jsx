@@ -98,7 +98,7 @@ export default function GoogleCallback() {
                     <>
                         <div className="mb-4">
                             <svg
-                                className="animate-spin h-12 w-12 mx-auto text-blue-600"
+                                className="animate-spin h-12 w-12 mx-auto text-blue-700"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -176,3 +176,4 @@ export default function GoogleCallback() {
         </div>
     );
 }
+

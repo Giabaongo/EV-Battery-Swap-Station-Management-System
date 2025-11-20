@@ -80,7 +80,7 @@ export default function VerifyEmail() {
                 : 'bg-red-100 dark:bg-red-900/30'
             }`}>
             {status === 'loading' && (
-              <Loader2 className="h-8 w-8 text-blue-600 dark:text-blue-400 animate-spin" />
+              <Loader2 className="h-8 w-8 text-blue-700 dark:text-blue-400 animate-spin" />
             )}
             {status === 'success' && (
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />

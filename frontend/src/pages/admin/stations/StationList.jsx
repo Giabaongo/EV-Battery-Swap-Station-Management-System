@@ -111,7 +111,7 @@ export default function AdminStationList() {
               View, search, and manage all charging stations in the system.
             </p>
           </div>
-          <Link to="/admin/stations/create" className="flex min-w-[84px] items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-blue-600 text-white text-sm font-medium leading-normal tracking-wide shadow-sm hover:bg-blue-700">
+          <Link to="/admin/stations/create" className="flex min-w-[84px] items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-blue-700 text-white text-sm font-medium leading-normal tracking-wide shadow-sm hover:bg-blue-700">
             <Plus className="h-5 w-5" />
             <span className="truncate">Add New Station</span>
           </Link>
@@ -177,7 +177,7 @@ export default function AdminStationList() {
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 font-medium hover:underline"
+                className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 font-medium hover:underline"
               >
                 <X className="h-4 w-4" />
                 Clear all filters
@@ -236,7 +236,7 @@ export default function AdminStationList() {
                       <td className="px-6 py-4 text-center">
                         <Link
                           to={`/admin/stations/${station.station_id}`}
-                          className="inline-flex items-center gap-1 p-1.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                          className="inline-flex items-center gap-1 p-1.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                         >
                           <Eye className="h-4 w-4" />
                           <span className="text-sm font-medium">View Details</span>
@@ -279,7 +279,7 @@ export default function AdminStationList() {
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`flex h-9 w-9 items-center justify-center rounded-lg ${currentPage === pageNum
-                          ? 'bg-blue-600 text-white font-bold'
+                          ? 'bg-blue-700 text-white font-bold'
                           : 'hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
                     >
@@ -316,3 +316,4 @@ export default function AdminStationList() {
     </main>
   )
 }
+

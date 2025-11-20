@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useContext";
 import { useState, useEffect } from "react";
 import Navigation from "../layout/Navigation";
 
+// Schema xác thực form đăng ký (username, email, phone, password)
 const registerSchema = z
   .object({
     username: z.string().nonempty("Username is required").min(3, "Username must be at least 3 characters"),
@@ -35,11 +36,16 @@ const registerSchema = z
     path: ["confirmPassword"],
   });
 
+// Component trang đăng ký tài khoản mới
 export default function Register() {
+  // Lấy hàm registerUser từ Auth context
   const { register: registerUser, loading, error, clearError } = useAuth();
+  // State để lưu trạng thái đăng ký thành công
   const [success, setSuccess] = useState(false);
+  // State lưu lỗi cục bộ của component
   const [localError, setLocalError] = useState(null);
 
+  // Setup form validation với react-hook-form
   const {
     register,
     handleSubmit,
@@ -175,7 +181,7 @@ export default function Register() {
               disabled={loading || success}
               className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${loading || success
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
+                : "bg-blue-700 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
                 }`}
             >
               {loading ? (

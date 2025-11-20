@@ -42,10 +42,12 @@ export default function Sidebar() {
       {/* Logo/Brand */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-2">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">E</span>
-          </div>
-          <span className="text-xl font-bold text-gray-800">EV Swap</span>
+          <img 
+            src="/kiri-swap-logo.png" 
+            alt="KIRI Swap" 
+            className="w-10 h-10 object-contain"
+          />
+          <span className="text-xl font-bold text-gray-800">KIRI Swap</span>
         </div>
       </div>
 
@@ -59,7 +61,7 @@ export default function Sidebar() {
               key={item.path}
               to={item.path}
               className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'bg-blue-700 text-white shadow-md'
                 : 'text-gray-700 hover:bg-gray-100'
                 }`}
             >
@@ -85,7 +87,7 @@ export default function Sidebar() {
             )}
             <span className="font-medium text-gray-700">Dark Mode</span>
           </div>
-          <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${darkMode ? 'bg-blue-600' : 'bg-gray-300'
+          <div className={`w-12 h-6 rounded-full transition-colors duration-200 ${darkMode ? 'bg-blue-700' : 'bg-gray-300'
             } relative`}>
             <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ${darkMode ? 'transform translate-x-6' : ''
               }`}></div>

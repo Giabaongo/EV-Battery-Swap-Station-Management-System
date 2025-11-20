@@ -270,7 +270,7 @@ export default function SupportDetail() {
                       </span>
                       <a
                         href={`mailto:${ticket.user.email}`}
-                        className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        className="text-blue-700 dark:text-blue-400 hover:underline break-all"
                       >
                         {ticket.user.email || 'N/A'}
                       </a>
@@ -383,3 +383,4 @@ export default function SupportDetail() {
     </div>
   );
 }
+

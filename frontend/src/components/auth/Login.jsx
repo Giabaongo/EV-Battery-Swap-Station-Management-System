@@ -6,48 +6,61 @@ import { useAuth } from "../../hooks/useContext";
 import { useState, useEffect } from "react";
 import Navigation from "../layout/Navigation";
 
-// Validation schema using Zod
+// Schema xác thực form login sử dụng Zod - Kiểm tra email hoặc phone + password
+// Zod là thư viện validation dữ liệu TypeScript-first, tính năng: runtime type checking
 const loginSchema = z.object({
+  // Field emailOrPhone: Chấp nhận cả email hoặc số điện thoại
   emailOrPhone: z
     .string()
-    .min(1, "Please enter email or phone number")
+    .min(1, "Please enter email or phone number")  // Kiểm tra không rỗng
     .refine(
       (value) => {
+        // Email regex: xxxxxxx@xxxx.xxx (ví dụ: user@gmail.com)
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Phone regex: +84 hoặc 0 + (3|5|7|8|9) + 8 chữ số (ví dụ: 0912345678)
         const phoneRegex = /^(?:\+84|0)(?:3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-46-9])[0-9]{7}$/;
+        // Trả về true nếu value match email HOẶC phone regex
         return emailRegex.test(value) || phoneRegex.test(value);
       },
-      { message: "Please enter a valid email or phone number" }
+      { message: "Please enter a valid email or phone number" }  // Thông báo lỗi
     ),
+  // Field password: Tối thiểu 6 ký tự
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+// Component trang đăng nhập - Cho phép user đăng nhập bằng email/phone + password
 export default function Login() {
+  // Lấy hàm login, loading, error, clearError từ Auth context
   const { login, loading, error, clearError, redirectToGoogleLogin } = useAuth();
+  // State lưu trạng thái đăng nhập thành công
   const [success, setSuccess] = useState(false);
+  // State lưu lỗi cục bộ của component
   const [localError, setLocalError] = useState(null);
 
 
-  // Clear error on mount
+  // Xóa lỗi khi component mount và cuộn trang lên trên
   useEffect(() => {
-    clearError();
-    setLocalError(null);
-    // Ensure the login page is scrolled to top when opened (fixes redirect landing at bottom)
+    clearError();  // Xóa error từ context
+    setLocalError(null);  // Xóa local error
+    // Đảm bảo trang được cuộn lên trên khi mở (sửa lỗi redirect xuống dưới)
     if (typeof window !== "undefined" && window.scrollTo) {
-      window.scrollTo(0, 0);
+      window.scrollTo(0, 0);  // Cuộn đến vị trí top (0, 0)
     }
   }, [clearError]);
 
+  // Setup form validation với react-hook-form + Zod resolver
+  // react-hook-form: Thư viện quản lý form, Zod: Validation schema
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
+    register,    // Hàm đăng ký input field vào form
+    handleSubmit,// Hàm xử lý khi submit form
+    formState: { errors },  // Object chứa các lỗi validation
   } = useForm({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(loginSchema),  // Dùng Zod schema để validate
   });
 
+  // Hàm xử lý đăng nhập người dùng
   const handleLogin = async (data) => {
-    clearError(); // Clear error trước khi submit
+    clearError(); // Xóa lỗi trước khi gửi request
     setSuccess(false);
 
     try {
@@ -114,7 +127,7 @@ export default function Login() {
                   <label className="block text-sm font-medium text-gray-700">Password</label>
                   <Link 
                     to="/forget-password" 
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    className="text-sm text-blue-700 hover:text-blue-700 hover:underline"
                   >
                     Forgot Password?
                   </Link>
@@ -150,7 +163,7 @@ export default function Login() {
                 disabled={loading || success}
                 className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${loading || success
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
+                  : "bg-blue-700 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
                   }`}
               >
                 {loading ? (
@@ -214,7 +227,7 @@ export default function Login() {
             <div className="text-center mt-6">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link to="/register" className="text-blue-600 hover:underline">
+                <Link to="/register" className="text-blue-700 hover:underline">
                   Register now
                 </Link>
               </p>

@@ -25,10 +25,12 @@ export default function Navigation({ type = "main" }) {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
-                <span className="text-blue-800 font-bold text-lg">E</span>
-              </div>
-              <span className="text-xl font-bold">EV SWAP</span>
+              <img 
+                src="/images/kiri-swap-logo-white.png" 
+                alt="KIRI Swap" 
+                className="h-8 object-contain"
+              />
+              <span className="text-xl font-bold">KIRI SWAP</span>
             </Link>
           </div>
 
@@ -125,10 +127,12 @@ export default function Navigation({ type = "main" }) {
       <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col shadow-lg fixed left-0 top-0 overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">S</span>
-            </div>
-            <span className="text-xl font-bold text-gray-800">Staff Portal</span>
+            <img 
+              src="/kiri-swap-logo.png" 
+              alt="KIRI Swap" 
+              className="w-10 h-10 object-contain"
+            />
+            <span className="text-xl font-bold text-gray-800">KIRI Swap</span>
           </div>
         </div>
 
@@ -140,7 +144,7 @@ export default function Navigation({ type = "main" }) {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive(item.path)
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-700 text-white shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >
@@ -170,6 +174,7 @@ export default function Navigation({ type = "main" }) {
     const menuItems = [
       { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
       { name: 'Stations', path: '/admin/stations-list', icon: MapPin },
+      { name: 'Create Vehicle', path: '/admin/vehicles/create', icon: Package },
       { name: 'Users', path: '/admin/users-list', icon: Users },
       { name: 'Packages', path: '/admin/packages-list', icon: Package },
       { name: 'Battery Transfer', path: '/admin/battery-transfer-requests', icon: ArrowLeftRight },
@@ -189,10 +194,12 @@ export default function Navigation({ type = "main" }) {
       <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col shadow-lg fixed left-0 top-0 overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">A</span>
-            </div>
-            <span className="text-xl font-bold text-gray-800">Admin Portal</span>
+            <img 
+              src="/kiri-swap-logo.png" 
+              alt="KIRI Swap" 
+              className="w-10 h-10 object-contain"
+            />
+            <span className="text-xl font-bold text-gray-800">KIRI Swap</span>
           </div>
         </div>
 
@@ -204,7 +211,7 @@ export default function Navigation({ type = "main" }) {
                 key={item.path}
                 to={item.path}
                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive(item.path)
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-700 text-white shadow-md'
                   : 'text-gray-700 hover:bg-gray-100'
                   }`}
               >

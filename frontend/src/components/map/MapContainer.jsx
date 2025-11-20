@@ -338,7 +338,7 @@ export default function MapContainer({ stations, onMapReady, userLocation, onLoc
           onClick={onLocate}
           className="absolute top-6 right-6 bg-white p-3 rounded-lg shadow-lg hover:shadow-xl transition-shadow z-10 border border-gray-200"
         >
-          <MapPin size={20} className="text-blue-600" />
+          <MapPin size={20} className="text-blue-700" />
         </button>
       </div>
 
@@ -370,7 +370,7 @@ export default function MapContainer({ stations, onMapReady, userLocation, onLoc
               </button>
               <button
                 onClick={handleGoToPlans}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="flex-1 bg-blue-700 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
               >
                 Xem gói đăng ký
               </button>
@@ -381,3 +381,4 @@ export default function MapContainer({ stations, onMapReady, userLocation, onLoc
     </div>
   );
 }
+
