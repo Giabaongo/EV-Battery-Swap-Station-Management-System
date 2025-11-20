@@ -20,7 +20,11 @@ export class CreateSwapTransactionDto {
 
     @IsInt({ message: 'battery_returned_id must be an integer' })
     @IsOptional()
-    battery_returned_id: number;
+    battery_returned_id: number | null;
+
+    @IsInt({ message: 'battery_taken_id must be an integer' })
+    @IsOptional()
+    battery_taken_id: number | null;
 
     @IsInt({ message: 'subscription_id must be an integer' })
     @IsNotEmpty({ message: 'subscription_id should not be empty' })

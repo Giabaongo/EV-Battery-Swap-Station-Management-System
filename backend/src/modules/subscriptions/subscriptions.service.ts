@@ -208,9 +208,11 @@ export class SubscriptionsService {
     });
   }
 
-  async update(id: number, updateSubscriptionDto: UpdateSubscriptionDto) {
+  async update(id: number, updateSubscriptionDto: UpdateSubscriptionDto, prisma?: any) {
     // Check if subscription exists
     await this.findOne(id);
+    
+    const db = prisma ?? this.prisma;
 
     return this.prisma.subscription.update({
       where: { subscription_id: id },
