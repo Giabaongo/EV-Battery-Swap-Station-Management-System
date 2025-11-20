@@ -17,9 +17,8 @@ export class CabinetsController {
     return this.cabinetsService.findAll();
   }
 
-
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateCabinetDto: UpdateCabinetDto) {
-    return this.cabinetsService.update(id, updateCabinetDto);
+    return this.cabinetsService.updateCabinet(id, updateCabinetDto);
   }
 }
