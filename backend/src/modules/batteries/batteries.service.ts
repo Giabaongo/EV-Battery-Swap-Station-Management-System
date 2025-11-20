@@ -160,12 +160,17 @@ export class BatteriesService {
   }
 
   async findBatteryAvailibleForTicket(dto: findBatteryAvailibleForTicket) {
+    const usableBatterySoh = 80;
+
     const availableBatteries = await this.databaseService.battery.findMany({
       where: {
         model: dto.model,
         type: dto.type,
         station_id: dto.station_id,
-        status: dto.status
+        soh: {
+          gte: usableBatterySoh
+        },
+        status: BatteryStatus.full || BatteryStatus.charging
       },
       take: dto.quantity, // Giới hạn theo số lượng cần
       select: {

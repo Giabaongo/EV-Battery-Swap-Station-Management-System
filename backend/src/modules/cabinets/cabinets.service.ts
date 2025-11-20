@@ -6,7 +6,7 @@ import { BatteryStatus, CabinetStatus } from '@prisma/client';
 import { NotFoundError } from 'rxjs';
 
 @Injectable()
-export class CabinetsService {
+export class CabinetService {
   constructor(
     private readonly databaseService: DatabaseService,
   ) { }
@@ -47,7 +47,7 @@ export class CabinetsService {
       });
 
       if (!emptySlot) {
-        return null;
+        throw new NotFoundException(`Not found empty slots at cabinte ${cabinet_id}`)
       }
 
       return emptySlot;
