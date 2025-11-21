@@ -3,9 +3,9 @@ import { ArrowUpDown } from 'lucide-react';
 import FilterControls from './FilterControls';
 import PaginationControls from './PaginationControls';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Eye } from 'lucide-react';
+import PaymentDetailModal from './PaymentDetailModal';
 
 // Component bảng lịch sử thanh toán - Hiển thị danh sách giao dịch thanh toán với sắp xếp/lọc
 export default function PaymentHistoryCard({
@@ -39,12 +39,19 @@ export default function PaymentHistoryCard({
     );
   };
 
-  const [selectedSwap, setSelectedSwap] = useState(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const handleViewDetail = (swap) => {
-    setSelectedSwap(swap);
+  const handleViewDetail = (payment) => {
+    // Extract payment_id from "payment-{id}" format
+    const paymentId = payment.id.replace('payment-', '');
+    setSelectedPaymentId(paymentId);
     setDetailOpen(true);
+  };
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedPaymentId(null);
   };
 
   return (
@@ -184,10 +191,12 @@ export default function PaymentHistoryCard({
         onNext={onNext}
       />
 
-
-
-
-
+      {/* Payment Detail Modal */}
+      <PaymentDetailModal
+        open={detailOpen}
+        onClose={handleCloseDetail}
+        paymentId={selectedPaymentId}
+      />
     </div>
   );
 }

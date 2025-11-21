@@ -72,6 +72,20 @@ const payPenaltyOnly = async (penaltyData) => {
   }
 };
 
+
+const getPaymentById = async (paymentId) => {
+  try {
+    const response = await api.get(API_ENDPOINTS.PAYMENT.GET_PAYMENT(paymentId));
+    console.log("Fetched payment by ID:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching payment by ID:", error);
+    throw error;
+  } 
+};
+
+
+      
 // const createDirectPayment = async (paymentData) => {
 //   try {
 //     const response = await api.post(API_ENDPOINTS.PAYMENT.DIRECT_PAYMENT, paymentData);   
@@ -104,6 +118,7 @@ export const paymentService = {
   renewSubscription,
   renewSubscriptionDirect,
   payPenaltyOnly,
+  getPaymentById,
 };
 
 
