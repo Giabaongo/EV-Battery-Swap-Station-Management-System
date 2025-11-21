@@ -23,6 +23,7 @@ import { SystemConfigModule } from './modules/config/config.module';
 import { AiModule } from './modules/ai/ai.module';
 import { CabinetsModule } from './modules/cabinets/cabinets.module';
 import { AdminDashboardModule } from './modules/admin-statistics/admin-statistics.module';
+import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { AdminDashboardModule } from './modules/admin-statistics/admin-statistic
     AiModule,
     CabinetsModule,
     AdminDashboardModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

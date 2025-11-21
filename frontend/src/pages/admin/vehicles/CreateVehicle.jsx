@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 const validationSchema = Yup.object({
   vin: Yup.string()
     .required('VIN is required')
-    .length(17, 'VIN must be exactly 17 characters'),
+    .length(18, 'VIN must be exactly 18 characters'),
   battery_model: Yup.string()
     .required('Battery model is required'),
 });
@@ -77,13 +77,12 @@ export default function CreateVehicle() {
                   type="text"
                   id="vin"
                   placeholder="e.g., VIN1234567890ABCD5"
-                  maxLength="17"
+                  maxLength="18"
                   {...formik.getFieldProps('vin')}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    formik.touched.vin && formik.errors.vin
+                  className={`w-full px-4 py-2 rounded-lg border ${formik.touched.vin && formik.errors.vin
                       ? 'border-danger bg-danger/5'
                       : 'border-gray-300 dark:border-gray-600'
-                  } bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all`}
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all`}
                 />
                 {formik.touched.vin && formik.errors.vin && (
                   <div className="mt-2 flex items-start gap-2 text-danger text-sm">
@@ -92,7 +91,7 @@ export default function CreateVehicle() {
                   </div>
                 )}
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  VIN must be exactly 17 characters
+                  VIN must be exactly 18 characters
                 </p>
               </div>
 
@@ -106,11 +105,10 @@ export default function CreateVehicle() {
                   id="battery_model"
                   placeholder="e.g., VinFast Standard"
                   {...formik.getFieldProps('battery_model')}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    formik.touched.battery_model && formik.errors.battery_model
+                  className={`w-full px-4 py-2 rounded-lg border ${formik.touched.battery_model && formik.errors.battery_model
                       ? 'border-danger bg-danger/5'
                       : 'border-gray-300 dark:border-gray-600'
-                  } bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all`}
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all`}
                 />
                 {formik.touched.battery_model && formik.errors.battery_model && (
                   <div className="mt-2 flex items-start gap-2 text-danger text-sm">

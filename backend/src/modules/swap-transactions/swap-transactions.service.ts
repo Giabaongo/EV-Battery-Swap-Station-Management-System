@@ -8,6 +8,7 @@ import { BatteriesService } from '../batteries/batteries.service';
 import { DatabaseService } from '../database/database.service';
 import { BatteryStatus, SwapTransactionStatus } from '@prisma/client';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { SwapTransactionsGateway } from './swap-transactions.gateway';
 
 
 @Injectable()
@@ -21,6 +22,7 @@ export class SwapTransactionsService {
     private readonly stationsService: StationsService,
     private readonly batteriesService: BatteriesService,
     private readonly subcriptionsService: SubscriptionsService,
+    private readonly swapTransactionsGateway: SwapTransactionsGateway,
   ) { }
 
   async create(
@@ -160,13 +162,38 @@ export class SwapTransactionsService {
 
   async updateStatus(
     id: number,
-    status: SwapTransactionStatus
+    status: SwapTransactionStatus,
+    updatedBy?: { userId: number; username: string; role: string },
+    reason?: string
   ) {
     try {
-      return await this.databaseService.swapTransaction.update({
+      // Fetch current transaction to get previous status
+      const currentTransaction = await this.findOne(id);
+      
+      if (!currentTransaction) {
+        throw new NotFoundException(`Swap transaction with ID ${id} not found`);
+      }
+
+      const previousStatus = currentTransaction.status;
+
+      const updatedTransaction = await this.databaseService.swapTransaction.update({
         where: { transaction_id: id },
         data: { status: status }
       });
+
+      // 🔥 Emit WebSocket event for status update
+      if (previousStatus !== status) {
+        this.swapTransactionsGateway.notifySwapStatusUpdated({
+          transactionId: id,
+          previousStatus: previousStatus,
+          currentStatus: status,
+          updatedBy: updatedBy,
+          reason: reason,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return updatedTransaction;
     } catch (error) {
       throw new InternalServerErrorException('Failed to update swap transaction status');
     }

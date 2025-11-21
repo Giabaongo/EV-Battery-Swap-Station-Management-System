@@ -45,20 +45,25 @@ export default function BatteryCard({ battery }) {
 
   return (
     <div className={`flex flex-col rounded-xl border ${borderClass} bg-white p-5 shadow-sm transition-shadow hover:shadow-lg`}>
-      {/* Phần đầu: Mã pin và badge trạng thái */}
+      {/* Phần đầu: Serial Number và badge trạng thái */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-lg font-bold text-gray-900">
-          Battery #{battery.battery_id}
+          {battery.serial_number || `Battery #${battery.battery_id}`}
         </p>
         <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusInfo.color}`}>
           {statusInfo.label}
         </div>
       </div>
 
-      {/* Hiển thị model và vị trí khe pin */}
-      <div className="flex justify-between text-sm text-gray-500 mb-4">
+      {/* Hiển thị Cabinet và Slot */}
+      <div className="flex justify-between text-sm text-gray-500 mb-2">
+        <span>Cabinet: <span className="font-medium text-gray-700">{battery.cabinet?.cabinet_name || battery.cabinet_id || 'N/A'}</span></span>
+        <span>Slot: <span className="font-medium text-gray-700">{battery.slot?.slot_number || battery.slot_id || 'N/A'}</span></span>
+      </div>
+
+      {/* Hiển thị Model */}
+      <div className="text-sm text-gray-500 mb-4">
         <span>Model: <span className="font-medium text-gray-700">{battery.model || 'Unknown'}</span></span>
-        <span>Slot: <span className="font-medium text-gray-700">{battery.slot_number || 'N/A'}</span></span>
       </div>
 
       {/* Progress bars */}

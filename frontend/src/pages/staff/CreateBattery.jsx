@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/button';
 
 // Zod validation schema based on batteries table structure
 const batterySchema = z.object({
+    serial_number: z.string().min(11, 'Serial number must be at least 11 characters').max(100, 'Serial number must not exceed 100 characters'),
     model: z.string().min(2, 'Model must be at least 2 characters').max(100, 'Model must not exceed 100 characters').optional().default('Tesla Model 3'),
     type: z.string().min(2, 'Type must be at least 2 characters').max(50, 'Type must not exceed 50 characters').optional().default('Lithium-ion'),
     capacity: z.coerce.number().positive('Capacity must be positive').finite('Capacity must be a valid number').refine(val => {
@@ -58,8 +59,9 @@ export default function CreateBattery() {
         resolver: zodResolver(batterySchema),
         mode: 'onBlur',
         defaultValues: {
+            serial_number: `BAT-ST${user?.station_id || 'X'}-${String(Date.now()).slice(-6)}`,
             model: 'Tesla Model 3',
-            type: 'Lithium-ion',
+            type: 'Lithium-Ion',
             capacity: 100,
             current_charge: 100,
             soh: 100,
@@ -76,17 +78,18 @@ export default function CreateBattery() {
 
         try {
             setSubmitting(true);
-            const batteryData = {
-                station_id: parseInt(user.station_id),
-                model: values.model || 'Tesla Model 3',
-                type: values.type || 'Lithium-ion',
-                capacity: parseFloat(values.capacity),
-                current_charge: parseFloat(values.current_charge),
-                soh: parseFloat(values.soh),
-                status: values.status || 'full',
-            };
 
             for (let i = 0; i < values.quantity; i++) {
+                const batteryData = {
+                    station_id: parseInt(user.station_id),
+                    serial_number: i === 0 ? values.serial_number : `${values.serial_number}-${i + 1}`,
+                    model: values.model || 'Tesla Model 3',
+                    type: values.type || 'Lithium-ion',
+                    capacity: parseFloat(values.capacity),
+                    current_charge: parseFloat(values.current_charge),
+                    soh: parseFloat(values.soh),
+                    status: values.status || 'full',
+                };
                 // eslint-disable-next-line no-await-in-loop
                 await batteryService.createBattery(batteryData);
             }
@@ -150,7 +153,22 @@ export default function CreateBattery() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {/* Số lượng */}
+                                {/* Serial Number */}
+                                <div className="flex flex-col col-span-1">
+                                    <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
+                                        Serial Number <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        {...register('serial_number')}
+                                        className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.serial_number ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                                            }`}
+                                        placeholder="e.g., BAT-ST1-000001"
+                                    />
+                                    {errors.serial_number && <p className="text-red-500 text-xs mt-1">{errors.serial_number.message}</p>}
+                                </div>
+
+                                {/* Quantity */}
                                 <div className="flex flex-col col-span-1">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
                                         Quantity <span className="text-red-500">*</span>
@@ -166,6 +184,7 @@ export default function CreateBattery() {
                                     />
                                     {errors.quantity && <p className="text-red-500 text-xs mt-1">{errors.quantity.message}</p>}
                                 </div>
+
                                 {/* Model */}
                                 <div className="flex flex-col col-span-1">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
@@ -272,7 +291,7 @@ export default function CreateBattery() {
                             {/* Info Box */}
                             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                                    <strong>Note:</strong> This battery will be created at your assigned station. All fields are required.
+                                    <strong>Note:</strong> This battery will be created at your assigned station. Serial number must be at least 12 characters. If creating multiple batteries, serial numbers will be auto-incremented.
                                 </p>
                             </div>
                         </CardContent>

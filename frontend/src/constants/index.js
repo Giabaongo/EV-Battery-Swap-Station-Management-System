@@ -121,6 +121,7 @@ export const API_ENDPOINTS = {
     GET_ALL_PAYMENTS: "/payments",
     RENEW_SUBSCRIPTION: "/payments/subscription-renewal",
     DIRECT_RENEW_SUBSCRIPTION: "/payments/direct-renewal",
+    PAY_PENALTY_ONLY: "/payments/penalty-only",
 
     // Specialized payment types
     MOCK_PAYMENT: "/payments/mock-payment",

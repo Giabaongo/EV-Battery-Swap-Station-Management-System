@@ -61,6 +61,17 @@ const renewSubscriptionDirect = async (renewalData) => {
   }
 };
 
+const payPenaltyOnly = async (penaltyData) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.PAYMENT.PAY_PENALTY_ONLY, penaltyData);
+    console.log("Paid penalty only:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error paying penalty only:", error);
+    throw error;
+  }
+};
+
 // const createDirectPayment = async (paymentData) => {
 //   try {
 //     const response = await api.post(API_ENDPOINTS.PAYMENT.DIRECT_PAYMENT, paymentData);   
@@ -92,6 +103,7 @@ export const paymentService = {
   handleVnpayReturn,
   renewSubscription,
   renewSubscriptionDirect,
+  payPenaltyOnly,
 };
 
 

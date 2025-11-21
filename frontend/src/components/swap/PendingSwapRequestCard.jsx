@@ -2,18 +2,15 @@ import { User } from 'lucide-react';
 
 // Component hiển thị thẻ yêu cầu trao đổi pin đang chờ xử lý
 export default function PendingSwapRequestCard({ reservation, onProcessSwap }) {
-    // Lấy tên người dùng từ dữ liệu đặt lịch
-    const userName = reservation.user?.username || reservation.user?.name || `User #${reservation.user_id}`;
-    // Lấy mô hình xe từ dữ liệu đặt lịch
-    const vehicleModel = reservation.vehicle?.model || 'Unknown Model';
-    // Lấy VIN (số khung xe) từ dữ liệu đặt lịch
+    // Get user name from reservation data
+    const userName = reservation.user?.username || reservation.user?.name || `User ${reservation.user_id}`;
     const vehicleVin = reservation.vehicle?.vin || `VIN${reservation.vehicle_id}`;
 
     // Xây dựng thông tin pin - hiển thị battery_id và slot_number nếu có
     const batteryInfo = reservation.battery
-        ? `Battery #${reservation.battery.battery_id}${reservation.battery.slot_number ? ` - Slot ${reservation.battery.slot_number}` : ''}`
+        ? `Battery ${reservation.battery.battery_id}${reservation.battery.slot_number ? ` - Slot ${reservation.battery.slot_number}` : ''}`
         : reservation.battery_id
-            ? `Battery #${reservation.battery_id}`
+            ? `Battery ${reservation.battery_id}`
             : 'Not assigned';
 
     return (
@@ -31,10 +28,6 @@ export default function PendingSwapRequestCard({ reservation, onProcessSwap }) {
 
             {/* Phần chi tiết: xe trả về, VIN, pin đã đặt lịch */}
             <div className="text-sm space-y-2 pt-2">
-                <p>
-                    <strong className="text-gray-600 font-medium">Returning:</strong>{' '}
-                    <span className="text-gray-900">{vehicleModel}</span>
-                </p>
                 <p>
                     <strong className="text-gray-600 font-medium">VIN:</strong>{' '}
                     <span className="text-gray-900 font-mono text-xs">{vehicleVin}</span>

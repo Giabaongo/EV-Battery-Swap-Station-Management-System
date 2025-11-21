@@ -24,6 +24,7 @@ import { FeeCalculationService } from './services/fee-calculation.service';
 import { BatteryServicePackagesService } from '../battery-service-packages/battery-service-packages.service';
 import { CreateDirectPaymentDto } from './dto/create-direct-payment.dto';
 import { DirectRenewalPaymentDto } from './dto/direct-renewal-payment.dto';
+import { CreatePenaltyPaymentDto } from './dto/penalty-payment.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { SystemConfigService } from '../config/system-config.service';
 import { momoConfig } from './config/momo.config';
@@ -849,7 +850,7 @@ export class PaymentsService {
 
   /**
    * Create VNPAY payment URL with integrated fee calculation
-   * 
+   *
    * Flow:
    * 1. Get package base price
    * 2. Calculate fee amount based on fee type and parameters
@@ -1080,7 +1081,7 @@ export class PaymentsService {
    * 2. Creates payment record with success status immediately
    * 3. Creates subscription immediately (if applicable)
    * 4. Returns detailed fee breakdown
-   * 
+   *
    * Use for: Demo, testing, or when VNPAY is unavailable
    */
   // async createDirectPaymentWithFees(
@@ -1533,156 +1534,103 @@ export class PaymentsService {
     };
   }
 
-  // ==================== MOMO PAYMENT METHODS ====================
-
   /**
-   * Create MoMo payment URL
-   * Similar to VNPAY but uses MoMo API
+   * Create direct penalty payment (without subscription renewal)
+   * User chỉ muốn thanh toán phí phạt, không gia hạn gói
+   *
+   * Flow:
+   * 1. Get subscription (status = expired or pending_penalty_payment)
+   * 2. Calculate penalty fee (overcharge fee)
+   * 3. Create payment with success status
+   * 4. Update subscription status to 'expired' (payment cleared)
+   * 5. DO NOT create new subscription
    */
-  async createMoMoPaymentUrl(createPaymentDto: CreatePaymentDto) {
-    try {
-      // 1. Get package information (if package_id exists)
-      let servicePackage: any = null;
-      let amount: number;
+  async createDirectPenaltyPayment(
+    penaltyDto: CreatePenaltyPaymentDto,
+  ): Promise<{
+    success: boolean;
+    payment: any;
+    subscription: any;
+    penaltyAmount: number;
+    message: string;
+  }> {
+    // 1. Get subscription
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { subscription_id: penaltyDto.subscription_id },
+      include: { package: true, vehicle: true },
+    });
 
-      if (createPaymentDto.package_id) {
-        servicePackage = await this.prisma.batteryServicePackage.findUnique({
-          where: { package_id: createPaymentDto.package_id },
-        });
-
-        if (!servicePackage) {
-          throw new NotFoundException('Package not found');
-        }
-
-        if (!servicePackage.active) {
-          throw new BadRequestException('Package is not active');
-        }
-
-        amount = Math.floor(servicePackage.base_price.toNumber());
-      } else {
-        throw new BadRequestException('package_id is required for payment');
-      }
-
-      // 2. Create payment record with pending status
-      // Align with MoMo sample: orderId = requestId = partnerCode + timestamp
-      const timestamp = Date.now();
-      const orderId = `${momoConfig.partnerCode}${timestamp}`;
-      const requestId = orderId;
-      const expiresAt = this.getPaymentExpiryTime();
-
-      const payment = await this.prisma.payment.create({
-        data: {
-          user_id: createPaymentDto.user_id,
-          package_id: createPaymentDto.package_id,
-          vehicle_id: createPaymentDto.vehicle_id,
-          amount: servicePackage?.base_price || 0,
-          method: PaymentMethod.momo,
-          status: PaymentStatus.pending,
-          payment_type: createPaymentDto.payment_type as any,
-          vnp_txn_ref: orderId, // Reuse this field for MoMo orderId
-          expires_at: expiresAt,
-          order_info:
-            createPaymentDto.orderDescription ||
-            (servicePackage ? `Thanh toan goi ${servicePackage.name}` : `Thanh toan ${createPaymentDto.payment_type}`),
-        },
-      });
-
-      // 3. Build MoMo payment request
-      const orderInfo = payment.order_info;
-      const extraData = ''; // Additional data (optional)
-
-      // Build request body BEFORE signature (need all fields)
-      const requestBody = {
-        partnerCode: momoConfig.partnerCode,
-        partnerName: 'EV Battery Swap Station',
-        storeId: momoConfig.partnerCode,
-        requestId: requestId,
-        amount: amount.toString(),
-        orderId: orderId,
-        orderInfo: orderInfo,
-        redirectUrl: momoConfig.redirectUrl,
-        ipnUrl: momoConfig.ipnUrl,
-        lang: createPaymentDto.language || momoConfig.lang,
-        extraData: extraData,
-        requestType: momoConfig.requestType,
-        autoCapture: true,
-        orderGroupId: '',
-      };
-
-      // Build raw signature string (alphabetical order of parameters)
-      const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${momoConfig.requestType}`;
-
-      const signature = generateMoMoSignature(rawSignature, momoConfig.secretKey);
-
-      // Add signature to request body
-      requestBody['signature'] = signature;
-
-      // Log for debugging
-      logMoMoParams(requestBody, 'MoMo Payment Request');
-
-      // 4. Call MoMo API (or use mock mode)
-      let momoResponse: any;
-
-      if (momoConfig.useMockMode) {
-        // Mock mode - simulate successful MoMo response
-        this.logger.log('🎭 MOCK MODE: Simulating MoMo API success response');
-        momoResponse = {
-          partnerCode: momoConfig.partnerCode,
-          orderId: orderId,
-          requestId: requestId,
-          amount: amount,
-          responseTime: Date.now(),
-          message: 'Successful (MOCKED)',
-          resultCode: 0,
-          payUrl: `https://test-payment.momo.vn/v2/gateway/pay?t=${orderId}`,
-          deeplink: `momo://app.momo.vn/pay?orderId=${orderId}`,
-          qrCodeUrl: `https://test-payment.momo.vn/v2/gateway/qr/${orderId}`,
-        };
-      } else {
-        // Real MoMo API call
-        const response = await fetch(momoConfig.endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        momoResponse = await response.json();
-      }
-
-      this.logger.log('MoMo API Response:', momoResponse);
-
-      // 5. Check response
-      if (momoResponse.resultCode === 0) {
-        // Success - return payment URL
-        return {
-          paymentUrl: momoResponse.payUrl,
-          payment_id: payment.payment_id,
-          orderId: orderId,
-          requestId: requestId,
-          deeplink: momoResponse.deeplink, // For mobile app
-          qrCodeUrl: momoResponse.qrCodeUrl, // For QR code payment
-        };
-      } else {
-        // Failed - update payment status
-        await this.prisma.payment.update({
-          where: { payment_id: payment.payment_id },
-          data: {
-            status: PaymentStatus.failed,
-            vnp_response_code: momoResponse.resultCode.toString(),
-          },
-        });
-
-        throw new BadRequestException(
-          momoResponse.message || 'Failed to create MoMo payment',
-        );
-      }
-    } catch (error) {
-      this.logger.error('Error creating MoMo payment:', error);
-      throw error;
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
     }
+
+    // Allow payment for both 'expired' and 'pending_penalty_payment' status
+    if (subscription.status !== SubscriptionStatus.pending_penalty_payment) {
+      throw new BadRequestException('Only expired or pending_penalty_payment subscriptions can pay penalty');
+    }
+
+    // 2. Calculate penalty fee
+    const overChargeFee = await this.feeCalculationService.calculateOverchargeFee(
+      subscription.subscription_id,
+    );
+
+    const penaltyAmount = overChargeFee.overcharge_fee;
+
+    // if (penaltyAmount === 0) {
+    //   throw new BadRequestException('No penalty fee to pay (distance not exceeded)');
+    // }
+
+    this.logger.log(`💰 Penalty fee calculation: ${penaltyAmount} VND for subscription ${subscription.subscription_id}`);
+
+    // 3. Create payment record with SUCCESS status
+    const payment = await this.prisma.payment.create({
+      data: {
+        user_id: subscription.user_id,
+        package_id: subscription.package_id,
+        vehicle_id: subscription.vehicle_id,
+        amount: penaltyAmount,
+        method: penaltyDto.payment_method || PaymentMethod.cash,
+        status: PaymentStatus.success,
+        payment_type: PaymentType.damage_fee, // Use damage_fee type for penalty
+        payment_time: new Date(),
+        transaction_id: penaltyDto.transaction_id || `PENALTY_${moment().format('YYYYMMDDHHmmss')}`,
+        order_info:
+          penaltyDto.order_info ||
+          `Penalty fee for subscription ${subscription.subscription_id} - ${subscription.package.name}`,
+        subscription_id: subscription.subscription_id, // Link to subscription
+      },
+      include: {
+        package: true,
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // 4. Update subscription status to 'expired' (penalty cleared)
+    const updatedSubscription = await this.prisma.subscription.update({
+      where: { subscription_id: subscription.subscription_id },
+      data: {
+        status: SubscriptionStatus.expired, // Mark as expired (penalty paid, but subscription not renewed)
+      },
+    });
+
+    this.logger.log(`✅ Penalty payment successful for subscription ${subscription.subscription_id}`);
+
+    return {
+      success: true,
+      payment,
+      subscription: updatedSubscription,
+      penaltyAmount,
+      message: `Penalty fee of ${penaltyAmount} VND paid successfully. Subscription marked as expired.`,
+    };
   }
+
+  // ==================== MOMO PAYMENT METHODS ====================
 
   /**
    * Handle MoMo return callback (from user browser redirect)
@@ -2331,5 +2279,4 @@ export class PaymentsService {
     }
   }
 }
-
 

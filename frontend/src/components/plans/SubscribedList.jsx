@@ -10,6 +10,7 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [renewingId, setRenewingId] = useState(null);
   const [renewingDirectId, setRenewingDirectId] = useState(null);
+  const [payingPenaltyId, setPayingPenaltyId] = useState(null);
 
   const handleViewDetails = (subscription) => {
     setSelectedSubscription(subscription);
@@ -74,6 +75,33 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
       toast.error(error.response?.data?.message || 'Error renewing subscription');
     } finally {
       setRenewingDirectId(null);
+    }
+  };
+
+  // Handle pay penalty fee only - Gọi API payPenaltyOnly
+  const handlePayPenalty = async (subscription) => {
+    setPayingPenaltyId(subscription.subscription_id);
+    try {
+      const res = await paymentService.payPenaltyOnly({
+        subscription_id: subscription.subscription_id
+      });
+      
+      // Success - API trả về data object với payment info
+      if (res?.success) {
+        // Success - show toast and reload page
+        toast.success(`Penalty fee paid successfully: ${res?.penaltyAmount || 'N/A'} VND`);
+        // Reload page after 1s
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast.error(res?.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Error paying penalty fee:', error);
+      toast.error(error.response?.data?.message || 'Error paying penalty fee');
+    } finally {
+      setPayingPenaltyId(null);
     }
   };
 
@@ -292,6 +320,18 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
                         {renewingDirectId === subscription.subscription_id ? 'Renewing...' : 'Renew Direct'}
                       </Button>
                     </div>
+                  )}
+                  {subscription.status === 'pending_penalty_payment' && (
+                    <Button
+                      onClick={() => handlePayPenalty(subscription)}
+                      disabled={payingPenaltyId === subscription.subscription_id}
+                      variant="default"
+                      size="sm"
+                      className="flex items-center gap-2 whitespace-nowrap bg-orange-600 hover:bg-orange-700 w-full"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      {payingPenaltyId === subscription.subscription_id ? 'Processing...' : 'Pay Penalty Fee'}
+                    </Button>
                   )}
                 </div>
               </div>

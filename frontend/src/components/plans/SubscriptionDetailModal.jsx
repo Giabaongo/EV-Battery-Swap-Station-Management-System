@@ -76,6 +76,7 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
   const [cancelling, setCancelling] = useState(false);
   const [renewing, setRenewing] = useState(false);
   const [renewingDirect, setRenewingDirect] = useState(false);
+  const [payingPenalty, setPayingPenalty] = useState(false);
 
   if (!subscription) return null;
 
@@ -167,6 +168,35 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
       toast.error('Error renewing subscription');
     } finally {
       setRenewing(false);
+    }
+  };
+
+  // Handle pay penalty fee only - Gọi API payPenaltyOnly
+  const handlePayPenalty = async () => {
+    setPayingPenalty(true);
+    try {
+      const res = await paymentService.payPenaltyOnly({
+        subscription_id: subscription.subscription_id
+      });
+      
+      // Success - API trả về data object với payment info
+      if (res?.success) {
+        // Success - show toast and reload page
+        toast.success(`Penalty fee paid successfully: ${res?.penaltyAmount || 'N/A'} VND`);
+        // Close modal
+        onClose();
+        // Reload page after 1s
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        toast.error(res?.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error('Error paying penalty fee:', error);
+      toast.error(error.response?.data?.message || 'Error paying penalty fee');
+    } finally {
+      setPayingPenalty(false);
     }
   };
 
@@ -308,6 +338,17 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
                 >
                   <AlertTriangle className="w-4 h-4" />
                   Cancel Subscription
+                </Button>
+              )}
+              {subscription.status === 'pending_penalty_payment' && (
+                <Button 
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={handlePayPenalty}
+                  disabled={payingPenalty}
+                >
+                  {payingPenalty ? 'Processing...' : 'Pay Penalty Fee'}
                 </Button>
               )}
               {subscription.status === 'expired' && (

@@ -121,20 +121,39 @@ export class FeeCalculationService {
       const tier2Price = tier2?.value?.toNumber() || 0;  // VNĐ/km
       const tier3Price = tier3?.value?.toNumber() || 0;  // VNĐ/km
 
-      // Tính phí theo bậc (tương tự tiền điện)
-      // Tier 1: 0-2000km vượt quá
-      // Tier 2: 2001-4000km vượt quá
-      // Tier 3: trên 4000km vượt quá
+      console.log('🔍 Overcharge Fee Config:', {
+        tier1Price,
+        tier2Price,
+        tier3Price,
+        overchargeKm,
+        baseDistance,
+        distanceTraveled: subscription.distance_traveled,
+      });
 
-      if (overchargeKm <= 2000) {
-        overchargeCost = overchargeKm * tier1Price;
-      } else if (overchargeKm <= 4000) {
-        overchargeCost = 2000 * tier1Price + (overchargeKm - 2000) * tier2Price;
+      // Nếu config chưa được set, sử dụng penalty_fee từ package
+      if (tier1Price === 0 && tier2Price === 0 && tier3Price === 0) {
+        console.warn('⚠️ Overcharge fee tiers not configured, using package penalty_fee');
+        const packagePenaltyFee = subscription.package?.penalty_fee || 0;
+        // Tính đơn giản: penalty_fee * (overchargeKm / baseDistance)
+        overchargeCost = Math.ceil((packagePenaltyFee * overchargeKm) / baseDistance);
+        console.log(`💰 Using package penalty_fee: ${packagePenaltyFee} VND, calculated: ${overchargeCost} VND`);
       } else {
-        overchargeCost =
-          2000 * tier1Price +
-          2000 * tier2Price +
-          (overchargeKm - 4000) * tier3Price;
+        // Tính phí theo bậc (tương tự tiền điện)
+        // Tier 1: 0-2000km vượt quá
+        // Tier 2: 2001-4000km vượt quá
+        // Tier 3: trên 4000km vượt quá
+
+        if (overchargeKm <= 2000) {
+          overchargeCost = overchargeKm * tier1Price;
+        } else if (overchargeKm <= 4000) {
+          overchargeCost = 2000 * tier1Price + (overchargeKm - 2000) * tier2Price;
+        } else {
+          overchargeCost =
+            2000 * tier1Price +
+            2000 * tier2Price +
+            (overchargeKm - 4000) * tier3Price;
+        }
+        console.log(`💰 Calculated overcharge cost (tiered): ${overchargeCost} VND`);
       }
     }
 

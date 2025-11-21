@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Testing - Batteries & Swap Transactions</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .event-log {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+
+        .event-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .event-log::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+
+        .event-log::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-left: 3px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .log-event {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        .log-data {
+            color: #60a5fa;
+            margin-left: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔋 WebSocket Testing - Batteries & Swap Transactions</h1>
+
+        <div class="grid">
+            <!-- Battery Status Card -->
+            <div class="card">
+                <h2>
+                    🔋 Battery Status
+                    <span id="battery-status" class="status-badge status-disconnected">Disconnected</span>
+                </h2>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="connectBattery()">Connect</button>
+                    <button class="btn btn-danger" onclick="disconnectBattery()">Disconnect</button>
+                    <button class="btn btn-success" onclick="clearBatteryLog()">Clear Log</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Server URL:</label>
+                    <input type="text" id="battery-server-url" value="http://localhost:8080">
+                </div>
+
+                <div class="event-log" id="battery-log">
+                    <div class="log-entry">
+                        <span class="log-timestamp">[Ready]</span>
+                        <span class="log-event">Battery WebSocket Client Ready</span>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="battery-events-count">0</div>
+                        <div class="stat-label">Status Changes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="battery-charge-count">0</div>
+                        <div class="stat-label">Charge Updates</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Swap Transactions Card -->
+            <div class="card">
+                <h2>
+                    🔄 Swap Transactions
+                    <span id="swap-status" class="status-badge status-disconnected">Disconnected</span>
+                </h2>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="connectSwap()">Connect</button>
+                    <button class="btn btn-danger" onclick="disconnectSwap()">Disconnect</button>
+                    <button class="btn btn-success" onclick="clearSwapLog()">Clear Log</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Server URL:</label>
+                    <input type="text" id="swap-server-url" value="http://localhost:8080">
+                </div>
+
+                <div class="event-log" id="swap-log">
+                    <div class="log-entry">
+                        <span class="log-timestamp">[Ready]</span>
+                        <span class="log-event">Swap Transactions WebSocket Client Ready</span>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="swap-created-count">0</div>
+                        <div class="stat-label">Swaps Created</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="swap-status-count">0</div>
+                        <div class="stat-label">Status Updates</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let batterySocket = null;
+        let swapSocket = null;
+        let batteryEventsCount = 0;
+        let batteryChargeCount = 0;
+        let swapCreatedCount = 0;
+        let swapStatusCount = 0;
+
+        // ==================== Battery Socket ====================
+        function connectBattery() {
+            const serverUrl = document.getElementById('battery-server-url').value;
+            
+            if (batterySocket && batterySocket.connected) {
+                addBatteryLog('info', 'Already connected');
+                return;
+            }
+
+            batterySocket = io(`${serverUrl}/batteries`, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5,
+            });
+
+            batterySocket.on('connect', () => {
+                addBatteryLog('success', 'Connected', `Socket ID: ${batterySocket.id}`);
+                updateBatteryStatus(true);
+            });
+
+            batterySocket.on('disconnect', (reason) => {
+                addBatteryLog('error', 'Disconnected', `Reason: ${reason}`);
+                updateBatteryStatus(false);
+            });
+
+            batterySocket.on('connect_error', (error) => {
+                addBatteryLog('error', 'Connection Error', error.message);
+                updateBatteryStatus(false);
+            });
+
+            batterySocket.on('battery.status.changed', (data) => {
+                batteryEventsCount++;
+                document.getElementById('battery-events-count').textContent = batteryEventsCount;
+                addBatteryLog('event', '🔋 Battery Status Changed', JSON.stringify(data, null, 2));
+                
+                // Desktop notification
+                if (Notification.permission === 'granted') {
+                    new Notification('Battery Status Changed', {
+                        body: `Battery ${data.batteryId}: ${data.previousStatus} → ${data.currentStatus}`,
+                        icon: '🔋'
+                    });
+                }
+            });
+
+            batterySocket.on('battery.charge.updated', (data) => {
+                batteryChargeCount++;
+                document.getElementById('battery-charge-count').textContent = batteryChargeCount;
+                addBatteryLog('event', '⚡ Battery Charge Updated', JSON.stringify(data, null, 2));
+            });
+
+            addBatteryLog('info', 'Connecting...', serverUrl + '/batteries');
+        }
+
+        function disconnectBattery() {
+            if (batterySocket) {
+                batterySocket.disconnect();
+                batterySocket = null;
+                addBatteryLog('info', 'Disconnected by user');
+                updateBatteryStatus(false);
+            }
+        }
+
+        function updateBatteryStatus(connected) {
+            const statusBadge = document.getElementById('battery-status');
+            if (connected) {
+                statusBadge.textContent = 'Connected';
+                statusBadge.className = 'status-badge status-connected pulse';
+            } else {
+                statusBadge.textContent = 'Disconnected';
+                statusBadge.className = 'status-badge status-disconnected';
+            }
+        }
+
+        function addBatteryLog(type, event, data = '') {
+            const logContainer = document.getElementById('battery-log');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-event">${event}</span>
+                ${data ? `<div class="log-data">${data}</div>` : ''}
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearBatteryLog() {
+            document.getElementById('battery-log').innerHTML = '';
+            batteryEventsCount = 0;
+            batteryChargeCount = 0;
+            document.getElementById('battery-events-count').textContent = '0';
+            document.getElementById('battery-charge-count').textContent = '0';
+            addBatteryLog('info', 'Log cleared');
+        }
+
+        // ==================== Swap Socket ====================
+        function connectSwap() {
+            const serverUrl = document.getElementById('swap-server-url').value;
+            
+            if (swapSocket && swapSocket.connected) {
+                addSwapLog('info', 'Already connected');
+                return;
+            }
+
+            swapSocket = io(`${serverUrl}/swap-transactions`, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5,
+            });
+
+            swapSocket.on('connect', () => {
+                addSwapLog('success', 'Connected', `Socket ID: ${swapSocket.id}`);
+                updateSwapStatus(true);
+            });
+
+            swapSocket.on('disconnect', (reason) => {
+                addSwapLog('error', 'Disconnected', `Reason: ${reason}`);
+                updateSwapStatus(false);
+            });
+
+            swapSocket.on('connect_error', (error) => {
+                addSwapLog('error', 'Connection Error', error.message);
+                updateSwapStatus(false);
+            });
+
+            swapSocket.on('swap.created', (data) => {
+                swapCreatedCount++;
+                document.getElementById('swap-created-count').textContent = swapCreatedCount;
+                addSwapLog('event', '🔄 Swap Transaction Created', JSON.stringify(data, null, 2));
+                
+                // Desktop notification
+                if (Notification.permission === 'granted') {
+                    new Notification('New Swap Transaction', {
+                        body: `Station: ${data.stationName}\nUser: ${data.user.username}`,
+                        icon: '🔄'
+                    });
+                }
+            });
+
+            swapSocket.on('swap.status.updated', (data) => {
+                swapStatusCount++;
+                document.getElementById('swap-status-count').textContent = swapStatusCount;
+                addSwapLog('event', '📝 Swap Status Updated', JSON.stringify(data, null, 2));
+            });
+
+            addSwapLog('info', 'Connecting...', serverUrl + '/swap-transactions');
+        }
+
+        function disconnectSwap() {
+            if (swapSocket) {
+                swapSocket.disconnect();
+                swapSocket = null;
+                addSwapLog('info', 'Disconnected by user');
+                updateSwapStatus(false);
+            }
+        }
+
+        function updateSwapStatus(connected) {
+            const statusBadge = document.getElementById('swap-status');
+            if (connected) {
+                statusBadge.textContent = 'Connected';
+                statusBadge.className = 'status-badge status-connected pulse';
+            } else {
+                statusBadge.textContent = 'Disconnected';
+                statusBadge.className = 'status-badge status-disconnected';
+            }
+        }
+
+        function addSwapLog(type, event, data = '') {
+            const logContainer = document.getElementById('swap-log');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-event">${event}</span>
+                ${data ? `<div class="log-data">${data}</div>` : ''}
+            `;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearSwapLog() {
+            document.getElementById('swap-log').innerHTML = '';
+            swapCreatedCount = 0;
+            swapStatusCount = 0;
+            document.getElementById('swap-created-count').textContent = '0';
+            document.getElementById('swap-status-count').textContent = '0';
+            addSwapLog('info', 'Log cleared');
+        }
+
+        // Request notification permission on load
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    </script>
+</body>
+</html>
