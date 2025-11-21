@@ -18,9 +18,11 @@ export default function VehiclesList({ vehicles = [], onAddVehicle }) {
   const [isRemoving, setIsRemoving] = useState(false)
 
   // Hàm xử lý khi user thêm xe thành công
-  const handleAdded = (info) => {
+  const handleAdded = async (info) => {
     // Gọi callback để parent refresh danh sách xe
-    if (onAddVehicle) onAddVehicle()
+    if (onAddVehicle) await onAddVehicle();
+    // Emit global event so other parts of app can refresh too
+    try { window.dispatchEvent(new Event('vehiclesUpdated')); } catch { /* ignore */ }
     // Hiển thị banner gợi ý nếu user chưa subscribe gói cước
     if (info?.suggestedSubscription) setShowSuggestion(true)
     // Tự động ẩn banner sau 8 giây
@@ -45,7 +47,9 @@ export default function VehiclesList({ vehicles = [], onAddVehicle }) {
       setConfirmOpen(false)  // Đóng dialog
       setRemoveVehicle(null)  // Xóa state
       // Refresh danh sách xe từ server
-      if (onAddVehicle) onAddVehicle()
+      if (onAddVehicle) await onAddVehicle()
+      // Emit global event for other listeners
+      try { window.dispatchEvent(new Event('vehiclesUpdated')); } catch { /* ignore */ }
     } catch (error) {
       console.error('Error removing vehicle:', error)
       toast.error(error.response?.data?.message || 'Cannot unlink vehicle')  // Thông báo lỗi

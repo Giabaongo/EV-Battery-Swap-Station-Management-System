@@ -4,6 +4,7 @@ import MapSearchBar from '../../components/map/MapSearchBar';
 import MapContainer from '../../components/map/MapContainer';
 import StationsList from '../../components/map/StationsList';
 import { useStation, useBattery, useVehicle } from '../../hooks/useContext';
+import { stationService } from '../../services/stationService';
 
 // Take real station data from StationContext
 
@@ -22,7 +23,7 @@ export default function MapPage() {
     const refreshData = async () => {
       try {
         await Promise.all([
-          getAllStations(),
+          stationService.getAllStations(),
           getAllBatteries()
         ]);
       } catch (error) {
@@ -36,7 +37,7 @@ export default function MapPage() {
     // Refresh every 5 seconds
     const interval = setInterval(refreshData, 5000);
     return () => clearInterval(interval);
-  }, [getAllStations, getAllBatteries]);
+  }, [getAllBatteries]);
 
   // Compute Haversine distance in meters
   //Công thức tính quãng đường giữa hai điểm trên map dựa trên vĩ độ và kinh độ của chúng

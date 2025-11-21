@@ -127,7 +127,7 @@ export default function Booking({
             <div className="ml-3">
               <p className={`text-sm ${statusColors.text} font-medium`}>
                 {subscriptionStatusInfo.status === 'active' && subscriptionToShow
-                  ? `Active Subscription: ${subscriptionToShow?.package?.package_name || 'Premium Plan'}`
+                  ? `Active Subscription: ${subscriptionToShow?.package?.package_name}`
                   : subscriptionStatusInfo.title
                 }
               </p>

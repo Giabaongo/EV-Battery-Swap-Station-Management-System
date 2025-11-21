@@ -20,7 +20,7 @@ export function useStation() {
     stations: context.stations,
     availableStations: context.availableStations,
     initialized: context.initialized,
-    fetchAllStations: context.fetchAllStations,
+    getAllStations: context.getAllStations,
     getAvailableStations: context.getAvailableStations,
     getStationById: context.getStationById,
     loading: context.stationLoading,
