@@ -9,9 +9,10 @@
 //one station can have 1 or more cabinet
 //one staff only belong to 1 station
 // all user is email verify is true, status is active
+// vin of vehicle is unique and 18 characters
 
 
-//10 stations, 21 users (1 adcmin, 10 staff, 10 users), 100 battery
+//10 stations, 21 users (1 admin, 10 staff, 10 users, 25 vehicle), 500 battery
 
 import { PrismaClient, Battery, Slot } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -216,19 +217,19 @@ async function main() {
     }
     console.log(`   ✓ Created ${slots.length} slots (15 per cabinet)`);
 
-    // 6. Seed 100 Batteries (distributed across slots, all same model/type)
-    console.log('🔋 Seeding 100 batteries...');
+    // 6. Seed 500 Batteries (distributed across slots, all same model/type)
+    console.log('🔋 Seeding 500 batteries...');
     const batteries: Battery[] = [];
     const BATTERY_MODEL = 'VinFast Standard';
     const BATTERY_TYPE = 'Lithium-Ion';
 
     let batteryCount = 0;
-    for (let i = 0; i < slots.length && batteryCount < 100; i++) {
+    for (let i = 0; i < slots.length && batteryCount < 500; i++) {
         const slot = slots[i];
-        if (slot.is_occupied && batteryCount < 100) {
+        if (slot.is_occupied && batteryCount < 500) {
             const battery = await prisma.battery.create({
                 data: {
-                    serial_number: `BAT-${String(batteryCount + 1).padStart(4, '0')}`,
+                    serial_number: `BAT-${String(batteryCount + 1).padStart(5, '0')}`,
                     station_id: cabinets[Math.floor(i / 15)].station_id,
                     cabinet_id: slot.cabinet_id,
                     slot_id: slot.slot_id,
@@ -247,15 +248,17 @@ async function main() {
 
     console.log(`   ✓ Created ${batteries.length} batteries (${BATTERY_MODEL})`);
 
-    // 7. Seed 10 Vehicles (1 vehicle per driver, assigned battery)
-    console.log('🚗 Seeding 10 vehicles...');
+    // 7. Seed 25 Vehicles (1 vehicle per driver + extra vehicles)
+    console.log('🚗 Seeding 25 vehicles...');
     const vehicles = [];
+    
+    // Create 10 vehicles for 10 drivers
     for (let i = 0; i < 10; i++) {
         const vehicle = await prisma.vehicle.create({
             data: {
                 user_id: drivers[i].user_id,
                 battery_id: batteries[i % batteries.length].battery_id,
-                vin: `VIN${String(i + 1).padStart(14, '0')}`,
+                vin: `VF${String(i + 1).padStart(16, '0')}`,
                 battery_model: BATTERY_MODEL,
                 battery_type: BATTERY_TYPE,
                 status: 'active',
@@ -264,7 +267,22 @@ async function main() {
         vehicles.push(vehicle);
     }
 
-    console.log(`   ✓ Created 10 vehicles`);
+    // Create 15 additional vehicles for drivers (multi-vehicle support)
+    for (let i = 10; i < 25; i++) {
+        const vehicle = await prisma.vehicle.create({
+            data: {
+                user_id: drivers[i % 10].user_id, // Distribute among 10 drivers
+                battery_id: batteries[i % batteries.length].battery_id,
+                vin: `VF${String(i + 1).padStart(16, '0')}`,
+                battery_model: BATTERY_MODEL,
+                battery_type: BATTERY_TYPE,
+                status: i % 4 === 3 ? 'inactive' : 'active',
+            },
+        });
+        vehicles.push(vehicle);
+    }
+
+    console.log(`   ✓ Created 25 vehicles`);
 
     // 8. Seed Configs
     console.log('⚙️  Seeding configs...');
