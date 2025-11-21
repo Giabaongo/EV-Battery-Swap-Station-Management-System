@@ -159,8 +159,40 @@ export default function Plans() {
     setModalOpen(true)
   }
 
-  // Called when user clicks Pay in modal
-  const handlePay = async (vehicleId) => {
+  // Called when user clicks Pay with VNPAY in modal
+  const handlePayVnpay = async (vehicleId) => {
+    if (!user?.user_id || !selectedPlan) {
+      toast.error('Missing user or package info')
+      return
+    }
+
+    setPaying(true)
+    try {
+      const payload = {
+        user_id: user.user_id,
+        package_id: selectedPlan.rawData.package_id,
+        vehicle_id: parseInt(vehicleId),
+        payment_type: 'subscription_with_deposit'
+      }
+
+      const res = await paymentService.createPayment(payload)
+      // Expect backend to return a redirect url to VNPay
+      const redirectUrl = res?.vnpUrl || res?.paymentUrl || res?.url || res?.redirectUrl || res
+      if (redirectUrl) {
+        window.location.href = redirectUrl
+      } else {
+        toast.error('Payment URL not returned by server')
+      }
+    } catch (err) {
+      console.error('VNPAY payment creation failed', err)
+      toast.error('Payment creation failed: ' + (err.message || err))
+    } finally {
+      setPaying(false)
+    }
+  }
+
+  // Called when user clicks Pay with MOMO in modal
+  const handlePayMomo = async (vehicleId) => {
     if (!user?.user_id || !selectedPlan) {
       toast.error('Missing user or package info')
       return
@@ -176,7 +208,7 @@ export default function Plans() {
       }
 
       const res = await paymentService.createMomoPayment(payload)
-      // Expect backend to return a redirect url to VNPay
+      // Expect backend to return a redirect url to MOMO
       const redirectUrl = res?.vnpUrl || res?.paymentUrl || res?.url || res?.redirectUrl || res
       if (redirectUrl) {
         window.location.href = redirectUrl
@@ -184,7 +216,7 @@ export default function Plans() {
         toast.error('Payment URL not returned by server')
       }
     } catch (err) {
-      console.error('Payment creation failed', err)
+      console.error('MOMO payment creation failed', err)
       toast.error('Payment creation failed: ' + (err.message || err))
     } finally {
       setPaying(false)
@@ -300,10 +332,11 @@ export default function Plans() {
           onClose={() => setModalOpen(false)}
           plan={selectedPlan}
           user={user}
-          onPay={handlePay}
+          onPayVnpay={handlePayVnpay}
+          onPayMomo={handlePayMomo}
           onPayDirectly={handlePayDirectly}
           paying={paying}
-          subscriptions={activeSubscriptions}
+          subscriptions={subscriptions}
         />
 
         <section className="mb-8">

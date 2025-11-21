@@ -29,7 +29,7 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
     }
   };
 
-  // Handle renew subscription - Gọi API renewSubscription
+  // Handle renew subscription - Gọi API renewSubscription (VNPAY)
   const handleRenewSubscription = async (subscription) => {
     setRenewingId(subscription.subscription_id);
     try {
@@ -45,7 +45,31 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
       }
     } catch (error) {
       console.error('Error renewing subscription:', error);
-      toast.error('Error renewing subscription');
+      const errorMsg = error.response?.data?.message || error.message || 'Error renewing subscription';
+      toast.error(errorMsg);
+    } finally {
+      setRenewingId(null);
+    }
+  };
+
+  // Handle renew subscription with MOMO - Gọi API renewSubscriptionMomo
+  const handleRenewSubscriptionMomo = async (subscription) => {
+    setRenewingId(subscription.subscription_id);
+    try {
+      const res = await paymentService.renewSubscriptionMomo({
+        subscription_id: subscription.subscription_id
+      });
+      
+      if (res?.paymentUrl) {
+        // Redirect to MOMO
+        window.location.href = res.paymentUrl;
+      } else {
+        toast.error('Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription with MOMO:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Error renewing subscription';
+      toast.error(errorMsg);
     } finally {
       setRenewingId(null);
     }
@@ -304,10 +328,20 @@ export default function SubscribedList({ subscriptions, onRefresh }) {
                         disabled={renewingId === subscription.subscription_id || renewingDirectId === subscription.subscription_id}
                         variant="default"
                         size="sm"
-                        className="flex items-center gap-2 whitespace-nowrap bg-blue-700 hover:bg-blue-700"
+                        className="flex items-center gap-2 whitespace-nowrap bg-blue-600 hover:bg-blue-700"
                       >
                         <RefreshCcw className="w-4 h-4" />
                         {renewingId === subscription.subscription_id ? 'Renewing...' : 'Renew (VNPAY)'}
+                      </Button>
+                      <Button
+                        onClick={() => handleRenewSubscriptionMomo(subscription)}
+                        disabled={renewingId === subscription.subscription_id || renewingDirectId === subscription.subscription_id}
+                        variant="default"
+                        size="sm"
+                        className="flex items-center gap-2 whitespace-nowrap bg-pink-600 hover:bg-pink-700 text-white"
+                      >
+                        <RefreshCcw className="w-4 h-4" />
+                        {renewingId === subscription.subscription_id ? 'Renewing...' : 'Renew (MOMO)'}
                       </Button>
                       <Button
                         onClick={() => handleRenewSubscriptionDirect(subscription)}

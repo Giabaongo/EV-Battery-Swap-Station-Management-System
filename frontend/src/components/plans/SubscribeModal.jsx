@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { X, CheckCircle, AlertCircle } from 'lucide-react'
 import { vehicleService } from '../../services/vehicleService'
 
-export default function SubscribeModal({ open, onClose, plan, user, onPay, onPayDirectly, paying, subscriptions = [] }) {
+export default function SubscribeModal({ open, onClose, plan, user, onPayVnpay, onPayMomo, onPayDirectly, paying, subscriptions = [] }) {
   const [vehicles, setVehicles] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState(null)
@@ -165,23 +165,38 @@ export default function SubscribeModal({ open, onClose, plan, user, onPay, onPay
           </div>
 
           {/* Button Group */}
-          <div className="flex flex-col-3 sm:flex-row-reverse gap-3 pt-6">
-            <button
-              onClick={() => onPay(selectedVehicle)}
-              disabled={paying || loading || !selectedVehicle || vehicles.length === 0}
-              className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-primary px-5 py-3 text-base font-semibold leading-6 text-white transition-all hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {paying ? 'Processing...' : 'Confirm & Pay'}
-            </button>
+          <div className="flex flex-col gap-3 pt-6">
+            {/* Payment method buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* VNPAY Payment */}
+              <button
+                onClick={() => onPayVnpay(selectedVehicle)}
+                disabled={paying || loading || !selectedVehicle || vehicles.length === 0}
+                className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-blue-600 hover:bg-blue-700 px-5 py-3 text-base font-semibold leading-6 text-white transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paying ? 'Processing...' : 'Pay with VNPAY'}
+              </button>
 
-            {/* Thanh toan tien mat */}
-            <button
-              onClick={() => onPayDirectly(selectedVehicle)}
-              disabled={paying || loading || !selectedVehicle || vehicles.length === 0}
-              className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-primary px-5 py-3 text-base font-semibold leading-6 text-white transition-all hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {paying ? 'Processing...' : 'Pay with cash'}
-            </button>
+              {/* MOMO Payment */}
+              <button
+                onClick={() => onPayMomo(selectedVehicle)}
+                disabled={paying || loading || !selectedVehicle || vehicles.length === 0}
+                className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-pink-600 hover:bg-pink-700 px-5 py-3 text-base font-semibold leading-6 text-white transition-all focus:outline-none focus:ring-2 focus:ring-pink-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paying ? 'Processing...' : 'Pay with MOMO'}
+              </button>
+
+              {/* Direct Payment (Cash) */}
+              <button
+                onClick={() => onPayDirectly(selectedVehicle)}
+                disabled={paying || loading || !selectedVehicle || vehicles.length === 0}
+                className="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-green-600 hover:bg-green-700 px-5 py-3 text-base font-semibold leading-6 text-white transition-all focus:outline-none focus:ring-2 focus:ring-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {paying ? 'Processing...' : 'Pay with Cash'}
+              </button>
+            </div>
+
+            {/* Cancel button */}
             <button
               onClick={onClose}
               disabled={paying}
