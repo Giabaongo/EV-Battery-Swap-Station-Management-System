@@ -77,7 +77,7 @@ export class ReservationsService {
       const scheduledTime = new Date(scheduled_time);
 
       //TODO: get max time from config
-      const maxAllowedMinutes = (await this.configService.findByName("maxTimeAllowConfigName")).value?.toNumber() || 30;
+      const maxAllowedMinutes = (await this.configService.findByName(maxTimeAllowConfigName)).value?.toNumber() || 30;
         //const maxAllowedMinutes = this.configService.get<number>('RESERVATION_MAX_TIME') || 60;
       const maxAllowed = new Date(now.getTime() + maxAllowedMinutes * 60 * 1000);
 

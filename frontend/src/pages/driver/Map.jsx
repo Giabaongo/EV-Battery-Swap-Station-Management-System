@@ -18,7 +18,7 @@ export default function MapPage() {
   const [map, setMap] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
 
-  // Auto-refresh data every 5 seconds
+  // Initial data load - fetch once on mount
   useEffect(() => {
     const refreshData = async () => {
       try {
@@ -31,13 +31,9 @@ export default function MapPage() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only
     refreshData();
-
-    // Refresh every 5 seconds
-    const interval = setInterval(refreshData, 5000);
-    return () => clearInterval(interval);
-  }, [getAllBatteries]);
+  }, []);
 
   // Compute Haversine distance in meters
   //Công thức tính quãng đường giữa hai điểm trên map dựa trên vĩ độ và kinh độ của chúng
