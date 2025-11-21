@@ -60,6 +60,17 @@ const renewSubscription = async (renewalData) => {
   }
 };
 
+const renewSubscriptionMomo = async (renewalData) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.PAYMENT.RENEW_SUBSCRIPTION_MOMO, renewalData);  
+    console.log("Renewed MOMO subscription payment:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error renewing MOMO subscription payment:", error);
+    throw error;
+  }
+};
+
 const renewSubscriptionDirect = async (renewalData) => {
   try {
     const response = await api.post(API_ENDPOINTS.PAYMENT.DIRECT_RENEW_SUBSCRIPTION, renewalData);  
@@ -131,6 +142,7 @@ export const paymentService = {
   payPenaltyOnly,
   getPaymentById,
   createMomoPayment,
+  renewSubscriptionMomo,
 };
 
 

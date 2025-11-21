@@ -121,6 +121,7 @@ export const API_ENDPOINTS = {
     GET_PAYMENTS_BY_USER: (userId) => `/payments/user/${userId}`,
     GET_ALL_PAYMENTS: "/payments",
     RENEW_SUBSCRIPTION: "/payments/subscription-renewal",
+    RENEW_SUBSCRIPTION_MOMO: "/payments/momo-subscription-renewal",
     DIRECT_RENEW_SUBSCRIPTION: "/payments/direct-renewal",
     PAY_PENALTY_ONLY: "/payments/penalty-only",
 
