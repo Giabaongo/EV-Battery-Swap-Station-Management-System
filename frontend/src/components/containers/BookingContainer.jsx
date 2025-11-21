@@ -95,8 +95,8 @@ export default function BookingContainer() {
 
   // Match subscription to selected vehicle
   // If multiple subscriptions exist for the same vehicle, prioritize by:
-  // 1. Show non-active status first (expired, cancelled, pending_penalty_payment)
-  // 2. If all are active, show the most recent one
+  // 1. Show ACTIVE status first (for booking)
+  // 2. If no active, show the most recent one
   useEffect(() => {
     console.log('BookingContainer: Matching subscription - selectedVehicleId:', selectedVehicleId, 'normalizedSubscriptions:', normalizedSubscriptions);
     if (selectedVehicleId && normalizedSubscriptions.length > 0) {
@@ -115,21 +115,21 @@ export default function BookingContainer() {
         console.log('BookingContainer: ✓ Found 1 subscription for vehicle:', selectedVehicleId, '→', matchedSubscriptions[0]);
       } else {
         // Multiple subscriptions for same vehicle
-        // Priority: show non-active status first (expired, cancelled, pending_penalty_payment)
-        const nonActiveSubscription = matchedSubscriptions.find(s => s.status !== 'active');
+        // Priority: show ACTIVE status first (for booking)
+        const activeSubscription = matchedSubscriptions.find(s => s.status === 'active');
 
-        if (nonActiveSubscription) {
-          setSelectedVehicleSubscription(nonActiveSubscription);
-          console.log('BookingContainer: ✓ Found', matchedSubscriptions.length, 'subscriptions for vehicle:', selectedVehicleId, 'using non-active subscription:', nonActiveSubscription);
+        if (activeSubscription) {
+          setSelectedVehicleSubscription(activeSubscription);
+          console.log('BookingContainer: ✓ Found', matchedSubscriptions.length, 'subscriptions for vehicle:', selectedVehicleId, 'using active subscription:', activeSubscription);
         } else {
-          // All are active - pick most recent
+          // No active subscription - pick most recent
           const mostRecent = matchedSubscriptions.reduce((latest, current) => {
             const latestTime = new Date(latest.updated_at || latest.created_at).getTime();
             const currentTime = new Date(current.updated_at || current.created_at).getTime();
             return currentTime > latestTime ? current : latest;
           });
           setSelectedVehicleSubscription(mostRecent);
-          console.log('BookingContainer: ✓ Found', matchedSubscriptions.length, 'subscriptions for vehicle:', selectedVehicleId, 'all active, using most recent:', mostRecent);
+          console.log('BookingContainer: ✓ Found', matchedSubscriptions.length, 'subscriptions for vehicle:', selectedVehicleId, 'no active subscription, using most recent:', mostRecent);
         }
       }
     } else if (selectedVehicleId && normalizedSubscriptions.length === 0) {
@@ -169,13 +169,13 @@ export default function BookingContainer() {
     } else if (matchedSubscriptions.length === 1) {
       setSelectedVehicleSubscription(matchedSubscriptions[0]);
     } else {
-      // Multiple subscriptions - prioritize non-active status
-      const nonActiveSubscription = matchedSubscriptions.find(s => s.status !== 'active');
+      // Multiple subscriptions - prioritize ACTIVE status for booking
+      const activeSubscription = matchedSubscriptions.find(s => s.status === 'active');
 
-      if (nonActiveSubscription) {
-        setSelectedVehicleSubscription(nonActiveSubscription);
+      if (activeSubscription) {
+        setSelectedVehicleSubscription(activeSubscription);
       } else {
-        // All are active - pick most recent
+        // No active subscription - pick most recent
         const mostRecent = matchedSubscriptions.reduce((latest, current) => {
           const latestTime = new Date(latest.updated_at || latest.created_at).getTime();
           const currentTime = new Date(current.updated_at || current.created_at).getTime();
