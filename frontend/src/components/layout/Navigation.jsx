@@ -26,9 +26,9 @@ export default function Navigation({ type = "main" }) {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <img 
-                src="/images/kiri-swap-logo-white.png" 
-                alt="KIRI Swap" 
+              <img
+                src="/images/kiri-swap-logo-white.png"
+                alt="KIRI Swap"
                 className="h-8 object-contain"
               />
               <span className="text-xl font-bold">KIRI SWAP</span>
@@ -113,7 +113,6 @@ export default function Navigation({ type = "main" }) {
       { name: 'Battery Inventory', path: '/staff/inventory', icon: Package },
       { name: 'Swap Requests', path: '/staff/swap-requests', icon: Battery },
       { name: 'Transfer Requests', path: '/staff/transfer-requests', icon: ArrowLeftRight },
-      { name: 'Import Batteries', path: '/staff/import-batteries', icon: FileText },
       { name: 'Profile', path: '/staff/profile', icon: UserIcon },
     ]
 
@@ -128,9 +127,9 @@ export default function Navigation({ type = "main" }) {
       <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col shadow-lg fixed left-0 top-0 overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <img 
-              src="/kiri-swap-logo.png" 
-              alt="KIRI Swap" 
+            <img
+              src="/kiri-swap-logo.png"
+              alt="KIRI Swap"
               className="w-10 h-10 object-contain"
             />
             <span className="text-xl font-bold text-gray-800">KIRI Swap</span>
@@ -195,9 +194,9 @@ export default function Navigation({ type = "main" }) {
       <aside className="w-64 h-screen bg-white border-r border-gray-200 flex flex-col shadow-lg fixed left-0 top-0 overflow-y-auto">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <img 
-              src="/kiri-swap-logo.png" 
-              alt="KIRI Swap" 
+            <img
+              src="/kiri-swap-logo.png"
+              alt="KIRI Swap"
               className="w-10 h-10 object-contain"
             />
             <span className="text-xl font-bold text-gray-800">KIRI Swap</span>
