@@ -134,13 +134,6 @@ export const SwapProvider = ({ children }) => {
 
     useEffect(() => {
         getAllSwapHistories();
-
-        // Auto-fetch swap histories every 5 seconds for real-time updates
-        const interval = setInterval(() => {
-            getAllSwapHistories();
-        }, 5000)
-
-        return () => clearInterval(interval)
     }, []);
 
     return (
