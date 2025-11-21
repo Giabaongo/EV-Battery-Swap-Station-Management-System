@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { useAuth } from '../../hooks/useContext';
 import { batteryService } from '../../services/batteryService';
 import { stationService } from '../../services/stationService';
+import { swappingService } from '../../services/swappingService';
 import { toast } from 'sonner';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -29,6 +30,8 @@ export default function CreateBattery() {
     const { user } = useAuth();
     const [submitting, setSubmitting] = useState(false);
     const [stationName, setStationName] = useState('');
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
 
     React.useEffect(() => {
         const fetchStationName = async () => {
@@ -45,6 +48,38 @@ export default function CreateBattery() {
         };
         fetchStationName();
     }, [user?.station_id]);
+
+    // Fetch available empty slots for dropdown
+    React.useEffect(() => {
+        const fetchAvailableSlots = async () => {
+            if (!user?.station_id) return;
+
+            try {
+                setLoadingSlots(true);
+                const dummyUserId = user.id || user.user_id || 1;
+                const response = await swappingService.getEmptySlot({
+                    user_id: parseInt(dummyUserId),
+                    vehicle_id: 1,
+                    station_id: parseInt(user.station_id),
+                });
+
+                if (response && Array.isArray(response)) {
+                    setAvailableSlots(response);
+                } else if (response?.data && Array.isArray(response.data)) {
+                    setAvailableSlots(response.data);
+                } else {
+                    setAvailableSlots([]);
+                }
+            } catch (error) {
+                console.error('Error fetching available slots:', error);
+                setAvailableSlots([]);
+            } finally {
+                setLoadingSlots(false);
+            }
+        };
+
+        fetchAvailableSlots();
+    }, [user?.station_id, user?.id, user?.user_id]);
 
     const {
         register,
@@ -170,32 +205,42 @@ export default function CreateBattery() {
                                 {/* Cabinet */}
                                 <div className="flex flex-col col-span-1">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
-                                        Cabinet ID
+                                        Cabinet & Slot
                                     </label>
-                                    <input
-                                        type="number"
-                                        {...register('cabinet_id')}
-                                        className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.cabinet_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                                            }`}
-                                        placeholder="e.g., 1"
-                                    />
+                                    {loadingSlots ? (
+                                        <div className="flex items-center justify-center h-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-lg">
+                                            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                                        </div>
+                                    ) : (
+                                        <select
+                                            {...register('cabinet_id')}
+                                            onChange={(e) => {
+                                                const selected = availableSlots.find(s => s.cabinet_id === parseInt(e.target.value));
+                                                if (selected) {
+                                                    // Manual form manipulation to set slot_id
+                                                    const form = e.target.form;
+                                                    const slotInput = form?.elements['slot_id'];
+                                                    if (slotInput) {
+                                                        slotInput.value = selected.slot_id;
+                                                    }
+                                                }
+                                            }}
+                                            className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.cabinet_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                                                }`}
+                                        >
+                                            <option value="">Select a slot</option>
+                                            {availableSlots.map((slot) => (
+                                                <option key={`${slot.cabinet_id}-${slot.slot_id}`} value={slot.cabinet_id}>
+                                                    {slot.display}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                     {errors.cabinet_id && <p className="text-red-500 text-xs mt-1">{errors.cabinet_id.message}</p>}
                                 </div>
 
-                                {/* Slot */}
-                                <div className="flex flex-col col-span-1">
-                                    <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
-                                        Slot ID
-                                    </label>
-                                    <input
-                                        type="number"
-                                        {...register('slot_id')}
-                                        className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.slot_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                                            }`}
-                                        placeholder="e.g., 1"
-                                    />
-                                    {errors.slot_id && <p className="text-red-500 text-xs mt-1">{errors.slot_id.message}</p>}
-                                </div>
+                                {/* Slot - Hidden field */}
+                                <input type="hidden" {...register('slot_id')} />
 
                                 {/* Model */}
                                 <div className="flex flex-col col-span-1">
