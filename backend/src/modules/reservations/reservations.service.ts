@@ -8,10 +8,11 @@ import { BatteryStatus, ReservationStatus, SubscriptionStatus } from '@prisma/cl
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { UsersService } from '../users/users.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { ConfigService } from '@nestjs/config';
 import { StationsService } from '../stations/stations.service';
 import { CabinetService } from '../cabinets/cabinets.service';
 import { ReservationsGateway, ReservationCreatedEvent, ReservationStatusUpdatedEvent } from './reservations.gateway';
+import { ConfigService } from '../config/config.service';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ReservationsService {
@@ -29,16 +30,13 @@ export class ReservationsService {
     private reservationsGateway: ReservationsGateway
   ) { }
 
-
   async create(dto: CreateReservationDto) {
     const { user_id, vehicle_id, station_id, scheduled_time } = dto;
-
+    const maxTimeAllowConfigName = "Reservation Max Time";
     try {
       //1. Check user có tồn tại
       const user = await this.userService.findOneById(user_id);
-
       const station = await this.stationsService.findOne(station_id);
-
       const vehicle = await this.vehicleService.findOne(vehicle_id);
       if (vehicle.user_id !== user_id) {
         throw new BadRequestException('This vehicle does not belong to the user');
@@ -57,10 +55,10 @@ export class ReservationsService {
         throw new BadRequestException('Vehicle does not have an active subscription');
       }
 
-      // 3. tìm pin phù hợp với xe tại trạm 
+      // 3. tìm pin phù hợp với xe tại trạm
       const reservationBattery = await this.batteriesService.findBestBatteryForVehicle(vehicle.vehicle_id, station_id);
 
-      //4. chuyển status của battery được d
+      //4. chuyển status của battery được đặt
       const updatedBattery = await this.batteriesService.update(reservationBattery.battery_id, {
         status: BatteryStatus.booked
       });
@@ -77,7 +75,10 @@ export class ReservationsService {
       const now = new Date();
       // chuyển string sang date
       const scheduledTime = new Date(scheduled_time);
-      const maxAllowedMinutes = this.configService.get<number>('RESERVATION_MAX_TIME') || 60;
+
+      //TODO: get max time from config
+      const maxAllowedMinutes = (await this.configService.findByName("maxTimeAllowConfigName")).value?.toNumber() || 30;
+        //const maxAllowedMinutes = this.configService.get<number>('RESERVATION_MAX_TIME') || 60;
       const maxAllowed = new Date(now.getTime() + maxAllowedMinutes * 60 * 1000);
 
       // 4. kiểm tra đặt lịch trong quá khứ
@@ -90,7 +91,7 @@ export class ReservationsService {
         throw new BadRequestException(`Scheduled time exceeds the maximum allowed limit of ${maxAllowedMinutes} minutes from now`);
       }
 
-      //6. kiểm tra user có đặt lịch trùng 
+      //6. kiểm tra user có đặt lịch trùng
       const existing = await this.databaseService.reservation.findFirst({
         where: {
           user_id: user_id,
@@ -297,7 +298,7 @@ export class ReservationsService {
   }
 
   //@Cron(CronExpression.EVERY_3_MINUTE)
-  @Interval(60000) // chạy mỗi phút 
+  @Interval(60000) // chạy mỗi phút
   async cancelExpiredReservations() {
     const now = new Date();
 
