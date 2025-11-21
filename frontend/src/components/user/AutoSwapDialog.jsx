@@ -41,6 +41,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         user_id: userId || '',
         vehicle_id: '',
         station_id: '',
+        cabinet_id: 0,
     });
 
     const [vehicles, setVehicles] = useState([]);
@@ -366,7 +367,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 user_id: parseInt(formData.user_id, 10),
                 vehicle_id: parseInt(formData.vehicle_id, 10),
                 station_id: parseInt(formData.station_id, 10),
-                cabinet_id: parseInt(formData.station_id, 10), // Use same cabinet or allow selection
+                cabinet_id: parseInt(formData.cabinet_id, 10), // Use same cabinet or allow selection
             });
 
             console.log('✅ Full battery slot found:', response);
