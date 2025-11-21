@@ -1,3 +1,18 @@
+//Constrant in status
+// battery status: in station "full" if current charge at 100, if not "charging", in user vehicle is "in_use", "in_stransit" if being transported, "maintenance" if faulty, "booked" if in reservation 
+// if vehicle has user is active other is inactive
+// if slot has battery is is_ociped is true else false
+// subscription is pending_penalty_payment if distance traveled > base distance
+// only 1 battery model and type, vehicle
+
+//cabinet slot number only is 15,
+//one station can have 1 or more cabinet
+//one staff only belong to 1 station
+// all user is email verify is true, status is active
+
+
+//10 stations, 21 users (1 adcmin, 10 staff, 10 users), 100 battery
+
 import { PrismaClient, Battery, Slot } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -33,7 +48,7 @@ async function main() {
 
     console.log('🌱 Starting database seeding...\n');
 
-    // 1. Seed Users
+    // 1. Seed Users: 1 admin + 10 staff + 10 drivers = 21 users
     console.log('👥 Seeding users...');
     const hashedPassword = await bcrypt.hash('password123', 10);
 
@@ -45,279 +60,211 @@ async function main() {
             email: 'admin@evswap.com',
             role: 'admin',
             email_verified: true,
-        },
-    });
-
-    const driver1 = await prisma.user.create({
-        data: {
-            username: 'John Driver',
-            password: hashedPassword,
-            phone: '0912345678',
-            email: 'john@gmail.com',
-            role: 'driver',
-            email_verified: true,
-        },
-    });
-
-    const driver2 = await prisma.user.create({
-        data: {
-            username: 'Jane Smith',
-            password: hashedPassword,
-            phone: '0923456789',
-            email: 'jane@gmail.com',
-            role: 'driver',
-            email_verified: true,
-        },
-    });
-
-    console.log(`   ✓ Created 3 users (1 admin, 2 drivers)`);
-
-    // 2. Seed Stations
-    console.log('🏪 Seeding stations...');
-    const station1 = await prisma.station.create({
-        data: {
-            name: 'Station District 1',
-            address: '123 Nguyen Hue, District 1, HCMC',
-            latitude: 10.77562,
-            longitude: 106.70221,
             status: 'active',
         },
     });
 
-    const station2 = await prisma.station.create({
-        data: {
-            name: 'Station District 7',
-            address: '456 Nguyen Van Linh, District 7, HCMC',
-            latitude: 10.73291,
-            longitude: 106.71863,
-            status: 'active',
-        },
-    });
+    // Create 10 drivers
+    const drivers = [];
+    for (let i = 1; i <= 10; i++) {
+        const driver = await prisma.user.create({
+            data: {
+                username: `Driver ${i}`,
+                password: hashedPassword,
+                phone: `09${String(i).padStart(2, '0')}3456789`,
+                email: `driver${i}@evswap.com`,
+                role: 'driver',
+                email_verified: true,
+                status: 'active',
+            },
+        });
+        drivers.push(driver);
+    }
 
-    const station3 = await prisma.station.create({
-        data: {
-            name: 'Station Binh Thanh',
-            address: '789 Xo Viet Nghe Tinh, Binh Thanh, HCMC',
-            latitude: 10.81273,
-            longitude: 106.70441,
-            status: 'maintenance',
-        },
-    });
+    const driver1 = drivers[0]; // For reference in tests
+    const driver2 = drivers[1]; // For reference in tests
 
-    console.log(`   ✓ Created 3 stations`);
+    console.log(`   ✓ Created 21 users (1 admin, 10 drivers)`);
 
-    // 3. Create Station Staff
-    console.log('👷 Seeding station staff...');
-    const staff1 = await prisma.user.create({
-        data: {
-            username: 'Staff Station 1',
-            password: hashedPassword,
-            phone: '0934567890',
-            email: 'staff1@evswap.com',
-            role: 'station_staff',
-            station_id: station1.station_id,
-            email_verified: true,
-        },
-    });
+    // Add reference variables for stations and staff (will be populated later)
+    let station1, station2, station3;
+    let staff1, staff2, staff3;
 
-    const staff2 = await prisma.user.create({
-        data: {
-            username: 'Staff Station 2',
-            password: hashedPassword,
-            phone: '0945678901',
-            email: 'staff2@evswap.com',
-            role: 'station_staff',
-            station_id: station2.station_id,
-            email_verified: true,
-        },
-    });
+    // 2. Seed 10 Stations
+    console.log('🏪 Seeding 10 stations...');
+    const stations = [];
+    const stationNames = [
+        'Station District 1',
+        'Station District 7',
+        'Station Binh Thanh',
+        'Station Go Vap',
+        'Station Tan Binh',
+        'Station Phu Nhuan',
+        'Station District 11',
+        'Station Nha Be',
+        'Station Can Tho',
+        'Station Da Nang',
+    ];
 
-    const staff3 = await prisma.user.create({
-        data: {
-            username: 'Staff Station 3',
-            password: hashedPassword,
-            phone: '0956789012',
-            email: 'staff3@evswap.com',
-            role: 'station_staff',
-            station_id: station3.station_id,
-            email_verified: true,
-        },
-    });
+    const stationAddresses = [
+        '123 Nguyen Hue, District 1, HCMC',
+        '456 Nguyen Van Linh, District 7, HCMC',
+        '789 Xo Viet Nghe Tinh, Binh Thanh, HCMC',
+        '321 Dien Bien Phu, Go Vap, HCMC',
+        '654 Truong Chinh, Tan Binh, HCMC',
+        '987 Cach Mang Thang Tam, Phu Nhuan, HCMC',
+        '159 Ha Noi, District 11, HCMC',
+        '753 Hanoi, Nha Be, HCMC',
+        '456 Tran Hung Dao, Can Tho',
+        '789 Nguyen Hue, Da Nang',
+    ];
 
-    console.log(`   ✓ Created 3 station staff`);
+    const coordinates = [
+        { lat: 10.77562, lng: 106.70221 },
+        { lat: 10.73291, lng: 106.71863 },
+        { lat: 10.81273, lng: 106.70441 },
+        { lat: 10.78265, lng: 106.63420 },
+        { lat: 10.80542, lng: 106.65390 },
+        { lat: 10.79186, lng: 106.68935 },
+        { lat: 10.85142, lng: 106.74628 },
+        { lat: 10.67502, lng: 106.77826 },
+        { lat: 10.04957, lng: 105.74660 },
+        { lat: 16.07243, lng: 108.22159 },
+    ];
 
-    // 4. Seed Cabinets
+    for (let i = 0; i < 10; i++) {
+        const station = await prisma.station.create({
+            data: {
+                name: stationNames[i],
+                address: stationAddresses[i],
+                latitude: coordinates[i].lat,
+                longitude: coordinates[i].lng,
+                status: i % 3 === 2 ? 'maintenance' : 'active',
+            },
+        });
+        stations.push(station);
+    }
+
+    console.log(`   ✓ Created 10 stations`);
+
+    // Assign reference stations
+    station1 = stations[0];
+    station2 = stations[1];
+    station3 = stations[2];
+
+    // 3. Create 10 Station Staff (1 staff per station)
+    console.log('👷 Seeding 10 station staff...');
+    const staffUsers = [];
+    for (let i = 0; i < 10; i++) {
+        const staff = await prisma.user.create({
+            data: {
+                username: `Staff Station ${i + 1}`,
+                password: hashedPassword,
+                phone: `09${String(50 + i).padStart(2, '0')}0000${String(i).padStart(2, '0')}`,
+                email: `staff${i + 1}@evswap.com`,
+                role: 'station_staff',
+                station_id: stations[i].station_id,
+                email_verified: true,
+                status: 'active',
+            },
+        });
+        staffUsers.push(staff);
+    }
+
+    console.log(`   ✓ Created 10 station staff`);
+
+    // Assign reference staff
+    staff1 = staffUsers[0];
+    staff2 = staffUsers[1];
+    staff3 = staffUsers[2];
+
+    // 4. Seed Cabinets (1-2 cabinets per station, total ~12 cabinets)
     console.log('🗄️  Seeding cabinets...');
-    const cabinet1 = await prisma.cabinet.create({
-        data: {
-            station_id: station1.station_id,
-            cabinet_name: 'Cabinet A',
-            total_slots: 10,
-            status: 'active',
-        },
-    });
+    const cabinets = [];
+    for (let i = 0; i < 10; i++) {
+        // Each station has 1-2 cabinets
+        const cabinetCount = i % 3 === 0 ? 2 : 1;
+        for (let j = 0; j < cabinetCount; j++) {
+            const cabinet = await prisma.cabinet.create({
+                data: {
+                    station_id: stations[i].station_id,
+                    cabinet_name: `Cabinet ${String.fromCharCode(65 + j)}`,
+                    total_slots: 15, // Each cabinet has exactly 15 slots
+                    status: (i + j) % 5 === 0 ? 'maintenance' : 'active',
+                },
+            });
+            cabinets.push(cabinet);
+        }
+    }
 
-    const cabinet2 = await prisma.cabinet.create({
-        data: {
-            station_id: station2.station_id,
-            cabinet_name: 'Cabinet B',
-            total_slots: 10,
-            status: 'active',
-        },
-    });
+    console.log(`   ✓ Created ${cabinets.length} cabinets`);
 
-    const cabinet3 = await prisma.cabinet.create({
-        data: {
-            station_id: station3.station_id,
-            cabinet_name: 'Cabinet C',
-            total_slots: 10,
-            status: 'maintenance',
-        },
-    });
-
-    console.log(`   ✓ Created 3 cabinets`);
-
-    // 5. Seed Slots
+    // 5. Seed Slots (15 slots per cabinet, 50% occupied)
     console.log('📦 Seeding slots...');
     const slots: Slot[] = [];
-    for (let i = 1; i <= 10; i++) {
-        slots.push(
-            await prisma.slot.create({
+    for (const cabinet of cabinets) {
+        for (let i = 1; i <= 15; i++) {
+            const slot = await prisma.slot.create({
                 data: {
-                    cabinet_id: cabinet1.cabinet_id,
+                    cabinet_id: cabinet.cabinet_id,
                     slot_number: i,
-                    is_occupied: i <= 5,
+                    is_occupied: i <= Math.ceil(15 * 0.5), // 50% occupied
                 },
-            })
-        );
+            });
+            slots.push(slot);
+        }
     }
-    for (let i = 1; i <= 10; i++) {
-        slots.push(
-            await prisma.slot.create({
-                data: {
-                    cabinet_id: cabinet2.cabinet_id,
-                    slot_number: i,
-                    is_occupied: i <= 5,
-                },
-            })
-        );
-    }
-    for (let i = 1; i <= 10; i++) {
-        slots.push(
-            await prisma.slot.create({
-                data: {
-                    cabinet_id: cabinet3.cabinet_id,
-                    slot_number: i,
-                    is_occupied: i <= 5,
-                },
-            })
-        );
-    }
-    console.log(`   ✓ Created ${slots.length} slots`);
+    console.log(`   ✓ Created ${slots.length} slots (15 per cabinet)`);
 
-    // 6. Seed Batteries (using single battery type and model)
-    console.log('🔋 Seeding batteries...');
+    // 6. Seed 100 Batteries (distributed across slots, all same model/type)
+    console.log('🔋 Seeding 100 batteries...');
     const batteries: Battery[] = [];
     const BATTERY_MODEL = 'VinFast Standard';
-    const BATTERY_TYPE = 'Lithium-Ion';z
+    const BATTERY_TYPE = 'Lithium-Ion';
 
-    // Station 1 batteries (Cabinet 1, Slots 1-5)
-    for (let i = 1; i <= 5; i++) {
-        batteries.push(
-            await prisma.battery.create({
+    let batteryCount = 0;
+    for (let i = 0; i < slots.length && batteryCount < 100; i++) {
+        const slot = slots[i];
+        if (slot.is_occupied && batteryCount < 100) {
+            const battery = await prisma.battery.create({
                 data: {
-                    serial_number: `BAT-ST1-${String(i).padStart(3, '0')}`,
-                    station_id: station1.station_id,
-                    cabinet_id: cabinet1.cabinet_id,
-                    slot_id: slots[i - 1].slot_id,
+                    serial_number: `BAT-${String(batteryCount + 1).padStart(4, '0')}`,
+                    station_id: cabinets[Math.floor(i / 15)].station_id,
+                    cabinet_id: slot.cabinet_id,
+                    slot_id: slot.slot_id,
                     model: BATTERY_MODEL,
                     type: BATTERY_TYPE,
                     capacity: 75.5,
-                    current_charge: 80.0 + i,
-                    soh: 95.0 + i * 0.5,
-                    status: i === 1 ? 'full' : i === 2 ? 'charging' : 'full',
+                    current_charge: 70 + (batteryCount % 30),
+                    soh: 90 + (batteryCount % 10) * 0.5,
+                    status: batteryCount % 3 === 0 ? 'charging' : 'full',
                 },
-            })
-        );
+            });
+            batteries.push(battery);
+            batteryCount++;
+        }
     }
 
-    // Station 2 batteries (Cabinet 2, Slots 1-5)
-    for (let i = 6; i <= 10; i++) {
-        batteries.push(
-            await prisma.battery.create({
-                data: {
-                    serial_number: `BAT-ST2-${String(i).padStart(3, '0')}`,
-                    station_id: station2.station_id,
-                    cabinet_id: cabinet2.cabinet_id,
-                    slot_id: slots[9 + i - 5].slot_id,
-                    model: BATTERY_MODEL,
-                    type: BATTERY_TYPE,
-                    capacity: 75.5,
-                    current_charge: 75.0 + (i % 5),
-                    soh: 93.0 + (i % 5) * 0.8,
-                    status: i === 6 ? 'charging' : 'full',
-                },
-            })
-        );
+    console.log(`   ✓ Created ${batteries.length} batteries (${BATTERY_MODEL})`);
+
+    // 7. Seed 10 Vehicles (1 vehicle per driver, assigned battery)
+    console.log('🚗 Seeding 10 vehicles...');
+    const vehicles = [];
+    for (let i = 0; i < 10; i++) {
+        const vehicle = await prisma.vehicle.create({
+            data: {
+                user_id: drivers[i].user_id,
+                battery_id: batteries[i % batteries.length].battery_id,
+                vin: `VIN${String(i + 1).padStart(14, '0')}`,
+                battery_model: BATTERY_MODEL,
+                battery_type: BATTERY_TYPE,
+                status: 'active',
+            },
+        });
+        vehicles.push(vehicle);
     }
 
-    // Station 3 batteries (Cabinet 3, Slots 1-5)
-    for (let i = 11; i <= 15; i++) {
-        batteries.push(
-            await prisma.battery.create({
-                data: {
-                    serial_number: `BAT-ST3-${String(i).padStart(3, '0')}`,
-                    station_id: station3.station_id,
-                    cabinet_id: cabinet3.cabinet_id,
-                    slot_id: slots[19 + i - 10].slot_id,
-                    model: BATTERY_MODEL,
-                    type: BATTERY_TYPE,
-                    capacity: 75.5,
-                    current_charge: 70.0 + (i % 5),
-                    soh: 90.0 + (i % 5) * 0.6,
-                    status: 'full',
-                },
-            })
-        );
-    }
-
-    console.log(`   ✓ Created ${batteries.length} batteries`);
-
-    // 7. Seed Vehicles
-    console.log('🚗 Seeding vehicles...');
-    const vehicle1 = await prisma.vehicle.create({
-        data: {
-            user_id: driver1.user_id,
-            battery_id: batteries[0].battery_id,
-            vin: 'VIN1234567890ABCD1',
-            battery_model: BATTERY_MODEL,
-            battery_type: BATTERY_TYPE,
-            status: 'active',
-        },
-    });
-
-    const vehicle2 = await prisma.vehicle.create({
-        data: {
-            user_id: driver2.user_id,
-            battery_id: batteries[5].battery_id,
-            vin: 'VIN1234567890ABCD2',
-            battery_model: BATTERY_MODEL,
-            battery_type: BATTERY_TYPE,
-            status: 'active',
-        },
-    });
-
-    const vehicle3 = await prisma.vehicle.create({
-        data: {
-            user_id: driver1.user_id,
-            vin: 'VIN1234567890ABCD3',
-            battery_model: BATTERY_MODEL,
-            battery_type: BATTERY_TYPE,
-            status: 'inactive',
-        },
-    });
-
-    console.log(`   ✓ Created 3 vehicles`);
+    console.log(`   ✓ Created 10 vehicles`);
 
     // 8. Seed Configs
     console.log('⚙️  Seeding configs...');
@@ -405,9 +352,9 @@ async function main() {
     console.log('📋 Seeding subscriptions...');
     const subscription1 = await prisma.subscription.create({
         data: {
-            user_id: driver1.user_id,
+            user_id: drivers[0].user_id,
             package_id: standardPackage.package_id,
-            vehicle_id: vehicle1.vehicle_id,
+            vehicle_id: vehicles[0].vehicle_id,
             start_date: new Date(),
             end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             status: 'active',
@@ -418,9 +365,9 @@ async function main() {
 
     const subscription2 = await prisma.subscription.create({
         data: {
-            user_id: driver2.user_id,
+            user_id: drivers[1].user_id,
             package_id: basicPackage.package_id,
-            vehicle_id: vehicle2.vehicle_id,
+            vehicle_id: vehicles[1].vehicle_id,
             start_date: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
             end_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
             status: 'expired',
@@ -435,7 +382,7 @@ async function main() {
     console.log('💰 Seeding payments...');
     await prisma.payment.create({
         data: {
-            user_id: driver1.user_id,
+            user_id: drivers[0].user_id,
             amount: 900000,
             payment_time: new Date(),
             method: 'vnpay',
@@ -444,7 +391,7 @@ async function main() {
             order_info: 'Standard Package Payment',
             package_id: standardPackage.package_id,
             subscription_id: subscription1.subscription_id,
-            vehicle_id: vehicle1.vehicle_id,
+            vehicle_id: vehicles[0].vehicle_id,
             transaction_id: 'TXN' + Date.now() + '001',
             vnp_txn_ref: 'VNPAY' + Date.now() + '001',
             vnp_bank_code: 'NCB',
@@ -455,7 +402,7 @@ async function main() {
 
     await prisma.payment.create({
         data: {
-            user_id: driver2.user_id,
+            user_id: drivers[1].user_id,
             amount: 500000,
             payment_time: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
             method: 'credit_card',
@@ -464,14 +411,14 @@ async function main() {
             order_info: 'Basic Package Payment',
             package_id: basicPackage.package_id,
             subscription_id: subscription2.subscription_id,
-            vehicle_id: vehicle2.vehicle_id,
+            vehicle_id: vehicles[1].vehicle_id,
             transaction_id: 'TXN' + Date.now() + '002',
         },
     });
 
     await prisma.payment.create({
         data: {
-            user_id: driver1.user_id,
+            user_id: drivers[0].user_id,
             amount: 2000000,
             method: 'vnpay',
             status: 'pending',
@@ -488,10 +435,10 @@ async function main() {
     console.log('📅 Seeding reservations...');
     await prisma.reservation.create({
         data: {
-            user_id: driver1.user_id,
-            vehicle_id: vehicle1.vehicle_id,
+            user_id: drivers[0].user_id,
+            vehicle_id: vehicles[0].vehicle_id,
             battery_id: batteries[2].battery_id,
-            station_id: station1.station_id,
+            station_id: stations[0].station_id,
             scheduled_time: new Date(Date.now() + 2 * 60 * 60 * 1000),
             status: 'scheduled',
         },
@@ -499,10 +446,10 @@ async function main() {
 
     await prisma.reservation.create({
         data: {
-            user_id: driver2.user_id,
-            vehicle_id: vehicle2.vehicle_id,
+            user_id: drivers[1].user_id,
+            vehicle_id: vehicles[1].vehicle_id,
             battery_id: batteries[7].battery_id,
-            station_id: station2.station_id,
+            station_id: stations[1].station_id,
             scheduled_time: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
             status: 'completed',
         },
@@ -514,10 +461,10 @@ async function main() {
     console.log('🔄 Seeding swap transactions...');
     await prisma.swapTransaction.create({
         data: {
-            user_id: driver1.user_id,
-            vehicle_id: vehicle1.vehicle_id,
-            station_id: station1.station_id,
-            cabinet_id: cabinet1.cabinet_id, // Add this
+            user_id: drivers[0].user_id,
+            vehicle_id: vehicles[0].vehicle_id,
+            station_id: stations[0].station_id,
+            cabinet_id: cabinets[0].cabinet_id,
             battery_taken_id: batteries[0].battery_id,
             battery_returned_id: batteries[1].battery_id,
             status: 'completed',
@@ -527,10 +474,10 @@ async function main() {
 
     await prisma.swapTransaction.create({
         data: {
-            user_id: driver2.user_id,
-            vehicle_id: vehicle2.vehicle_id,
-            station_id: station2.station_id,
-            cabinet_id: cabinet2.cabinet_id, // Add this
+            user_id: drivers[1].user_id,
+            vehicle_id: vehicles[1].vehicle_id,
+            station_id: stations[1].station_id,
+            cabinet_id: cabinets[1].cabinet_id,
             battery_taken_id: batteries[5].battery_id,
             battery_returned_id: batteries[6].battery_id,
             status: 'completed',
@@ -540,10 +487,10 @@ async function main() {
 
     await prisma.swapTransaction.create({
         data: {
-            user_id: driver1.user_id,
-            vehicle_id: vehicle1.vehicle_id,
-            station_id: station1.station_id,
-            cabinet_id: cabinet1.cabinet_id, // Add this
+            user_id: drivers[0].user_id,
+            vehicle_id: vehicles[0].vehicle_id,
+            station_id: stations[0].station_id,
+            cabinet_id: cabinets[0].cabinet_id,
             battery_taken_id: batteries[2].battery_id,
             status: 'completed',
             subscription_id: subscription1.subscription_id,
@@ -552,10 +499,10 @@ async function main() {
 
     await prisma.swapTransaction.create({
         data: {
-            user_id: driver1.user_id,
-            vehicle_id: vehicle1.vehicle_id,
-            station_id: station2.station_id,
-            cabinet_id: cabinet2.cabinet_id, // Add this
+            user_id: drivers[0].user_id,
+            vehicle_id: vehicles[0].vehicle_id,
+            station_id: stations[1].station_id,
+            cabinet_id: cabinets[1].cabinet_id,
             battery_taken_id: batteries[7].battery_id,
             battery_returned_id: batteries[8].battery_id,
             status: 'failed',
