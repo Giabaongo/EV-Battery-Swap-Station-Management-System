@@ -59,13 +59,28 @@ export class BatteriesService {
     this.logger.log(`Status transition validated: ${currentStatus} → ${newStatus}`);
   }
 
-  create(createBatteryDto: CreateBatteryDto) {
+  async create(createBatteryDto: CreateBatteryDto) {
     try {
-      const newBattery = this.databaseService.battery.create({
-        data: {
-          ...createBatteryDto,
-        },
+      // Use transaction to create battery and mark slot as occupied
+      const newBattery = await this.databaseService.$transaction(async (tx) => {
+        // Create the battery
+        const battery = await tx.battery.create({
+          data: {
+            ...createBatteryDto,
+          },
+        });
+
+        // If slot_id is provided, mark the slot as occupied
+        if (createBatteryDto.slot_id) {
+          await tx.slot.update({
+            where: { slot_id: createBatteryDto.slot_id },
+            data: { is_occupied: true },
+          });
+        }
+
+        return battery;
       });
+
       return newBattery;
     } catch (error) {
       throw error;
