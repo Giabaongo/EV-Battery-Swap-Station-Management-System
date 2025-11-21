@@ -82,7 +82,8 @@ export default function SupportDetail() {
     try {
       setIsReplying(true);
       const response = await supportService.replyToSupportTicket(id, {
-        admin_respond: replyText.trim()
+        admin_respond: replyText.trim(),
+        status: 'in_progress'
       });
       toast.success(response.message || 'Reply sent successfully');
       setShowReplyModal(false);
