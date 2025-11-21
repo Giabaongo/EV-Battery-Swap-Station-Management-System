@@ -182,23 +182,11 @@ export default function SwapHistoryCard({
                 <p className="text-sm text-gray-500">Vehicle VIN</p>
                 <p className="font-medium text-gray-900">{selectedSwap.vin}</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Battery Taken</p>
-                  <p className="font-medium text-gray-900">{selectedSwap.batteryTaken || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Battery Returned</p>
-                  <p className="font-medium text-gray-900">{selectedSwap.batteryReturned || 'N/A'}</p>
-                </div>
-              </div>
-
               <div>
                 <p className="text-sm text-gray-500">Status</p>
                 <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${selectedSwap.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
                   }`}>
                   {selectedSwap.status || 'N/A'}
                 </span>
