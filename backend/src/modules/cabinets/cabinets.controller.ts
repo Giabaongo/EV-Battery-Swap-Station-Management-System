@@ -17,6 +17,11 @@ export class CabinetsController {
     return this.cabinetsService.findAll();
   }
 
+  @Get('available-slots/:station_id')
+  getAvailableSlots(@Param('station_id', ParseIntPipe) station_id: number) {
+    return this.cabinetsService.findAllEmptySlotsAtStation(station_id);
+  }
+
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateCabinetDto: UpdateCabinetDto) {
     return this.cabinetsService.updateCabinet(id, updateCabinetDto);

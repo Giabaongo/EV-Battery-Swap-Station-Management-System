@@ -144,17 +144,45 @@ export class CabinetService {
 
   async findAllEmptySlotsAtStation(station_id: number) {
     try {
-      const activeCabinets = await this.findManyByStation(station_id);
-      let allEmptySlots: any[] = [];
+      // Get all active cabinets at this station with their empty slots
+      const cabinets = await this.databaseService.cabinet.findMany({
+        where: { 
+          station_id,
+          status: CabinetStatus.active
+        },
+        include: {
+          Slots: {
+            where: {
+              is_occupied: false
+            },
+            orderBy: {
+              slot_number: 'asc'
+            }
+          }
+        },
+        orderBy: {
+          cabinet_name: 'asc'
+        }
+      });
 
-      for (const cabinet of activeCabinets) {
-        const emptySlots = await this.databaseService.slot.findMany({
-          where: { cabinet_id: cabinet.cabinet_id, is_occupied: false },
-        });
-        allEmptySlots.push(...emptySlots);
+      // Flatten the results and format for frontend
+      const availableSlots = cabinets.flatMap(cabinet => 
+        cabinet.Slots.map(slot => ({
+          cabinet_id: cabinet.cabinet_id,
+          cabinet_name: cabinet.cabinet_name,
+          slot_id: slot.slot_id,
+          slot_number: slot.slot_number,
+          display: `${cabinet.cabinet_name} - Slot ${slot.slot_number}`
+        }))
+      );
+
+      if (availableSlots.length === 0) {
+        throw new NotFoundException(
+          `No empty slots available at station ID ${station_id}`
+        );
       }
 
-      return allEmptySlots;
+      return availableSlots;
     } catch (error) {
       throw error;
     }
