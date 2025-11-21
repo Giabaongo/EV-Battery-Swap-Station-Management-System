@@ -160,6 +160,7 @@ export const API_ENDPOINTS = {
     UPDATE_STATUS: (id) => `/supports/${id}/status`,
     UPDATE_RATING: (id) => `/supports/${id}/rating`,
     DELETE_SUPPORT: (id) => `/supports/${id}`,
+    CLOSE_TICKET: (id) => `/supports/${id}`,
   },
 
   BATTERY_TRANSFER_REQUEST: {
