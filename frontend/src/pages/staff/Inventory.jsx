@@ -58,13 +58,6 @@ export default function StaffInventory() {
         if (user?.station_id) {
             // Initial load with loading state
             fetchBatteries(true);
-
-            // Auto-fetch batteries every 5 seconds for real-time updates (without showing loading)
-            const interval = setInterval(() => {
-                fetchBatteries(false);
-            }, 5000)
-
-            return () => clearInterval(interval)
         }
     }, [user?.station_id]);
 
