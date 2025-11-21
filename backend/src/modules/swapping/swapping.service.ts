@@ -184,7 +184,8 @@ export class SwappingService {
                     station_id: dto.station_id,
                     cabinet_id: dto.cabinet_id,
                     slot_id: dto.slot_id,
-                    vehicle_id: null
+                    vehicle_id: null,
+                    status: BatteryStatus.charging
                 }, prisma),
 
                 //Mark slot is occupied
