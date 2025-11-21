@@ -16,17 +16,12 @@ const batterySchema = z.object({
     serial_number: z.string().min(11, 'Serial number must be at least 11 characters').max(100, 'Serial number must not exceed 100 characters'),
     model: z.string().min(2, 'Model must be at least 2 characters').max(100, 'Model must not exceed 100 characters').optional().default('VinFast Standard'),
     type: z.string().min(2, 'Type must be at least 2 characters').max(50, 'Type must not exceed 50 characters').optional().default('Lithium-Ion'),
-    capacity: z.coerce.number().positive('Capacity must be positive').finite('Capacity must be a valid number').refine(val => {
-        const str = val.toString();
-        const decimalPlaces = str.includes('.') ? str.split('.')[1].length : 0;
-        return decimalPlaces <= 2;
-    }, 'Capacity must have at most 2 decimal places'),
-    current_charge: z.coerce.number().min(0, 'Current charge cannot be negative').max(100, 'Current charge cannot exceed 100%').optional().default(100),
-    soh: z.coerce.number().min(0, 'SOH cannot be negative').max(100, 'SOH cannot exceed 100%').optional().default(100),
-    status: z.enum(['full', 'charging', 'in_use', 'in_transit', 'booked'], {
-        errorMap: () => ({ message: 'Please select a valid status' })
-    }).optional().default('full'),
-    quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1').max(100, 'Maximum 100 batteries per batch').default(1),
+    capacity: z.coerce.number().optional().default(100),
+    current_charge: z.coerce.number().optional().default(100),
+    soh: z.coerce.number().optional().default(100),
+    status: z.string().optional().default('full'),
+    cabinet_id: z.coerce.number().int('Cabinet ID must be an integer').optional().or(z.literal('')),
+    slot_id: z.coerce.number().int('Slot ID must be an integer').optional().or(z.literal('')),
 });
 
 export default function CreateBattery() {
@@ -41,7 +36,7 @@ export default function CreateBattery() {
                 try {
                     const station = await stationService.getStationById(user.station_id);
                     setStationName(station?.name || 'N/A');
-                } catch (err) {
+                } catch {
                     setStationName('N/A');
                 }
             } else {
@@ -66,7 +61,8 @@ export default function CreateBattery() {
             current_charge: 100,
             soh: 100,
             status: 'full',
-            quantity: 1,
+            cabinet_id: null,
+            slot_id: null,
         },
     });
 
@@ -79,21 +75,24 @@ export default function CreateBattery() {
         try {
             setSubmitting(true);
 
-            for (let i = 0; i < values.quantity; i++) {
-                const batteryData = {
-                    station_id: parseInt(user.station_id),
-                    serial_number: i === 0 ? values.serial_number : `${values.serial_number}-${i + 1}`,
-                    model: values.model || 'VinFast Standard',
-                    type: values.type || 'Lithium-Ion',
-                    capacity: parseFloat(values.capacity),
-                    current_charge: parseFloat(values.current_charge),
-                    soh: parseFloat(values.soh),
-                    status: values.status || 'full',
-                };
-                // eslint-disable-next-line no-await-in-loop
-                await batteryService.createBattery(batteryData);
-            }
-            toast.success(`Successfully created ${values.quantity} batteries!`);
+            const batteryData = {
+                station_id: parseInt(user.station_id),
+                serial_number: values.serial_number,
+                model: values.model || 'VinFast Standard',
+                type: values.type || 'Lithium-Ion',
+                capacity: parseFloat(values.capacity),
+                current_charge: parseFloat(values.current_charge),
+                soh: parseFloat(values.soh),
+                status: values.status || 'full',
+            };
+
+            // Add optional cabinet_id and slot_id if provided
+            if (values.cabinet_id) batteryData.cabinet_id = parseInt(values.cabinet_id);
+            if (values.slot_id) batteryData.slot_id = parseInt(values.slot_id);
+
+            console.log('📤 Creating battery with data:', batteryData);
+            await batteryService.createBattery(batteryData);
+            toast.success('Successfully created battery!');
             navigate('/staff/inventory');
         } catch (err) {
             console.error('Error creating battery:', err);
@@ -168,21 +167,34 @@ export default function CreateBattery() {
                                     {errors.serial_number && <p className="text-red-500 text-xs mt-1">{errors.serial_number.message}</p>}
                                 </div>
 
-                                {/* Quantity */}
+                                {/* Cabinet */}
                                 <div className="flex flex-col col-span-1">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
-                                        Quantity <span className="text-red-500">*</span>
+                                        Cabinet ID
                                     </label>
                                     <input
                                         type="number"
-                                        {...register('quantity')}
-                                        min={1}
-                                        max={100}
-                                        className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.quantity ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                                        {...register('cabinet_id')}
+                                        className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.cabinet_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
                                             }`}
-                                        placeholder="Enter quantity"
+                                        placeholder="e.g., 1"
                                     />
-                                    {errors.quantity && <p className="text-red-500 text-xs mt-1">{errors.quantity.message}</p>}
+                                    {errors.cabinet_id && <p className="text-red-500 text-xs mt-1">{errors.cabinet_id.message}</p>}
+                                </div>
+
+                                {/* Slot */}
+                                <div className="flex flex-col col-span-1">
+                                    <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
+                                        Slot ID
+                                    </label>
+                                    <input
+                                        type="number"
+                                        {...register('slot_id')}
+                                        className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.slot_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                                            }`}
+                                        placeholder="e.g., 1"
+                                    />
+                                    {errors.slot_id && <p className="text-red-500 text-xs mt-1">{errors.slot_id.message}</p>}
                                 </div>
 
                                 {/* Model */}
@@ -216,7 +228,7 @@ export default function CreateBattery() {
                                 </div>
 
                                 {/* Capacity (kWh) */}
-                                <div className="flex flex-col col-span-1">
+                                <div className="flex flex-col col-span-1 hidden">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
                                         Capacity (kWh) <span className="text-red-500">*</span>
                                     </label>
@@ -232,7 +244,7 @@ export default function CreateBattery() {
                                 </div>
 
                                 {/* Current Charge (%) */}
-                                <div className="flex flex-col col-span-1">
+                                <div className="flex flex-col col-span-1 hidden">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
                                         Current Charge (%) <span className="text-red-500">*</span>
                                     </label>
@@ -250,7 +262,7 @@ export default function CreateBattery() {
                                 </div>
 
                                 {/* SOH (State of Health %) */}
-                                <div className="flex flex-col col-span-1">
+                                <div className="flex flex-col col-span-1 hidden">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
                                         SOH - State of Health (%) <span className="text-red-500">*</span>
                                     </label>
@@ -268,7 +280,7 @@ export default function CreateBattery() {
                                 </div>
 
                                 {/* Status */}
-                                <div className="flex flex-col col-span-1">
+                                <div className="flex flex-col col-span-1 hidden">
                                     <label className="text-slate-800 dark:text-slate-200 text-sm font-medium leading-normal pb-2">
                                         Status <span className="text-red-500">*</span>
                                     </label>
