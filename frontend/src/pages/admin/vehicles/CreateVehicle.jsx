@@ -35,7 +35,7 @@ export default function CreateVehicle() {
           battery_model: values.battery_model.trim(),
         });
         toast.success('Vehicle created successfully!');
-        navigate('/admin/vehicles-list');
+        navigate('/admin/vehicles/create');
       } catch (error) {
         console.error('Error creating vehicle:', error);
         toast.error(error.response?.data?.message || 'Failed to create vehicle');

@@ -3,7 +3,8 @@ model Support {
   user_id     Int
   station_id  Int?
   type        SupportType
-  description String
+  description String?
+  admin_respond String?
   status      SupportStatus @default(open)
   rating      Int?
   created_at  DateTime      @default(now())

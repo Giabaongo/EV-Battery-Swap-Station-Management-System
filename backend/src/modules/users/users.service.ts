@@ -12,7 +12,7 @@ export class UsersService {
   constructor(private readonly databaseService: DatabaseService) { }
 
   async create(createUserDto: CreateUserDto) {
-    const { username, password, email, phone, role } = createUserDto;
+    const { username, password, email, phone, station_id, role } = createUserDto;
 
     if (!email || !phone) {
       throw new BadRequestException('Email and phone number are required');
@@ -52,6 +52,7 @@ export class UsersService {
         email_verified: emailVerified,
         email_token: createUserDto.email_token,
         email_token_expires: createUserDto.email_token_expires,
+        station_id: station_id || null,
         role: role,
       },
     });
