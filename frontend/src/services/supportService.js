@@ -90,6 +90,26 @@ const clearSupportTicket = async (id) => {
   }
 };
 
+const getSupportByUserId = async (userId) => {
+  try {
+    const response = await api.get(API_ENDPOINTS.SUPPORT.GET_BY_USER(userId));
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching supports by user ID:", error);
+    throw error;
+  }
+};
+
+const replyToSupportTicket = async (id, replyData) => {
+  try {
+    const response = await api.patch(`${API_ENDPOINTS.SUPPORT.REPLY_TO_TICKET(id)}`, replyData);
+    return response.data;
+  } catch (error) {
+    console.error("Error replying to support ticket:", error);
+    throw error;
+  }
+};
+
 export const supportService = {
   createSupportTicket,
   getAllSupports,
@@ -99,6 +119,8 @@ export const supportService = {
   updateSupportStatus,
   deleteSupport,
   clearSupportTicket,
+  getSupportByUserId,
+  replyToSupportTicket,
 };
 
 export default supportService;
