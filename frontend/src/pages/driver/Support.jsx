@@ -3,6 +3,7 @@ import { stationService } from '../../services/stationService';
 import SupportHeader from '../../components/support/SupportHeader';
 import SupportTicketCard from '../../components/support/SupportTicketCard';
 import SupportContact from '../../components/support/SupportContact';
+import MyTickets from '../../components/support/MyTickets';
 
 export default function Support() {
   const [allStations, setAllStations] = useState([]);
@@ -41,6 +42,7 @@ export default function Support() {
         ) : (
           <SupportTicketCard stations={activeStations} />
         )}
+        <MyTickets />
         <SupportContact />
       </div>
     </div>
