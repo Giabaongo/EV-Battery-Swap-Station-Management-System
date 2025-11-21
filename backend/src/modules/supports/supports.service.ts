@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateSupportDto } from './dto/create-support.dto';
-import { UpdateSupportDto } from './dto/update-support.dto';
+import { UpdateSupportDto, UpdateSupportAdminDto } from './dto/update-support.dto';
 import { SupportStatus } from '@prisma/client';
 import { WebsocketService } from '../websocket/websocket.service';
 
@@ -220,6 +220,35 @@ export class SupportsService {
 
     // Send real-time notification to user about status change
     if (status === SupportStatus.closed) {
+      this.websocketService.notifyUserTicketResolved(support.user_id, support);
+    } else {
+      this.websocketService.notifyUserTicketUpdate(support.user_id, support);
+    }
+
+    return support;
+  }
+
+  async updateAdminResponse(id: number, updateData: UpdateSupportAdminDto) {
+    await this.findOne(id);
+
+    const support = await this.prisma.support.update({
+      where: { support_id: id },
+      data: updateData,
+      include: {
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+            phone: true,
+          },
+        },
+        station: true,
+      },
+    });
+
+    // Send real-time notification to user about admin response
+    if (updateData.status === SupportStatus.closed) {
       this.websocketService.notifyUserTicketResolved(support.user_id, support);
     } else {
       this.websocketService.notifyUserTicketUpdate(support.user_id, support);
