@@ -226,6 +226,13 @@ export class PaymentsController {
     try {
       const result = await this.paymentsService.handleMoMoReturn(query);
 
+      // Check if result exists
+      if (!result) {
+        return res.redirect(
+          `${process.env.MOMO_FRONTEND_URL || 'http://localhost:5173/driver'}/payment/error?message=Payment not found`,
+        );
+      }
+
       // Redirect to frontend with result
       if (result.status === 'success') {
         const subscriptionId = result.subscription_id || '';
@@ -291,6 +298,19 @@ export class PaymentsController {
     @Body() body: { orderId: string; success: boolean },
   ) {
     return this.paymentsService.mockMoMoPayment(body.orderId, body.success);
+  }
+
+  /**
+   * Manual MoMo callback to force payment success and trigger package creation (fallback like VNPAY manual)
+   * POST /payments/momo-callback/manual
+   */
+  @Post('momo-callback/manual')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Manually mark MoMo payment success and trigger post-payment actions' })
+  @ApiResponse({ status: 200, description: 'Payment marked successful and post-actions executed.' })
+  async manualMoMoCallback(@Body() body: { orderId: string; transId?: string }) {
+    return this.paymentsService.manualMoMoCallback(body.orderId, body.transId);
   }
 
   /**

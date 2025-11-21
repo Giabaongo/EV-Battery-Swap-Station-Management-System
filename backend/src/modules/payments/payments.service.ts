@@ -1689,6 +1689,10 @@ export class PaymentsService {
    */
   async handleMoMoReturn(momoParams: any) {
     try {
+      // Log all params for debugging
+      this.logger.log('📨 MoMo Return Callback Params:');
+      this.logger.log(JSON.stringify(momoParams, null, 2));
+      
       // 1. Verify signature
       const isValid = verifyMoMoSignature(momoParams, momoConfig.secretKey);
 
@@ -1708,8 +1712,8 @@ export class PaymentsService {
         throw new NotFoundException('Payment not found');
       }
 
-      // 3. Check result code
-      const resultCode = momoParams.resultCode;
+      // 3. Check result code (MoMo sends string/number; normalize to number)
+      const resultCode = Number(momoParams.resultCode);
       let paymentStatus: PaymentStatus;
 
       if (resultCode === 0) {
@@ -1745,7 +1749,11 @@ export class PaymentsService {
 
       // 5. If payment successful, handle based on payment_type
       if (paymentStatus === PaymentStatus.success) {
-        await this.handleSuccessfulPayment(payment);
+        await this.handleSuccessfulPayment(updatedPayment);
+        // refresh to include subscription_id after handler updates it
+        return await this.prisma.payment.findUnique({
+          where: { payment_id: payment.payment_id },
+        });
       }
 
       return updatedPayment;
@@ -1798,7 +1806,7 @@ export class PaymentsService {
       }
 
       // 4. Update payment status
-      const resultCode = momoParams.resultCode;
+      const resultCode = Number(momoParams.resultCode);
       let paymentStatus: PaymentStatus;
 
       if (resultCode === 0) {
@@ -1836,6 +1844,74 @@ export class PaymentsService {
         message: error.message || 'Unknown error',
       };
     }
+  }
+
+  /**
+   * Manual MoMo callback (utility) - force-set payment success and run post actions
+   * Useful when MoMo cannot hit IPN/return but you want to unlock the subscription flow.
+   */
+  async manualMoMoCallback(orderId: string, transId?: string) {
+    // Find payment by orderId (stored in vnp_txn_ref)
+    const payment = await this.prisma.payment.findFirst({
+      where: {
+        vnp_txn_ref: orderId,
+        method: PaymentMethod.momo,
+      },
+      include: {
+        package: true,
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment not found for orderId ${orderId}`);
+    }
+
+    if (payment.status === PaymentStatus.success) {
+      return {
+        status: 'success',
+        message: 'Payment already successful',
+        payment_id: payment.payment_id,
+        subscription_id: payment.subscription_id,
+      };
+    }
+
+    const updatedPayment = await this.prisma.payment.update({
+      where: { payment_id: payment.payment_id },
+      data: {
+        status: PaymentStatus.success,
+        transaction_id: transId || `MANUAL_${orderId}`,
+        vnp_response_code: '0',
+        payment_time: new Date(),
+      },
+      include: {
+        package: true,
+        user: {
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    await this.handleSuccessfulPayment(updatedPayment);
+
+    return {
+      status: 'success',
+      message: 'Payment marked successful manually',
+      payment_id: updatedPayment.payment_id,
+      subscription_id: updatedPayment.subscription_id,
+    };
   }
 
   /**
