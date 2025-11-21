@@ -14,8 +14,8 @@ import { Button } from '../../components/ui/button';
 // Zod validation schema based on batteries table structure
 const batterySchema = z.object({
     serial_number: z.string().min(11, 'Serial number must be at least 11 characters').max(100, 'Serial number must not exceed 100 characters'),
-    model: z.string().min(2, 'Model must be at least 2 characters').max(100, 'Model must not exceed 100 characters').optional().default('Tesla Model 3'),
-    type: z.string().min(2, 'Type must be at least 2 characters').max(50, 'Type must not exceed 50 characters').optional().default('Lithium-ion'),
+    model: z.string().min(2, 'Model must be at least 2 characters').max(100, 'Model must not exceed 100 characters').optional().default('VinFast Standard'),
+    type: z.string().min(2, 'Type must be at least 2 characters').max(50, 'Type must not exceed 50 characters').optional().default('Lithium-Ion'),
     capacity: z.coerce.number().positive('Capacity must be positive').finite('Capacity must be a valid number').refine(val => {
         const str = val.toString();
         const decimalPlaces = str.includes('.') ? str.split('.')[1].length : 0;
@@ -60,7 +60,7 @@ export default function CreateBattery() {
         mode: 'onBlur',
         defaultValues: {
             serial_number: `BAT-ST${user?.station_id || 'X'}-${String(Date.now()).slice(-6)}`,
-            model: 'Tesla Model 3',
+            model: 'VinFast Standard',
             type: 'Lithium-Ion',
             capacity: 100,
             current_charge: 100,
@@ -83,8 +83,8 @@ export default function CreateBattery() {
                 const batteryData = {
                     station_id: parseInt(user.station_id),
                     serial_number: i === 0 ? values.serial_number : `${values.serial_number}-${i + 1}`,
-                    model: values.model || 'Tesla Model 3',
-                    type: values.type || 'Lithium-ion',
+                    model: values.model || 'VinFast Standard',
+                    type: values.type || 'Lithium-Ion',
                     capacity: parseFloat(values.capacity),
                     current_charge: parseFloat(values.current_charge),
                     soh: parseFloat(values.soh),
@@ -195,7 +195,7 @@ export default function CreateBattery() {
                                         {...register('model')}
                                         className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.model ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
                                             }`}
-                                        placeholder="e.g., Tesla Model 3"
+                                        placeholder="e.g., VinFast Standard"
                                     />
                                     {errors.model && <p className="text-red-500 text-xs mt-1">{errors.model.message}</p>}
                                 </div>
@@ -210,7 +210,7 @@ export default function CreateBattery() {
                                         {...register('type')}
                                         className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.type ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
                                             }`}
-                                        placeholder="e.g., Lithium-ion"
+                                        placeholder="e.g., Lithium-Ion"
                                     />
                                     {errors.type && <p className="text-red-500 text-xs mt-1">{errors.type.message}</p>}
                                 </div>
