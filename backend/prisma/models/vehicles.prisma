@@ -1,0 +1,23 @@
+model Vehicle {
+  vehicle_id    Int           @id @default(autoincrement())
+  user_id       Int?
+  battery_id    Int?          @unique
+  vin           String        @unique @db.VarChar(50)
+  battery_model String        @db.VarChar(50)
+  battery_type  String        @db.VarChar(50)
+  status        VehicleStatus @default(inactive)
+
+  //Relationship
+  Reservation     Reservation[]
+  subscriptions   Subscription[]
+  SwapTransaction SwapTransaction[]
+  battery         Battery?          @relation(fields: [battery_id], references: [battery_id])
+  user            User?             @relation(fields: [user_id], references: [user_id])
+
+  @@map("vehicles")
+}
+
+enum VehicleStatus {
+  active
+  inactive
+}

@@ -1,0 +1,54 @@
+model Payment {
+  payment_id        Int                    @id @default(autoincrement())
+  user_id           Int
+  amount            Decimal                @db.Decimal(12, 2)
+  payment_time      DateTime?
+  method            PaymentMethod
+  status            PaymentStatus
+  payment_type      PaymentType            @default(subscription)
+  invoice_url       String?
+  created_at        DateTime               @default(now())
+  order_info        String?                @db.VarChar(255)
+  package_id        Int?
+  subscription_id   Int?
+  vehicle_id        Int? // Vehicle for this payment/subscription
+  transaction_id    String?                @db.VarChar(100)
+  updated_at        DateTime               @updatedAt
+  vnp_bank_code     String?                @db.VarChar(50)
+  vnp_card_type     String?                @db.VarChar(50)
+  vnp_response_code String?                @db.VarChar(10)
+  vnp_txn_ref       String?                @unique @db.VarChar(100)
+  expires_at        DateTime?              // Payment expiry time (for pending payments)
+  package           BatteryServicePackage? @relation(fields: [package_id], references: [package_id])
+  subscription      Subscription?          @relation(fields: [subscription_id], references: [subscription_id])
+  user              User                   @relation(fields: [user_id], references: [user_id])
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  cash
+  credit_card
+  bank_transfer
+  e_wallet
+  vnpay
+  momo
+  zalopay
+}
+
+enum PaymentStatus {
+  paid
+  pending
+  failed
+  success
+  cancelled
+}
+
+enum PaymentType {
+  subscription // Thanh toán gói đăng ký
+  subscription_with_deposit // Thanh toán gói + tiền đặt cọc pin
+  battery_deposit // Chỉ thanh toán tiền đặt cọc pin
+  battery_replacement // Thanh toán thay thế pin
+  damage_fee // Thanh toán phí hư hỏng
+  other // Thanh toán khác
+}

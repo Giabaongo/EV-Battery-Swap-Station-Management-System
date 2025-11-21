@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Reservation Test Client</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        #eventLog {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            background: #2d2d2d;
+        }
+
+        .log-entry.event {
+            border-left-color: #4caf50;
+        }
+
+        .log-entry.error {
+            border-left-color: #f44336;
+            background: #3d2a2a;
+        }
+
+        .log-entry.info {
+            border-left-color: #2196f3;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+
+        .event-type {
+            color: #4caf50;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .event-data {
+            color: #ce9178;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .clear-btn {
+            background: #dc3545;
+            width: auto;
+            padding: 10px 20px;
+            margin-top: 10px;
+        }
+
+        .clear-btn:hover {
+            background: #c82333;
+        }
+
+        .notification-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .notification-badge.show {
+            transform: translateX(0);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connecting-indicator {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔌 WebSocket Reservation Test Client</h1>
+            <p>Test real-time reservation notifications</p>
+        </div>
+
+        <div class="content">
+            <!-- Connection Status -->
+            <div class="section">
+                <h2>📡 Connection Status</h2>
+                <div id="connectionStatus" class="status disconnected">
+                    Disconnected
+                </div>
+                <div class="grid">
+                    <div class="control-group">
+                        <label for="serverUrl">Server URL:</label>
+                        <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+                    </div>
+                    <div class="control-group">
+                        <label for="namespace">Namespace:</label>
+                        <input type="text" id="namespace" value="/reservations" placeholder="/reservations">
+                    </div>
+                </div>
+                <button id="connectBtn" onclick="connect()">Connect to WebSocket</button>
+                <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+            </div>
+
+            <!-- Test API Call -->
+            <div class="section">
+                <h2>🧪 Test Reservation Creation (API Call)</h2>
+                <p style="margin-bottom: 15px; color: #666;">
+                    Tạo reservation qua API để trigger WebSocket event
+                </p>
+                
+                <div class="grid">
+                    <div class="control-group">
+                        <label for="userId">User ID:</label>
+                        <input type="number" id="userId" value="1" placeholder="Enter user ID">
+                    </div>
+                    <div class="control-group">
+                        <label for="vehicleId">Vehicle ID:</label>
+                        <input type="number" id="vehicleId" value="1" placeholder="Enter vehicle ID">
+                    </div>
+                    <div class="control-group">
+                        <label for="stationId">Station ID:</label>
+                        <input type="number" id="stationId" value="1" placeholder="Enter station ID">
+                    </div>
+                    <div class="control-group">
+                        <label for="scheduledTime">Scheduled Time:</label>
+                        <input type="datetime-local" id="scheduledTime">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="jwtToken">JWT Token (Bearer):</label>
+                    <input type="text" id="jwtToken" placeholder="Paste your JWT token here">
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        Required for authenticated API calls
+                    </small>
+                </div>
+
+                <button onclick="createReservation()">Create Reservation via API</button>
+            </div>
+
+            <!-- Event Log -->
+            <div class="section">
+                <h2>📋 Event Log</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3>Statistics</h3>
+                        <p>Total Events: <strong id="totalEvents">0</strong></p>
+                        <p>Reservations Created: <strong id="reservationCount">0</strong></p>
+                        <p>Status Updates: <strong id="statusUpdateCount">0</strong></p>
+                    </div>
+                    <div class="card">
+                        <h3>Latest Event</h3>
+                        <p id="latestEvent">No events yet</p>
+                    </div>
+                </div>
+                <div id="eventLog"></div>
+                <button class="clear-btn" onclick="clearLog()">Clear Log</button>
+            </div>
+
+            <!-- Instructions -->
+            <div class="section">
+                <h2>📖 Hướng dẫn Test</h2>
+                <div class="card">
+                    <h3>Các bước test:</h3>
+                    <ol style="line-height: 2; color: #555;">
+                        <li><strong>Kết nối WebSocket:</strong> Click "Connect to WebSocket" để kết nối tới namespace /reservations</li>
+                        <li><strong>Lấy JWT Token:</strong> Login qua API auth để lấy JWT token, paste vào ô JWT Token</li>
+                        <li><strong>Điền thông tin:</strong> Nhập user_id, vehicle_id, station_id, scheduled_time</li>
+                        <li><strong>Tạo reservation:</strong> Click "Create Reservation via API"</li>
+                        <li><strong>Quan sát Event Log:</strong> Xem WebSocket event "reservation.created" được emit</li>
+                    </ol>
+
+                    <h3 style="margin-top: 20px;">Events được emit:</h3>
+                    <ul style="line-height: 2; color: #555;">
+                        <li><span class="badge info">reservation.created</span> - Khi có reservation mới được tạo</li>
+                        <li><span class="badge warning">reservation.status.updated</span> - Khi status của reservation thay đổi (scheduled → completed/cancelled)</li>
+                    </ul>
+
+                    <h3 style="margin-top: 20px;">Payload structure:</h3>
+                    <pre style="background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px;">
+{
+  "reservationId": number,
+  "stationId": number,
+  "stationName": string,
+  "scheduledTime": string (ISO),
+  "batteryId": number,
+  "vehicle": {
+    "id": number,
+    "vin": string,
+    "batteryModel": string,
+    "batteryType": string
+  },
+  "user": {
+    "id": number,
+    "username": string,
+    "email": string,
+    "phone": string
+  }
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificationBadge" class="notification-badge">
+        <strong>New Reservation!</strong>
+        <div id="notificationText"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        let totalEvents = 0;
+        let reservationCount = 0;
+        let statusUpdateCount = 0;
+
+        // Set default scheduled time to 30 minutes from now
+        function setDefaultScheduledTime() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 30);
+            const datetime = now.toISOString().slice(0, 16);
+            document.getElementById('scheduledTime').value = datetime;
+        }
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const namespace = document.getElementById('namespace').value;
+            const fullUrl = serverUrl + namespace;
+
+            updateStatus('connecting', 'Connecting...');
+            addLog('info', 'CONNECTING', `Attempting to connect to ${fullUrl}`);
+
+            socket = io(fullUrl, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: 5
+            });
+
+            socket.on('connect', () => {
+                updateStatus('connected', `Connected! Socket ID: ${socket.id}`);
+                addLog('info', 'CONNECTED', `Successfully connected with ID: ${socket.id}`);
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+            });
+
+            socket.on('disconnect', (reason) => {
+                updateStatus('disconnected', `Disconnected: ${reason}`);
+                addLog('error', 'DISCONNECTED', `Connection closed: ${reason}`);
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            });
+
+            socket.on('connect_error', (error) => {
+                updateStatus('disconnected', `Connection Error: ${error.message}`);
+                addLog('error', 'ERROR', `Connection error: ${error.message}`);
+            });
+
+            // Listen for reservation.created event
+            socket.on('reservation.created', (data) => {
+                totalEvents++;
+                reservationCount++;
+                updateStats();
+                
+                addLog('event', 'RESERVATION.CREATED', JSON.stringify(data, null, 2));
+                
+                const latestEventEl = document.getElementById('latestEvent');
+                latestEventEl.innerHTML = `
+                    <span class="badge success">New Reservation</span><br>
+                    Station: ${data.stationName}<br>
+                    User: ${data.user.username}<br>
+                    Time: ${new Date(data.scheduledTime).toLocaleString()}
+                `;
+
+                showNotification(`New reservation at ${data.stationName} by ${data.user.username}`);
+            });
+
+            // Listen for reservation.status.updated event
+            socket.on('reservation.status.updated', (data) => {
+                totalEvents++;
+                statusUpdateCount++;
+                updateStats();
+                
+                addLog('event', 'RESERVATION.STATUS.UPDATED', JSON.stringify(data, null, 2));
+                
+                const latestEventEl = document.getElementById('latestEvent');
+                latestEventEl.innerHTML = `
+                    <span class="badge warning">Status Updated</span><br>
+                    Station: ${data.stationName}<br>
+                    ${data.previousStatus} → ${data.currentStatus}<br>
+                    User: ${data.user.username}
+                `;
+
+                showNotification(`Reservation status: ${data.previousStatus} → ${data.currentStatus}`);
+            });
+
+            socket.on('error', (error) => {
+                addLog('error', 'ERROR', error.message || 'Unknown error');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                updateStatus('disconnected', 'Disconnected');
+                addLog('info', 'DISCONNECT', 'Manually disconnected');
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+            }
+        }
+
+        async function createReservation() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const userId = parseInt(document.getElementById('userId').value);
+            const vehicleId = parseInt(document.getElementById('vehicleId').value);
+            const stationId = parseInt(document.getElementById('stationId').value);
+            const scheduledTime = document.getElementById('scheduledTime').value;
+            const jwtToken = document.getElementById('jwtToken').value;
+
+            if (!jwtToken) {
+                alert('Please provide a JWT token!');
+                addLog('error', 'API ERROR', 'JWT token is required');
+                return;
+            }
+
+            if (!scheduledTime) {
+                alert('Please select a scheduled time!');
+                return;
+            }
+
+            const payload = {
+                user_id: userId,
+                vehicle_id: vehicleId,
+                station_id: stationId,
+                scheduled_time: new Date(scheduledTime).toISOString()
+            };
+
+            const apiUrl = `${serverUrl}/api/v1/reservations`;
+            addLog('info', 'API CALL', `Creating reservation to: ${apiUrl}`);
+            addLog('info', 'PAYLOAD', JSON.stringify(payload, null, 2));
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${jwtToken}`
+                    },
+                    body: JSON.stringify(payload),
+                    mode: 'cors'
+                });
+
+                addLog('info', 'RESPONSE', `Status: ${response.status} ${response.statusText}`);
+
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    addLog('error', 'RESPONSE ERROR', `Expected JSON but got: ${text.substring(0, 200)}`);
+                    throw new Error(`Server returned non-JSON response: ${response.status}`);
+                }
+
+                if (response.ok) {
+                    addLog('info', 'API SUCCESS', `Reservation created: ${JSON.stringify(data, null, 2)}`);
+                    alert('✅ Reservation created successfully! Check the Event Log for WebSocket notification.');
+                } else {
+                    addLog('error', 'API ERROR', `Status ${response.status}: ${JSON.stringify(data, null, 2)}`);
+                    alert(`❌ Error (${response.status}): ${data.message || 'Failed to create reservation'}`);
+                }
+            } catch (error) {
+                addLog('error', 'NETWORK ERROR', `${error.name}: ${error.message}`);
+                addLog('error', 'ERROR DETAILS', error.stack || 'No stack trace');
+                
+                let errorMsg = '❌ Failed to connect to server.\n\n';
+                errorMsg += 'Possible causes:\n';
+                errorMsg += '• Server is not running (check terminal)\n';
+                errorMsg += '• Wrong server URL (current: ' + serverUrl + ')\n';
+                errorMsg += '• CORS issue (check browser console)\n';
+                errorMsg += '• Network connectivity problem\n\n';
+                errorMsg += 'Error: ' + error.message;
+                
+                alert(errorMsg);
+            }
+        }
+
+        function updateStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = message;
+            
+            if (status === 'connecting') {
+                statusEl.classList.add('connecting-indicator');
+            } else {
+                statusEl.classList.remove('connecting-indicator');
+            }
+        }
+
+        function addLog(type, event, message) {
+            const logContainer = document.getElementById('eventLog');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                <span class="event-type">${event}</span>
+                <div class="event-data">${message}</div>
+            `;
+            
+            logContainer.insertBefore(entry, logContainer.firstChild);
+
+            // Keep only last 50 entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('eventLog').innerHTML = '';
+            totalEvents = 0;
+            reservationCount = 0;
+            statusUpdateCount = 0;
+            updateStats();
+            document.getElementById('latestEvent').textContent = 'No events yet';
+        }
+
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = totalEvents;
+            document.getElementById('reservationCount').textContent = reservationCount;
+            document.getElementById('statusUpdateCount').textContent = statusUpdateCount;
+        }
+
+        function showNotification(message) {
+            const badge = document.getElementById('notificationBadge');
+            const text = document.getElementById('notificationText');
+            
+            text.textContent = message;
+            badge.classList.add('show');
+
+            setTimeout(() => {
+                badge.classList.remove('show');
+            }, 5000);
+        }
+
+        // Initialize
+        window.onload = () => {
+            setDefaultScheduledTime();
+            addLog('info', 'READY', 'Test client loaded. Click "Connect to WebSocket" to start.');
+        };
+    </script>
+</body>
+</html>

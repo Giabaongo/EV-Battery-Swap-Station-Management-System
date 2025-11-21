@@ -1,0 +1,10 @@
+
+SWAP_HISTORY_DOCUMENTATION.md
+SWAP_HISTORY_TIME_FILTER.md
+# frontend/.gitignore
+
+/history 
+/.history
+.history
+
+node_modules

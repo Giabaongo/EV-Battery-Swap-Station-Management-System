@@ -1,0 +1,28 @@
+model Subscription {
+  subscription_id   Int                   @id @default(autoincrement())
+  user_id           Int
+  package_id        Int
+  vehicle_id        Int?
+  start_date        DateTime              @default(now())
+  end_date          DateTime
+  status            SubscriptionStatus
+  swap_used         Int                   @default(0)
+  deposit_paid      Boolean               @default(false)
+  created_at        DateTime              @default(now())
+  updated_at        DateTime              @updatedAt
+  distance_traveled Float                 @default(0)
+  payments          Payment[]
+  package           BatteryServicePackage @relation(fields: [package_id], references: [package_id])
+  user              User                  @relation(fields: [user_id], references: [user_id])
+  vehicle           Vehicle?              @relation(fields: [vehicle_id], references: [vehicle_id])
+  swapTransactions  SwapTransaction[]
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  active
+  expired
+  cancelled
+  pending_penalty_payment
+}

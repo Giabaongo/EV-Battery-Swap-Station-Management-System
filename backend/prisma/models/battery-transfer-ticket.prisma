@@ -1,0 +1,21 @@
+model BatteryTransferTicket {
+  ticket_id           Int        @id @default(autoincrement())
+  transfer_request_id Int
+  ticket_type         TicketType
+  station_id          Int
+  staff_id            Int
+  created_at          DateTime   @default(now())
+
+  // Relations
+  batteries       BatteriesTransfer[]
+  staff           User                   @relation(fields: [staff_id], references: [user_id])
+  station         Station                @relation(fields: [station_id], references: [station_id])
+  transferRequest BatteryTransferRequest @relation(fields: [transfer_request_id], references: [transfer_request_id])
+
+  @@map("battery_transfer_tickets")
+}
+
+enum TicketType {
+  import
+  export
+}

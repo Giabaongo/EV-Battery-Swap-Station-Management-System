@@ -1,0 +1,27 @@
+model Station {
+  station_id Int           @id @default(autoincrement())
+  name       String        @db.VarChar(100)
+  address    String        @db.VarChar(255)
+  latitude   Decimal       @db.Decimal(10, 8)
+  longitude  Decimal       @db.Decimal(11, 8)
+  status     StationStatus
+
+  // Relations
+  batteries                         Battery[]
+  BatteryTransferRequestFromStation BatteryTransferRequest[] @relation("FromStation")
+  BatteryTransferRequestToStation   BatteryTransferRequest[] @relation("ToStation")
+  BatteryTransferTicket             BatteryTransferTicket[]
+  Reservation                       Reservation[]
+  supports                          Support[]
+  swap_transactions                 SwapTransaction[]
+  staff                             User[]
+  cabinets                          Cabinet[]
+
+  @@map("stations")
+}
+
+enum StationStatus {
+  active
+  inactive
+  maintenance
+}

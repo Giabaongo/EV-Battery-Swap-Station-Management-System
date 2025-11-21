@@ -1,0 +1,21 @@
+model Reservation {
+  reservation_id Int               @id @default(autoincrement())
+  user_id        Int
+  vehicle_id     Int
+  battery_id     Int
+  station_id     Int
+  scheduled_time DateTime
+  status         ReservationStatus
+  battery        Battery           @relation(fields: [battery_id], references: [battery_id])
+  station        Station           @relation(fields: [station_id], references: [station_id])
+  user           User              @relation(fields: [user_id], references: [user_id])
+  vehicle        Vehicle           @relation(fields: [vehicle_id], references: [vehicle_id])
+
+  @@map("reservations")
+}
+
+enum ReservationStatus {
+  scheduled
+  completed
+  cancelled
+}

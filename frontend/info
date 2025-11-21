@@ -1,0 +1,35 @@
+"1. Chức năng cho Tài xế (EV Driver)
+a. Đăng ký & quản lý tài khoản
++ Đăng ký dịch vụ đổi pin.
++ Liên kết phương tiện (VIN, loại pin).
+b. Đặt lịch & tra cứu trạm đổi pin
++ Tìm kiếm trạm gần nhất, tình trạng pin sẵn có.
++ Đặt lịch trước để đảm bảo có pin đầy.
+c. Thanh toán & gói dịch vụ
++ Thanh toán theo lượt, hoặc theo gói thuê pin.
++ Quản lý hóa đơn, lịch sử giao dịch.
++ Theo dõi số lần đổi pin, chi phí.
+d. Hỗ trợ & phản hồi
++ Gửi yêu cầu hỗ trợ khi gặp sự cố pin hoặc trạm.
++ Đánh giá dịch vụ trạm đổi pin."
+"2. Chức năng cho Nhân viên Trạm đổi pin (Battery Swap Station Staff)
+a. Quản lý tồn kho pin
++ Theo dõi số lượng pin đầy, pin đang sạc, pin bảo dưỡng.
++ Phân loại theo dung lượng, model, tình trạng.
+b. Quản lý giao dịch đổi pin
++ Xác nhận đổi pin, ghi nhận lịch sử giao dịch.
++ Ghi nhận thanh toán tại chỗ phí đổi pin.
++ Kiểm tra và ghi nhận tình trạng pin trả về."
+"3. Chức năng cho Quản trị (Admin)
+a. Quản lý trạm
++ Theo dõi lịch sử sử dụng & trạng thái sức khỏe (SoH – State of Health).
++ Điều phối pin giữa các trạm.
++ Xử lý khiếu nại & đổi pin lỗi.
+b. Quản lý người dùng & gói thuê
++ Quản lý khách hàng.
++ Tạo gói thuê pin.
++ Phân quyền nhân viên trạm đổi pin.
+c. Báo cáo & thống kê
++ Doanh thu, số lượt đổi pin.
++ Báo cáo tần suất dổi pin, giờ cao điểm.
++ AI gợi ý dự báo nhu cầu sử dụng trạm đổi pin để nâng cấp hạ tầng."

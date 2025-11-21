@@ -1,0 +1,69 @@
+### Test MoMo Payment Integration
+### Make sure server is running on http://localhost:8080
+
+# Variables
+@baseUrl = http://localhost:8080/api/v1
+@token = YOUR_JWT_TOKEN_HERE
+
+### 1. Create MoMo Payment URL with Fees (MOCK MODE ENABLED)
+POST {{baseUrl}}/payments/calculate-and-create-momo-url
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "user_id": 8,
+    "package_id": 1,
+    "vehicle_id": 7,
+    "payment_type": "subscription_with_deposit"
+}
+
+### Expected Response (Mock Mode):
+# {
+#     "payment_id": 34,
+#     "paymentUrl": "https://test-payment.momo.vn/v2/gateway/pay?t=MOMO20251121...",
+#     "vnp_txn_ref": "MOMO20251121...",
+#     "feeBreakdown": {
+#         "baseAmount": 500000,
+#         "depositFee": 400000,
+#         "totalAmount": 900000,
+#         "breakdown_text": "Gói: 500.000 VND, Cọc: 400.000 VND, Tổng: 900.000 VND"
+#     },
+#     "momoExtras": {
+#         "deeplink": "momo://app.momo.vn/pay?orderId=MOMO20251121...",
+#         "qrCodeUrl": "https://test-payment.momo.vn/v2/gateway/qr/MOMO20251121..."
+#     }
+# }
+
+### 2. Create Basic MoMo Payment URL (MOCK MODE ENABLED)
+POST {{baseUrl}}/payments/create-momo-url
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "user_id": 8,
+    "package_id": 1,
+    "vehicle_id": 7
+}
+
+### 3. Mock MoMo Payment Success (if needed)
+# Use this if you need to manually complete a payment
+POST {{baseUrl}}/payments/mock-momo-payment
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "orderId": "MOMO20251121032131",
+    "success": true
+}
+
+### 4. Query MoMo Transaction Status
+GET {{baseUrl}}/payments/momo-query/MOMO20251121032131
+Authorization: Bearer {{token}}
+
+### 5. Get Payment by ID
+GET {{baseUrl}}/payments/33
+Authorization: Bearer {{token}}
+
+### 6. Get User's Payment History
+GET {{baseUrl}}/payments/user/8
+Authorization: Bearer {{token}}

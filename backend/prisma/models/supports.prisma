@@ -1,0 +1,28 @@
+model Support {
+  support_id  Int           @id @default(autoincrement())
+  user_id     Int
+  station_id  Int?
+  type        SupportType
+  description String?
+  admin_respond String?
+  status      SupportStatus @default(open)
+  rating      Int?
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  station     Station?      @relation(fields: [station_id], references: [station_id])
+  user        User          @relation(fields: [user_id], references: [user_id])
+
+  @@map("supports")
+}
+
+enum SupportType {
+  battery_issue
+  station_issue
+  other
+}
+
+enum SupportStatus {
+  open
+  in_progress
+  closed
+}

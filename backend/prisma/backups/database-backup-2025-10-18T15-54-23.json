@@ -1,0 +1,169 @@
+{
+  "users": [
+    {
+      "user_id": 1,
+      "username": "hman",
+      "password": "$2b$10$fKpep2nI/UoyABfcw.FPk.U/iBF5NcM7kD.UzYAClQuuRRMZzAQlW",
+      "phone": "0334992929",
+      "email": "hman@gmail.com",
+      "role": "driver",
+      "created_at": "2025-10-02T09:36:23.173Z"
+    },
+    {
+      "user_id": 2,
+      "username": "admin",
+      "password": "$2y$12$07Pg7DJykokzk14KV.v9..Y0A/sec8GRGmY5LEvpV7w7BU22HfyF2",
+      "phone": "1234567890",
+      "email": "admin@EVstation.com",
+      "role": "admin",
+      "created_at": "2025-10-04T08:20:57.546Z"
+    },
+    {
+      "user_id": 3,
+      "username": "drive 1",
+      "password": "$2y$12$07Pg7DJykokzk14KV.v9..Y0A/sec8GRGmY5LEvpV7w7BU22HfyF2",
+      "phone": "1234567891",
+      "email": "drive1@EVstatio.com",
+      "role": "driver",
+      "created_at": "2025-10-04T08:26:53.574Z"
+    },
+    {
+      "user_id": 4,
+      "username": "Nhut Anh",
+      "password": "$2b$10$XrM.YG6.ejPv.0egpgJ6IuMdpLF4CnCoDisupF9e9.79u2adPLk2m",
+      "phone": "0123456789",
+      "email": "anh@gmail.com",
+      "role": "driver",
+      "created_at": "2025-10-04T09:25:31.228Z"
+    },
+    {
+      "user_id": 5,
+      "username": "peppa",
+      "password": "$2b$10$x6g.R0J3MLp9vkXUMdS4murq0U5KmP6s9ZhIoZSGayYtM3hb1/.1C",
+      "phone": "0123456778",
+      "email": "peppa@gmail.com",
+      "role": "driver",
+      "created_at": "2025-10-08T10:23:58.535Z"
+    },
+    {
+      "user_id": 6,
+      "username": "testAdmin",
+      "password": "admin123",
+      "phone": "0333333333",
+      "email": "admin123@gmail.com",
+      "role": "admin",
+      "created_at": "2025-10-10T20:16:52.712Z"
+    },
+    {
+      "user_id": 7,
+      "username": "testStaff",
+      "password": "staff123",
+      "phone": "0499999999",
+      "email": "staff123@gmail.com",
+      "role": "station_staff",
+      "created_at": "2025-10-10T21:53:37.760Z"
+    },
+    {
+      "user_id": 10,
+      "username": "newadmin",
+      "password": "$2b$10$GsQvk7eGFCiIpJ83ozDWgOvgWeL6uc77tsQ6w6N/9s1Lb52U1zh5O",
+      "phone": "0177777777",
+      "email": "newadmin@example.com",
+      "role": "admin",
+      "created_at": "2025-10-17T04:56:10.950Z"
+    },
+    {
+      "user_id": 15,
+      "username": "staff ne",
+      "password": "$2b$10$xLqnu4vx4rfWGZ7M52N0lOwiEXMXSzeobYdgyERtJBWt.rrgOQf1u",
+      "phone": "0336993939",
+      "email": "staffne@gmail.com",
+      "role": "station_staff",
+      "created_at": "2025-10-17T20:59:56.862Z"
+    },
+    {
+      "user_id": 16,
+      "username": "staff ne2",
+      "password": "$2b$10$iu0xc1Ye82vSdqPyyldSjeTU/yflP51nw2wZFnLuEeZp.6Bq.sMVq",
+      "phone": "0334992999",
+      "email": "staffne2@gmail.com",
+      "role": "station_staff",
+      "created_at": "2025-10-18T08:37:32.688Z"
+    },
+    {
+      "user_id": 17,
+      "username": "staff ok",
+      "password": "$2b$10$0.H/baKpGuGzYf/faKXxHuNIzKt3eqA15b2vJySE4BLOYqpqvnac6",
+      "phone": "0789654321",
+      "email": "okstaff@gmail.com",
+      "role": "station_staff",
+      "created_at": "2025-10-18T09:27:15.120Z"
+    },
+    {
+      "user_id": 18,
+      "username": "a staff",
+      "password": "$2b$10$vybyPcn0Ta0hkaS25bwox.4.9D2a/AK9J.zmE4GnB9loD7baOZBPK",
+      "phone": "0789563421",
+      "email": "staffa@gmail.com",
+      "role": "station_staff",
+      "created_at": "2025-10-18T09:34:30.442Z"
+    },
+    {
+      "user_id": 19,
+      "username": "kihoon",
+      "password": "$2b$10$68gX/CE5j.bjkkk/1zWWO.DuNDEWVEJ/qEA/h/e67oIN.1dGkC7rC",
+      "phone": "0734992929",
+      "email": "kihoon@gmail.com",
+      "role": "driver",
+      "created_at": "2025-10-18T09:55:12.001Z"
+    }
+  ],
+  "vehicles": [],
+  "batteries": [],
+  "stations": [
+    {
+      "station_id": 1,
+      "name": "Trạm Đổi Pin EV Bình Thạnh",
+      "address": "12 Nguyễn Văn Lạc, Quận Bình Thạnh, TP.HCM",
+      "latitude": "10.80215",
+      "longitude": "106.70618",
+      "status": "active"
+    },
+    {
+      "station_id": 2,
+      "name": "Trạm Đổi Pin EV Quận 7",
+      "address": "45 Nguyễn Thị Thập, Quận 7, TP.HCM",
+      "latitude": "10.73689",
+      "longitude": "106.72156",
+      "status": "active"
+    }
+  ],
+  "batteryServicePackages": [
+    {
+      "package_id": 1,
+      "name": "Basic Plan",
+      "base_distance": 500,
+      "base_price": "300000",
+      "swap_count": 10,
+      "penalty_fee": 50000,
+      "duration_days": 30,
+      "description": "Gói cơ bản: 500km.",
+      "active": true
+    },
+    {
+      "package_id": 2,
+      "name": "Premium Plan",
+      "base_distance": 1200,
+      "base_price": "700000",
+      "swap_count": 25,
+      "penalty_fee": 150000,
+      "duration_days": 30,
+      "description": "Gói cao cấp: 1200km.",
+      "active": true
+    }
+  ],
+  "subscriptions": [],
+  "payments": [],
+  "reservations": [],
+  "swapTransactions": []
+}

@@ -1,0 +1,21 @@
+model BatteryTransferRequest {
+  transfer_request_id Int                     @id @default(autoincrement())
+  battery_model       String                  @db.VarChar(100)
+  battery_type        String                  @db.VarChar(50)
+  from_station_id     Int
+  to_station_id       Int
+  created_at          DateTime                @default(now())
+  quantity            Int
+  status              TransferStatus          @default(in_progress)
+  fromStation         Station                 @relation("FromStation", fields: [from_station_id], references: [station_id])
+  toStation           Station                 @relation("ToStation", fields: [to_station_id], references: [station_id])
+  tickets             BatteryTransferTicket[]
+
+  @@map("battery_transfer_requests")
+}
+
+enum TransferStatus {
+  completed
+  in_progress
+  cancelled
+}
