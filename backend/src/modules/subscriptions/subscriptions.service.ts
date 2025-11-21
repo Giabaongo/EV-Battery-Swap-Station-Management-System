@@ -23,11 +23,13 @@ export class SubscriptionsService {
     private packageService: BatteryServicePackagesService,
     private configService: ConfigService,
     private feeCalculationService: FeeCalculationService,
-  ) { }
+  ) {}
 
   async create(createSubscriptionDto: CreateSubscriptionDto) {
     // 1. Check if package exists and is active
-    const servicePackage = await this.packageService.findOne(createSubscriptionDto.package_id);
+    const servicePackage = await this.packageService.findOne(
+      createSubscriptionDto.package_id,
+    );
 
     if (!servicePackage.active) {
       throw new BadRequestException('Package is not active');
@@ -49,9 +51,14 @@ export class SubscriptionsService {
 
     // 4. Check if this VEHICLE already has ANY active subscription
     // Rule: Vehicle can only have ONE active subscription at a time
-    const existingSubscription = await this.findOneByVehicleId(createSubscriptionDto.vehicle_id);
+    const existingSubscription = await this.findOneByVehicleId(
+      createSubscriptionDto.vehicle_id,
+    );
 
-    if (existingSubscription && existingSubscription.status === SubscriptionStatus.active) {
+    if (
+      existingSubscription &&
+      existingSubscription.status === SubscriptionStatus.active
+    ) {
       throw new ConflictException(
         `This vehicle already has an active subscription (${existingSubscription.package.name}). Please cancel it first before creating a new one.`,
       );
@@ -125,7 +132,6 @@ export class SubscriptionsService {
     });
   }
 
-
   async findOne(id: number, user?: any) {
     const subscription = await this.prisma.subscription.findUnique({
       where: { subscription_id: id },
@@ -165,7 +171,7 @@ export class SubscriptionsService {
         vehicle_id: vehicleId,
       },
       include: {
-        package: true
+        package: true,
       },
       orderBy: {
         created_at: 'desc',
@@ -173,7 +179,9 @@ export class SubscriptionsService {
     });
 
     if (!subscription) {
-      throw new NotFoundException(`Subscription for vehicle ID ${vehicleId} not found`);
+      throw new NotFoundException(
+        `Subscription for vehicle ID ${vehicleId} not found`,
+      );
     }
 
     return subscription;
@@ -208,10 +216,14 @@ export class SubscriptionsService {
     });
   }
 
-  async update(id: number, updateSubscriptionDto: UpdateSubscriptionDto, prisma?: any) {
+  async update(
+    id: number,
+    updateSubscriptionDto: UpdateSubscriptionDto,
+    prisma?: any,
+  ) {
     // Check if subscription exists
     await this.findOne(id);
-    
+
     const db = prisma ?? this.prisma;
 
     return this.prisma.subscription.update({
@@ -306,7 +318,9 @@ export class SubscriptionsService {
         throw new BadRequestException('Subscription is not active');
       }
 
-      this.logger.log(`Incrementing swap used for subscription ID ${id}. Current swap used: ${subscription.swap_used}`);
+      this.logger.log(
+        `Incrementing swap used for subscription ID ${id}. Current swap used: ${subscription.swap_used}`,
+      );
       const updatedSubscription = await db.subscription.update({
         where: { subscription_id: id },
         data: {
@@ -333,7 +347,7 @@ export class SubscriptionsService {
     }
   }
 
-  async updateDistanceTraveled(id: number, distance: number, tx?: any) {
+  async updateDistanceTraveled(id: number, battery_current_charge: number, tx?: any) {
     const db = tx ?? this.prisma;
     const subscription = await this.findOne(id);
     // Check if subscription is active
@@ -341,12 +355,14 @@ export class SubscriptionsService {
       throw new BadRequestException('Subscription is not active');
     }
 
-    // Đảm bảo distance là số hợp lệ
-    if (distance < 0) {
-      throw new BadRequestException('Distance traveled cannot be negative');
-    }
+    const distance = await this.calculateDistanceTraveled(
+      battery_current_charge,
+      subscription.package_id,
+    );
 
-    this.logger.log(`Updating distance traveled for subscription ID ${id}. Adding distance: ${distance} km`);
+    this.logger.log(
+      `Updating distance traveled for subscription ID ${id}. Adding distance: ${distance} km`,
+    );
     return db.subscription.update({
       where: { subscription_id: id },
       data: {
@@ -369,7 +385,10 @@ export class SubscriptionsService {
     });
   }
 
-  async updateExpiredSubscriptions(): Promise<{ count: number; subscriptions: any[] }> {
+  async updateExpiredSubscriptions(): Promise<{
+    count: number;
+    subscriptions: any[];
+  }> {
     const now = new Date();
 
     // Find all active subscriptions that have expired
@@ -401,12 +420,12 @@ export class SubscriptionsService {
       };
     }
 
-    const expiredIds = expiredSubscriptions.map(sub => sub.subscription_id);
+    const expiredIds = expiredSubscriptions.map((sub) => sub.subscription_id);
 
     // Subscriptions that have exceeded base distance and need penalty payment
     const needPaymentIds = expiredSubscriptions
-      .filter(sub => sub.distance_traveled > sub.package.base_distance)
-      .map(sub => sub.subscription_id);
+      .filter((sub) => sub.distance_traveled > sub.package.base_distance)
+      .map((sub) => sub.subscription_id);
 
     // Use transaction to update subscriptions and deactivate vehicles
     await this.prisma.$transaction(async (tx) => {
@@ -430,11 +449,13 @@ export class SubscriptionsService {
           status: SubscriptionStatus.pending_penalty_payment,
         },
       });
-      this.logger.log(`Marked ${needPaymentIds.length} subscriptions as pending penalty payment.`);
+      this.logger.log(
+        `Marked ${needPaymentIds.length} subscriptions as pending penalty payment.`,
+      );
 
       // Deactivate vehicles that no longer have active subscriptions
       const vehicleIds = expiredSubscriptions
-        .map(sub => sub.vehicle_id)
+        .map((sub) => sub.vehicle_id)
         .filter((id): id is number => id !== null);
 
       for (const vehicleId of vehicleIds) {
@@ -453,7 +474,9 @@ export class SubscriptionsService {
             data: { status: VehicleStatus.inactive },
           });
 
-          this.logger.log(`Vehicle ID ${vehicleId} deactivated (no active subscriptions)`);
+          this.logger.log(
+            `Vehicle ID ${vehicleId} deactivated (no active subscriptions)`,
+          );
         }
       }
     });
@@ -461,7 +484,7 @@ export class SubscriptionsService {
     this.logger.log(`Expired ${expiredSubscriptions.length} subscriptions.`);
     return {
       count: expiredSubscriptions.length,
-      subscriptions: expiredSubscriptions.map(sub => ({
+      subscriptions: expiredSubscriptions.map((sub) => ({
         subscription_id: sub.subscription_id,
         user_id: sub.user_id,
         username: sub.user.username,
@@ -487,7 +510,8 @@ export class SubscriptionsService {
 
     // Calculate penalty fee
     //TODO: chỉnh lại phí phạt
-    const penaltyFee = subscription.distance_traveled * subscription.package.penalty_fee;
+    const penaltyFee =
+      subscription.distance_traveled * subscription.package.penalty_fee;
 
     return penaltyFee;
   }
@@ -512,7 +536,9 @@ export class SubscriptionsService {
       const oldSubscription = await this.findOne(subscriptionId);
 
       if (oldSubscription.status !== SubscriptionStatus.expired) {
-        throw new BadRequestException('Only expired subscriptions can be renewed');
+        throw new BadRequestException(
+          'Only expired subscriptions can be renewed',
+        );
       }
 
       // 2. Check if distance exceeded base_distance (calculate penalty)
@@ -523,9 +549,13 @@ export class SubscriptionsService {
       // 3. Create new subscription with reset counters
       const startDate = new Date();
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + oldSubscription.package.duration_days);
+      endDate.setDate(
+        endDate.getDate() + oldSubscription.package.duration_days,
+      );
 
-      this.logger.log(`Renewing subscription ID ${subscriptionId} for vehicle ID ${vehicle_id}. New period: ${startDate.toISOString()} - ${endDate.toISOString()}. Penalty fee: ${penaltyFee.overcharge_fee}`);
+      this.logger.log(
+        `Renewing subscription ID ${subscriptionId} for vehicle ID ${vehicle_id}. New period: ${startDate.toISOString()} - ${endDate.toISOString()}. Penalty fee: ${penaltyFee.overcharge_fee}`,
+      );
       //4. Update old subscription
       const reNewSubscription = await this.prisma.$transaction(async (tx) => {
         const subscription = await tx.subscription.update({
@@ -575,9 +605,7 @@ export class SubscriptionsService {
    * - Calculate total amount: package price + penalty fee (if any)
    * - Create new subscription after successful renewal payment
    */
-  async renewSubscriptionWithPayment(
-    subscriptionId: number,
-  ): Promise<{
+  async renewSubscriptionWithPayment(subscriptionId: number): Promise<{
     oldSubscription: any;
     renewalCost: {
       basePrice: number;
@@ -589,13 +617,16 @@ export class SubscriptionsService {
     const oldSubscription = await this.findOne(subscriptionId);
 
     if (oldSubscription.status !== SubscriptionStatus.expired) {
-      throw new BadRequestException('Only expired subscriptions can be renewed');
+      throw new BadRequestException(
+        'Only expired subscriptions can be renewed',
+      );
     }
 
     // 2. Calculate penalty fee
-    const overchargeCost = await this.feeCalculationService.calculateOverchargeFee(
-      oldSubscription.subscription_id,
-    );
+    const overchargeCost =
+      await this.feeCalculationService.calculateOverchargeFee(
+        oldSubscription.subscription_id,
+      );
 
     const penaltyFee = overchargeCost.overcharge_fee;
 
@@ -613,5 +644,35 @@ export class SubscriptionsService {
         totalAmount,
       },
     };
+  }
+
+  private async calculateDistanceTraveled(
+    battery_current_charge: number,
+    battery_service_package_id: number,
+  ) {
+    if (battery_current_charge < 0 || battery_current_charge > 100) {
+      throw new BadRequestException(
+        'Battery charge percentage must be between 0 and 100',
+      );
+    }
+
+    const batteryServicePackage = await this.packageService.findOne(
+      battery_service_package_id,
+    );
+    if (!batteryServicePackage) {
+      throw new NotFoundException(
+        `Battery service package with ID ${battery_service_package_id} not found`,
+      );
+    }
+
+    const KM_PER_PERCENT: number = 5;
+    const FULL_BATTERY_PERCENT: number = 100;
+
+    const batteryUsedPercent = FULL_BATTERY_PERCENT - battery_current_charge;
+    const distanceTraveled = batteryUsedPercent * KM_PER_PERCENT;
+    this.logger.log(
+      `Battery used percent: ${batteryUsedPercent}%, Distance traveled: ${distanceTraveled} km`,
+    );
+    return distanceTraveled;
   }
 }
