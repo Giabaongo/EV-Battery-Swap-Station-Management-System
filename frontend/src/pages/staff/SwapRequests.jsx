@@ -53,13 +53,6 @@ export default function StaffSwapRequests() {
         if (user?.station_id) {
             // Initial load with loading state
             fetchSwapRequestsForStation(user.station_id, true);
-
-            // Fallback polling every 5 seconds (slower, only if WebSocket not connected)
-            const pollInterval = setInterval(() => {
-                fetchSwapRequestsForStation(user.station_id, false);
-            }, 5000)
-
-            return () => clearInterval(pollInterval)
         }
     }, [user?.station_id, fetchSwapRequestsForStation]);
 
@@ -116,13 +109,6 @@ export default function StaffSwapRequests() {
         if (user?.station_id) {
             // Initial load with loading state
             fetchAllReservations(true);
-
-            // Fallback polling every 5 seconds (only if WebSocket not responding)
-            const pollInterval = setInterval(() => {
-                fetchAllReservations(false);
-            }, 5000)
-
-            return () => clearInterval(pollInterval)
         }
     }, [user?.station_id]);
 
