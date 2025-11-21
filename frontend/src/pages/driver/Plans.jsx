@@ -175,7 +175,7 @@ export default function Plans() {
         payment_type: 'subscription_with_deposit'
       }
 
-      const res = await paymentService.createPayment(payload)
+      const res = await paymentService.createMomoPayment(payload)
       // Expect backend to return a redirect url to VNPay
       const redirectUrl = res?.vnpUrl || res?.paymentUrl || res?.url || res?.redirectUrl || res
       if (redirectUrl) {
