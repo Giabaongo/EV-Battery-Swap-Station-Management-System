@@ -54,15 +54,10 @@ export class BatteryTransferRequestService {
         );
       }
 
-      const activeCabinets = await this.cabinetService.findManyByStation(dto.to_station_id);
-      let allEmptySlots: any[] = [];
-      for (const cabinet of activeCabinets) {
-        const emptySlots = await this.cabinetService.findEmptySlotAtCabinet(cabinet.cabinet_id);
-        allEmptySlots.push(...[emptySlots]);
-      }
+      const allEmptySlots = await this.cabinetService.findAllEmptySlotsAtStation(dto.to_station_id);
 
       if (allEmptySlots.length < dto.quantity) {
-        throw new BadRequestException(`Not enough empty slots at station ${to_station.name} to import for transfer!`);
+        throw new BadRequestException(`Not enough empty slots at station ${to_station.name} to import for transfer!. Available slots: ${allEmptySlots.length}, Required slots: ${dto.quantity}`);
       }
 
       // Check for existing in-progress request
