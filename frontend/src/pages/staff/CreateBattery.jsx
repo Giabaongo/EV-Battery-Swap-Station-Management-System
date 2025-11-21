@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { useAuth } from '../../hooks/useContext';
 import { batteryService } from '../../services/batteryService';
 import { stationService } from '../../services/stationService';
-import { swappingService } from '../../services/swappingService';
+import { cabinetService } from '../../services/cabinetService';
 import { toast } from 'sonner';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
@@ -56,12 +56,7 @@ export default function CreateBattery() {
 
             try {
                 setLoadingSlots(true);
-                const dummyUserId = user.id || user.user_id || 1;
-                const response = await swappingService.getEmptySlot({
-                    user_id: parseInt(dummyUserId),
-                    vehicle_id: 1,
-                    station_id: parseInt(user.station_id),
-                });
+                const response = await cabinetService.getAvailableSlots(user.station_id);
 
                 if (response && Array.isArray(response)) {
                     setAvailableSlots(response);
@@ -79,7 +74,7 @@ export default function CreateBattery() {
         };
 
         fetchAvailableSlots();
-    }, [user?.station_id, user?.id, user?.user_id]);
+    }, [user?.station_id]);
 
     const {
         register,
