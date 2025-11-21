@@ -32,6 +32,7 @@ export default function CreateBattery() {
     const [stationName, setStationName] = useState('');
     const [availableSlots, setAvailableSlots] = useState([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
+    const [selectedSlotId, setSelectedSlotId] = useState(null);
 
     React.useEffect(() => {
         const fetchStationName = async () => {
@@ -118,7 +119,7 @@ export default function CreateBattery() {
 
             // Add optional cabinet_id and slot_id if provided
             if (values.cabinet_id) batteryData.cabinet_id = parseInt(values.cabinet_id);
-            if (values.slot_id) batteryData.slot_id = parseInt(values.slot_id);
+            if (selectedSlotId) batteryData.slot_id = parseInt(selectedSlotId);
 
             console.log('📤 Creating battery with data:', batteryData);
             await batteryService.createBattery(batteryData);
@@ -210,14 +211,10 @@ export default function CreateBattery() {
                                         <select
                                             {...register('cabinet_id')}
                                             onChange={(e) => {
-                                                const selected = availableSlots.find(s => s.cabinet_id === parseInt(e.target.value));
+                                                const cabinetIdValue = parseInt(e.target.value);
+                                                const selected = availableSlots.find(s => s.cabinet_id === cabinetIdValue);
                                                 if (selected) {
-                                                    // Manual form manipulation to set slot_id
-                                                    const form = e.target.form;
-                                                    const slotInput = form?.elements['slot_id'];
-                                                    if (slotInput) {
-                                                        slotInput.value = selected.slot_id;
-                                                    }
+                                                    setSelectedSlotId(selected.slot_id);
                                                 }
                                             }}
                                             className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${errors.cabinet_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
@@ -233,9 +230,6 @@ export default function CreateBattery() {
                                     )}
                                     {errors.cabinet_id && <p className="text-red-500 text-xs mt-1">{errors.cabinet_id.message}</p>}
                                 </div>
-
-                                {/* Slot - Hidden field */}
-                                <input type="hidden" {...register('slot_id')} />
 
                                 {/* Model */}
                                 <div className="flex flex-col col-span-1">
