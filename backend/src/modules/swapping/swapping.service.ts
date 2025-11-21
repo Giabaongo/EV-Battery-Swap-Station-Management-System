@@ -178,7 +178,7 @@ export class SwappingService {
         return await this.databaseService.$transaction(async (prisma) => {
 
             // Execute updates in parallel within transaction
-            const [updatedBattery, updatedVehicle, swapRecord] = await Promise.all([
+            const [updatedBattery, updatedVehicle, updatedSubscription,swapRecord] = await Promise.all([
                 //Update battery to cabinet slot
                 this.batteriesService.update(returnBattery.battery_id, {
                     station_id: dto.station_id,
@@ -198,6 +198,9 @@ export class SwappingService {
 
                 //Update vehicle to remove battery
                 this.vehiclesService.update(dto.vehicle_id, { battery_id: null }, prisma),
+
+                //Update Subscription distance and swap used
+                this.subscriptionsService.updateDistanceTraveled(subscription.subscription_id, returnBattery.current_charge.toNumber(), prisma),
 
                 //Create swap transaction
                 this.swapTransactionsService.create(
@@ -264,7 +267,7 @@ export class SwappingService {
 
         let takenBattery;
 
-        if (reservation?.battery_id) {
+        if (reservation && reservation.battery_id) {
             // Flow 1: Use reserved battery
             takenBattery = await this.batteriesService.findOne(reservation.battery_id);
             this.logger.log(`Using reserved battery ID ${takenBattery.battery_id}`);

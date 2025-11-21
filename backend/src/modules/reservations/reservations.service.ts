@@ -71,7 +71,6 @@ export class ReservationsService {
 
       const slot = await this.cabinetsService.findEmptySlotAtCabinet(cabinet.cabinet_id);
 
-
       const now = new Date();
       // chuyển string sang date
       const scheduledTime = new Date(scheduled_time);
