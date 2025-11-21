@@ -267,9 +267,6 @@ export class VehiclesService {
 
       return updatedVehicle;
     } catch (error) {
-      if (error.code === 'P2002') {
-        throw new ConflictException('VIN already exists');
-      }
       throw error;
     }
   }
