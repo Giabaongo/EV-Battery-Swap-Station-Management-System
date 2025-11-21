@@ -10,6 +10,8 @@ import { swappingService } from '../../services/swappingService';
 import { vehicleService } from '../../services/vehicleService';
 import { batteryService } from '../../services/batteryService';
 import { reservationService } from '../../services/reservationService';
+import { subscriptionService } from '../../services/subscriptionService';
+import userService from '../../services/userService';
 
 /**
  * SWAP FLOW (Luồng tự động đổi pin với Cabinet/Slot):
@@ -68,6 +70,9 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
 
     // Final transaction data
     const [swapTransaction, setSwapTransaction] = useState(null);
+    const [subscriptionPlan, setSubscriptionPlan] = useState(null);
+    const [userData, setUserData] = useState(null);
+    const [vehicleVin, setVehicleVin] = useState(null);
 
     // ==================== EFFECTS ====================
 
@@ -117,6 +122,9 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
             setBatteryCheckStatus(null);
             setFullBatterySlot(null);
             setSwapTransaction(null);
+            setSubscriptionPlan(null);
+            setUserData(null);
+            setVehicleVin(null);
         }
     }, [open, userId]);
 
@@ -412,8 +420,42 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
 
             console.log('✅ Battery taken - Swap completed:', response);
             setSwapTransaction(response);
-            setCurrentStep(SWAP_STEPS.SWAP_SUCCESS);
 
+            // Fetch user data and subscription plan
+            try {
+                const user = await userService.getUserById(parseInt(formData.user_id, 10));
+                setUserData(user);
+
+                const subscriptions = await subscriptionService.getSubscriptionsByUserId(parseInt(formData.user_id, 10));
+                const activeSubscription = Array.isArray(subscriptions)
+                    ? subscriptions.find(sub => sub.status === 'active' && sub.vehicle_id === parseInt(formData.vehicle_id, 10))
+                    : null;
+
+                if (activeSubscription) {
+                    const planName = activeSubscription.package?.package_name || activeSubscription.package?.name || 'Unknown Plan';
+                    setSubscriptionPlan(planName);
+
+                    // Fetch vehicle data to get VIN using vehicle_id from subscription
+                    try {
+                        const vehicle = await vehicleService.getVehicleById(activeSubscription.vehicle_id);
+                        if (vehicle?.vin) {
+                            console.log('✅ Vehicle VIN fetched:', vehicle.vin);
+                            setVehicleVin(vehicle.vin);
+                        } else {
+                            console.warn('No VIN found in vehicle data');
+                            setVehicleVin(null);
+                        }
+                    } catch (vehicleErr) {
+                        console.warn('Failed to fetch vehicle details:', vehicleErr);
+                        setVehicleVin(null);
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to fetch user or subscription data:', err);
+                // Continue anyway - will show fallback in UI
+            }
+
+            setCurrentStep(SWAP_STEPS.SWAP_SUCCESS);
             toast.success('Battery swap successful!');
         } catch (err) {
             console.error('❌ Error taking battery:', err);
@@ -760,10 +802,10 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                         open={currentStep === SWAP_STEPS.SWAP_SUCCESS}
                         onOpenChange={handleSuccessClose}
                         summary={{
-                            user: swapTransaction?.vehicle?.user?.username || 'N/A',
+                            user: userData?.name || userData?.username || 'N/A',
                             station: selectedStation?.name || 'N/A',
-                            vehicle: swapTransaction?.vehicle?.vin || 'N/A',
-                            plan: 'Premium Subscription',
+                            vehicle: vehicleVin || 'N/A',
+                            plan: subscriptionPlan || 'N/A',
                         }}
                     />
                 )}

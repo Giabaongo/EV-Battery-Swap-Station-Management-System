@@ -24,5 +24,5 @@ export class CreateVehicleDto {
   @IsOptional()
   @IsString({ message: 'Battery type must be a string' })
   @MaxLength(50, { message: 'Battery type must not exceed 50 characters' })
-  battery_type: string = 'Lithium-ion';
+  battery_type: string = 'Lithium-Ion';
 }
