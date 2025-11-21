@@ -20,7 +20,15 @@ export class CreatePaymentWithFeesDto {
   @IsNotEmpty()
   vehicle_id: number;
 
-  @IsEnum(['subscription', 'subscription_with_deposit', 'battery_replacement', 'damage_fee', 'other'])
+  @IsEnum([
+    'subscription',
+    'subscription_with_deposit',
+    'subscription_renewal',
+    'battery_deposit',
+    'battery_replacement',
+    'damage_fee',
+    'other'
+  ])
   @IsOptional()
   payment_type?: string = 'subscription';
 
@@ -73,5 +81,11 @@ export class PaymentWithFeesResponse {
     payment_type: string;
     status: string;
     created_at: string;
+  };
+
+  // MoMo specific extras (optional)
+  momoExtras?: {
+    deeplink?: string;      // Deep link for mobile app
+    qrCodeUrl?: string;     // QR code URL for scanning
   };
 }
