@@ -88,7 +88,7 @@ export default function PaymentDetailModal({ open, onClose, paymentId }) {
             {/* Content */}
             <div className="py-4 space-y-4">
               {/* Grid thông tin chính - 3 cột */}
-              <div className="grid grid-cols-4 md:grid-cols-3 gap-x-6 gap-y-3">
+              <div className="grid grid-cols-3 md:grid-cols-3 gap-x-6 gap-y-3">
                 <div>
                   <p className="text-sm text-gray-500">Package Name</p>
                   <p className="font-medium text-gray-900">
@@ -101,12 +101,12 @@ export default function PaymentDetailModal({ open, onClose, paymentId }) {
                     {payment.method || 'N/A'}
                   </p>
                 </div>
-                <div>
+                {/* <div>
                   <p className="text-sm text-gray-500">Payment Type</p>
                   <p className="font-medium text-gray-900">
                     {payment.payment_type?.replace(/_/g, ' ') || 'N/A'}
                   </p>
-                </div>
+                </div> */}
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

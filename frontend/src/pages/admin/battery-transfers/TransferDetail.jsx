@@ -145,7 +145,7 @@ export default function BatteryTransferDetail() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* <div className="flex items-center gap-3">
               <Button
                 onClick={() => navigate(`/admin/battery-transfer-requests/edit/${id}`)}
                 className="flex items-center gap-2"
@@ -161,7 +161,7 @@ export default function BatteryTransferDetail() {
                 <Trash2 className="h-4 w-4" />
                 Delete
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
 
