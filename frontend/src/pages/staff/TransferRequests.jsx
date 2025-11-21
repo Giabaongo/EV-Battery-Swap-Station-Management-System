@@ -5,6 +5,8 @@ import ConfirmReceiveBatteriesModal from '../../components/dashboard/ConfirmRece
 import { useAuth } from '../../hooks/useContext'
 import batteryTransferService from '../../services/batteryTransferService'
 import { toast } from 'sonner'
+import { useTicketWebSocket } from '../../hooks/useTicketWebSocket'
+import { useTransferWebSocket } from '../../hooks/useTransferWebSocket'
 
 function StaffTransfer() {
     const { user } = useAuth()
@@ -35,20 +37,49 @@ function StaffTransfer() {
     // Modal state for confirm receive batteries
     const [showConfirmReceiveModal, setShowConfirmReceiveModal] = useState(false)
 
+    // WebSocket for real-time transfer request updates
+    useTransferWebSocket(
+        (data) => {
+            console.log('🔔 Transfer request created:', data)
+            fetchData(false)
+        },
+        (data) => {
+            console.log('🔔 Transfer request updated:', data)
+            fetchData(false)
+        },
+        (data) => {
+            console.log('🔔 Transfer request status updated:', data)
+            fetchData(false)
+        },
+        !!user?.station_id
+    )
+
+    // WebSocket for real-time ticket updates
+    useTicketWebSocket(
+        (data) => {
+            console.log('🔔 Ticket created:', data)
+            fetchData(false)
+        },
+        (data) => {
+            console.log('🔔 Export ticket completed:', data)
+            fetchData(false)
+        },
+        (data) => {
+            console.log('🔔 Import ticket completed:', data)
+            fetchData(false)
+        },
+        !!user?.station_id
+    )
+
+    // Initial data load
     useEffect(() => {
         if (user?.station_id) {
-            // Initial load with loading state
             fetchData(true)
-
-            // Auto-fetch data every 5 seconds for real-time updates (without loading state)
-            const interval = setInterval(() => {
-                fetchData(false)
-            }, 5000)
-
-            return () => clearInterval(interval)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.station_id])
+
+
 
     useEffect(() => {
         applyFilters()
@@ -562,8 +593,8 @@ function StaffTransfer() {
                                                             key={pageNum}
                                                             onClick={() => setHistoryPage(pageNum)}
                                                             className={`flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-colors ${historyPage === pageNum
-                                                                    ? 'bg-primary text-white'
-                                                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                                ? 'bg-primary text-white'
+                                                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                                 }`}
                                                         >
                                                             {pageNum}

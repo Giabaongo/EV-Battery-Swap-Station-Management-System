@@ -219,7 +219,7 @@ async function main() {
     console.log('🔋 Seeding batteries...');
     const batteries: Battery[] = [];
     const BATTERY_MODEL = 'VinFast Standard';
-    const BATTERY_TYPE = 'Lithium-Ion';z
+    const BATTERY_TYPE = 'Lithium-Ion';
 
     // Station 1 batteries (Cabinet 1, Slots 1-5)
     for (let i = 1; i <= 5; i++) {
