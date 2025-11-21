@@ -78,8 +78,14 @@ export class StationsService {
           status: 'active',
           batteries: {
             some: {
-              model: vehicle.battery_model,
-              type: vehicle.battery_type,
+              model: {
+                equals: vehicle.battery_model,
+                mode: 'insensitive' // Case-insensitive comparison
+              },
+              type: {
+                equals: vehicle.battery_type,
+                mode: 'insensitive' // Case-insensitive comparison
+              },
               status: 'full'
             }
           }
@@ -95,8 +101,14 @@ export class StationsService {
             select: {
               batteries: {
                 where: {
-                  model: vehicle.battery_model,
-                  type: vehicle.battery_type,
+                  model: {
+                    equals: vehicle.battery_model,
+                    mode: 'insensitive' // Case-insensitive comparison
+                  },
+                  type: {
+                    equals: vehicle.battery_type,
+                    mode: 'insensitive' // Case-insensitive comparison
+                  },
                   status: 'full'
                 }
               }
