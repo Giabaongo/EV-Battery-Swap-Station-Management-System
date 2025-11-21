@@ -382,7 +382,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                 user_id: parseInt(formData.user_id, 10),
                 vehicle_id: parseInt(formData.vehicle_id, 10),
                 station_id: parseInt(formData.station_id, 10),
-                cabinet_id: emptySlot.cabinet.cabinet_id, // ✅ Use cabinet from step 1 (where battery was returned)
+                cabinet_id: emptySlot.cabinet.cabinet_id,
             });
 
             console.log('✅ Full battery slot found:', response);
