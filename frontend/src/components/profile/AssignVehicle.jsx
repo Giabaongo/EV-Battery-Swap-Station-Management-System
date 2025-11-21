@@ -35,7 +35,9 @@ export default function AssignVehicle({ onAdded }) {
             // Use PATCH /vehicles/add-vehicle for driver self-assignment
             const assign = await vehicleService.addVehicleToCurrentUser(vin)
             setAssignedVehicle(assign)
-            if (typeof onAdded === 'function') onAdded(assign)
+            if (typeof onAdded === 'function') await onAdded(assign)
+            // Emit global event so InventoryContext and others refresh
+            try { window.dispatchEvent(new Event('vehiclesUpdated')); } catch { /* ignore */ }
             setStep(2)
         } catch (err) {
             console.error('Error adding vehicle:', err)

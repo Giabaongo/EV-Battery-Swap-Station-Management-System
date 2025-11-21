@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { stationService } from "../services/stationService";
 import { batteryService } from "../services/batteryService";
 import { vehicleService } from "../services/vehicleService";
@@ -273,7 +273,7 @@ export const InventoryProvider = ({ children }) => {
     };
 
     // ============ VEHICLE METHODS ============
-    const fetchVehicles = async () => {
+    const fetchVehicles = useCallback(async () => {
         const userId = user?.user_id || user?.id;
         if (!userId) {
             console.log('No user_id - cannot fetch vehicles');
@@ -295,7 +295,7 @@ export const InventoryProvider = ({ children }) => {
         } finally {
             setVehicleLoading(false);
         }
-    };
+    }, [user?.user_id, user?.id]);
 
     // ============ EFFECTS ============
     // Clear data when user logs out
@@ -381,6 +381,22 @@ export const InventoryProvider = ({ children }) => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.role, user?.user_id]);
+
+    // Listen for global events so other components/dialogs can trigger a refresh
+    useEffect(() => {
+        const handler = () => {
+            console.log('vehiclesUpdated event received - refreshing vehicles');
+            // Only refresh if we have a driver user
+            const userId = user?.user_id || user?.id;
+            if (!userId || user?.role !== 'driver') return;
+            fetchVehicles().catch(err => {
+                console.error('Failed to refresh vehicles on vehiclesUpdated', err);
+            });
+        };
+
+        window.addEventListener('vehiclesUpdated', handler);
+        return () => window.removeEventListener('vehiclesUpdated', handler);
+    }, [user?.user_id, user?.id, user?.role, fetchVehicles]);
 
     // Station: Re-fetch when user logs in (only for driver role)
     useEffect(() => {
