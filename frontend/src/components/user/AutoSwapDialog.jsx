@@ -362,12 +362,19 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         setErrors([]);
 
         try {
+            // Validate emptySlot exists (from step 1)
+            if (!emptySlot?.cabinet?.cabinet_id) {
+                setErrors(['Missing cabinet information from previous step']);
+                setLoading(false);
+                return;
+            }
+
             // Call API: get full battery slot to take
             const response = await swappingService.getFullSlot({
                 user_id: parseInt(formData.user_id, 10),
                 vehicle_id: parseInt(formData.vehicle_id, 10),
                 station_id: parseInt(formData.station_id, 10),
-                cabinet_id: parseInt(formData.cabinet_id, 10), // Use same cabinet or allow selection
+                cabinet_id: emptySlot.cabinet.cabinet_id, // ✅ Use cabinet from step 1 (where battery was returned)
             });
 
             console.log('✅ Full battery slot found:', response);
