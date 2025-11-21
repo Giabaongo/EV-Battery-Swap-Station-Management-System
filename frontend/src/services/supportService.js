@@ -78,6 +78,18 @@ const deleteSupport = async (id) => {
   }
 };
 
+const clearSupportTicket = async (id) => {
+  try {
+    const response = await api.patch(API_ENDPOINTS.SUPPORT.CLOSE_TICKET(id), {
+      status: "closed"
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error clearing support ticket:", error);
+    throw error;
+  }
+};
+
 export const supportService = {
   createSupportTicket,
   getAllSupports,
@@ -86,6 +98,7 @@ export const supportService = {
   updateSupport,
   updateSupportStatus,
   deleteSupport,
+  clearSupportTicket,
 };
 
 export default supportService;
