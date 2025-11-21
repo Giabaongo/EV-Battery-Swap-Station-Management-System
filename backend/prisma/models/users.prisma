@@ -11,6 +11,7 @@ model User {
   email_verified      Boolean   @default(false)
   email_token         String?
   email_token_expires DateTime?
+  status UserStatus             @default(active)
 
   // Relations
   batteryTransferTickets BatteryTransferTicket[]
@@ -29,4 +30,9 @@ enum Role {
   driver
   station_staff
   admin
+}
+
+enum UserStatus {
+  active
+  inactive
 }

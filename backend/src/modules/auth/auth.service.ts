@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { Role, StationStatus } from '@prisma/client';
+import { Role, StationStatus, UserStatus } from '@prisma/client';
 import { MailService } from '../mail/mail.service';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -23,6 +23,9 @@ export class AuthService {
     async login(loginDto: LoginDto) {
         const user = await this.usersService.findOneByEmailOrPhone(loginDto.emailOrPhone);
 
+        if (user?.status !== UserStatus.active) {
+            throw new UnauthorizedException('Your account has been banned!. Please contact our support service.'); 
+        }
 
         if (!user || !(await isMatchPassword(loginDto.password, user.password))) {
             throw new UnauthorizedException('Your email/phone or password is incorrect!');
