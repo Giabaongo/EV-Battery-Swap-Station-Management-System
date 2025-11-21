@@ -161,7 +161,7 @@ export const API_ENDPOINTS = {
     UPDATE_RATING: (id) => `/supports/${id}/rating`,
     DELETE_SUPPORT: (id) => `/supports/${id}`,
     CLOSE_TICKET: (id) => `/supports/${id}`,
-    REPLY_TO_TICKET: (id) => `/supports/${id}`,
+    REPLY_TO_TICKET: (id) => `/supports/${id}/admin-response`,
   },
 
   BATTERY_TRANSFER_REQUEST: {
