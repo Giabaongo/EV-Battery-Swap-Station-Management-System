@@ -1,59 +1,57 @@
 import { Card, CardContent, CardHeader } from "../ui/card"
 import { Button } from "../ui/button"
 import { Check } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const plans = [
   {
-    name: "Pay-Per-Swap",
-    description: "Perfect for occasional EV users",
-    price: "$15",
-    period: "per swap",
+    name: "Basic Package",
+    description: "Perfect for light users",
+    price: "500,000",
+    period: "per month",
     features: [
-      "No monthly commitment",
-      "Standard battery quality",
+      "1,000 km included",
+      "No extra fee",
       "Access to all stations",
-      "Mobile app access",
       "24/7 customer support"
     ],
-    buttonText: "Start Now",
-    buttonVariant: "outline",
     popular: false
   },
   {
-    name: "Monthly Subscription",
-    description: "Ideal for regular commuters",
-    price: "$99",
+    name: "Standard Package",
+    description: "Most popular package",
+    price: "900,000",
     period: "per month",
     features: [
-      "Up to 10 swaps per month",
-      "Premium battery quality",
-      "Priority booking",
-      "Advanced analytics",
-      "24/7 priority support"
+      "2,000 km included",
+      "No extra fee",
+      "Access to all stations",
+      "24/7 customer support"
     ],
-    buttonText: "Subscribe Now",
-    buttonVariant: "default",
     popular: true
   },
   {
-    name: "Business Plan",
-    description: "For fleets and business use",
-    price: "Custom",
-    period: "pricing",
+    name: "Premium Package",
+    description: "Unlimited swaps for heavy users",
+    price: "2,000,000",
+    period: "per month",
     features: [
-      "Unlimited swaps",
-      "Dedicated stations",
-      "Fleet management tools",
-      "API integration",
-      "Dedicated account manager"
+      "5,000 km included",
+      "No extra fee",
+      "Access to all stations",
+      "24/7 customer support"
     ],
-    buttonText: "Contact Sales",
-    buttonVariant: "outline",
     popular: false
   }
 ]
 
 export default function PricingPlans() {
+  const navigate = useNavigate();
+
+  const handleSubscribe = () => {
+    navigate('/login');
+  };
+
   return (
     <section className="py-16 px-4 bg-gray-50">
       <div className="max-w-6xl mx-auto">
@@ -88,10 +86,10 @@ export default function PricingPlans() {
                   {plan.description}
                 </p>
                 <div className="text-4xl font-bold">
-                  {plan.price}
-                  <span className={`text-lg font-normal ${plan.popular ? 'text-blue-100' : 'text-gray-500'}`}>
+                  {plan.price} <span className="text-2xl">VND</span>
+                  <div className={`text-lg font-normal ${plan.popular ? 'text-blue-100' : 'text-gray-500'}`}>
                     {plan.period}
-                  </span>
+                  </div>
                 </div>
               </CardHeader>
               
@@ -106,11 +104,11 @@ export default function PricingPlans() {
                 </ul>
                 
                 <Button 
-                  className={`w-full ${plan.popular ? 'bg-blue-700 hover:bg-blue-700 text-white' : ''}`}
-                  variant={plan.buttonVariant}
+                  className={`w-full ${plan.popular ? 'bg-blue-700 hover:bg-blue-800 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
                   size="lg"
+                  onClick={handleSubscribe}
                 >
-                  {plan.buttonText}
+                  Login To Subscribe
                 </Button>
               </CardContent>
             </Card>
