@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { batteryTransferService } from '../../../services/batteryTransferService'
 import { Search, Plus, X, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTransferWebSocket } from '../../../hooks/useTransferWebSocket'
+import { useTicketWebSocket } from '../../../hooks/useTicketWebSocket'
 
 export default function AdminBatteryTransferList() {
   const [requests, setRequests] = useState([])
@@ -16,24 +18,59 @@ export default function AdminBatteryTransferList() {
   const [itemsPerPage] = useState(5)
 
   // Fetch all transfer requests
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        setLoading(true)
-        const data = await batteryTransferService.getAllRequests()
-        setRequests(Array.isArray(data) ? data : [])
-        setError(null)
-      } catch (err) {
-        console.error('Error fetching transfer requests:', err)
-        setError('Failed to load transfer requests')
-        setRequests([])
-      } finally {
-        setLoading(false)
-      }
+  const fetchRequests = async () => {
+    try {
+      setLoading(true)
+      const data = await batteryTransferService.getAllRequests()
+      setRequests(Array.isArray(data) ? data : [])
+      setError(null)
+    } catch (err) {
+      console.error('Error fetching transfer requests:', err)
+      setError('Failed to load transfer requests')
+      setRequests([])
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Initial fetch
+  useEffect(() => {
     fetchRequests()
   }, [])
+
+  // WebSocket for real-time transfer request updates
+  useTransferWebSocket(
+    (data) => {
+      console.log('🔔 Transfer request created:', data)
+      fetchRequests()
+    },
+    (data) => {
+      console.log('🔔 Transfer request updated:', data)
+      fetchRequests()
+    },
+    (data) => {
+      console.log('🔔 Transfer request status updated:', data)
+      fetchRequests()
+    },
+    true // Always enabled for admin
+  )
+
+  // WebSocket for real-time ticket updates (affects transfer status)
+  useTicketWebSocket(
+    (data) => {
+      console.log('🔔 Ticket created:', data)
+      fetchRequests()
+    },
+    (data) => {
+      console.log('🔔 Export ticket completed:', data)
+      fetchRequests()
+    },
+    (data) => {
+      console.log('🔔 Import ticket completed:', data)
+      fetchRequests()
+    },
+    true // Always enabled for admin
+  )
 
   // Filter requests based on search
   const filteredRequests = requests.filter(req => {
@@ -245,8 +282,8 @@ export default function AdminBatteryTransferList() {
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`flex h-9 w-9 items-center justify-center rounded-lg ${currentPage === pageNum
-                          ? 'bg-blue-700 text-white font-bold'
-                          : 'hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        ? 'bg-blue-700 text-white font-bold'
+                        : 'hover:bg-blue-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
                     >
                       {pageNum}

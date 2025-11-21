@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { CreateBatteryTransferTicketDto } from './dto/create-battery-transfer-ticket.dto';
 import { UpdateBatteryTransferTicketDto } from './dto/update-battery-transfer-ticket.dto';
+import { BatteryTransferTicketGateway } from './battery-transfer-ticket.gateway';
 import { DatabaseService } from '../database/database.service';
 import { BatteryStatus, CabinetStatus, TicketType, TransferStatus } from '@prisma/client';
 import { CabinetService } from '../cabinets/cabinets.service';
@@ -17,6 +18,7 @@ export class BatteryTransferTicketService {
     private readonly batteryTransferRequestService: BatteryTransferRequestService,
     private readonly batteriesService: BatteriesService,
     private readonly cabinetsService: CabinetService,
+    private readonly transferTicketGateway: BatteryTransferTicketGateway,
   ) { }
 
   async create(dto: CreateBatteryTransferTicketDto) {
@@ -94,7 +96,7 @@ export class BatteryTransferTicketService {
         }
 
         // 5. Return với relations
-        return await prisma.batteryTransferTicket.findUnique({
+        const createdTicket = await prisma.batteryTransferTicket.findUnique({
           where: { ticket_id: ticket.ticket_id },
           include: {
             batteries: {
@@ -119,9 +121,113 @@ export class BatteryTransferTicketService {
               }
             },
             station: true,
-            transferRequest: true,
+            transferRequest: {
+              include: {
+                fromStation: true,
+                toStation: true,
+              },
+            },
           },
         });
+
+        if (!createdTicket) {
+          throw new BadRequestException('Failed to retrieve created ticket');
+        }
+
+        // 🔔 WebSocket notification - Transfer ticket created
+        const isExport = dto.ticket_type === TicketType.export;
+        const relatedStation = isExport
+          ? createdTicket.transferRequest.toStation
+          : createdTicket.transferRequest.fromStation;
+
+        this.transferTicketGateway.notifyTransferTicketCreated({
+          ticketId: createdTicket.ticket_id,
+          transferRequestId: createdTicket.transfer_request_id,
+          ticketType: createdTicket.ticket_type,
+          stationId: createdTicket.station_id,
+          stationName: createdTicket.station.name,
+          batteryIds: dto.battery_ids,
+          batteryCount: dto.battery_ids.length,
+          batteryModel: createdTicket.transferRequest.battery_model,
+          batteryType: createdTicket.transferRequest.battery_type,
+          staff: {
+            staffId: createdTicket.staff_id,
+            username: createdTicket.staff.username,
+          },
+          relatedStation: {
+            stationId: relatedStation.station_id,
+            stationName: relatedStation.name,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
+        // 🔔 Additional notification for export/import completion
+        if (isExport) {
+          this.transferTicketGateway.notifyExportTicketCompleted({
+            ticketId: createdTicket.ticket_id,
+            transferRequestId: createdTicket.transfer_request_id,
+            fromStationId: createdTicket.transferRequest.from_station_id,
+            fromStationName: createdTicket.transferRequest.fromStation.name,
+            toStationId: createdTicket.transferRequest.to_station_id,
+            toStationName: createdTicket.transferRequest.toStation.name,
+            batteryIds: dto.battery_ids,
+            batteryCount: dto.battery_ids.length,
+            batteryModel: createdTicket.transferRequest.battery_model,
+            batteryType: createdTicket.transferRequest.battery_type,
+            exportedBy: {
+              staffId: createdTicket.staff_id,
+              username: createdTicket.staff.username,
+            },
+            timestamp: new Date().toISOString(),
+          });
+
+          // Notify battery transit status
+          this.transferTicketGateway.notifyBatteryTransitStatus({
+            batteryIds: dto.battery_ids,
+            fromStationId: createdTicket.transferRequest.from_station_id,
+            fromStationName: createdTicket.transferRequest.fromStation.name,
+            toStationId: createdTicket.transferRequest.to_station_id,
+            toStationName: createdTicket.transferRequest.toStation.name,
+            transferRequestId: createdTicket.transfer_request_id,
+            ticketId: createdTicket.ticket_id,
+            inTransit: true,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          // Import ticket
+          this.transferTicketGateway.notifyImportTicketCompleted({
+            ticketId: createdTicket.ticket_id,
+            transferRequestId: createdTicket.transfer_request_id,
+            fromStationId: createdTicket.transferRequest.from_station_id,
+            fromStationName: createdTicket.transferRequest.fromStation.name,
+            toStationId: createdTicket.transferRequest.to_station_id,
+            toStationName: createdTicket.transferRequest.toStation.name,
+            batteryIds: dto.battery_ids,
+            batteryCount: dto.battery_ids.length,
+            batteryModel: createdTicket.transferRequest.battery_model,
+            batteryType: createdTicket.transferRequest.battery_type,
+            importedBy: {
+              staffId: createdTicket.staff_id,
+              username: createdTicket.staff.username,
+            },
+            timestamp: new Date().toISOString(),
+          });
+
+          // Notify battery arrival
+          this.transferTicketGateway.notifyBatteryTransitStatus({
+            batteryIds: dto.battery_ids,
+            fromStationId: createdTicket.transferRequest.from_station_id,
+            fromStationName: createdTicket.transferRequest.fromStation.name,
+            toStationId: createdTicket.transferRequest.to_station_id,
+            toStationName: createdTicket.transferRequest.toStation.name,
+            transferRequestId: createdTicket.transfer_request_id,
+            ticketId: createdTicket.ticket_id,
+            inTransit: false,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        return createdTicket;
       });
     } catch (error) {
       this.logger.error('Failed to create ticket: ' + error.message);

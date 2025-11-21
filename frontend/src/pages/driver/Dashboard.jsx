@@ -18,7 +18,7 @@ export default function User() {
   const { stations } = useStation();
   // Lấy thông tin gói cước hiện tại từ context
   const { activeSubscription, getActiveSubscription } = useSubscription();
-  
+
   // State lưu danh sách xe của user
   const [vehicleData, setVehicleData] = useState([]);
   // State điều khiển hiển thị dialog đổi pin tự động
@@ -61,8 +61,8 @@ export default function User() {
     fetchVehicleData();
 
     // Auto-refresh every 5 seconds
-    const interval = setInterval(fetchVehicleData, 5000);
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchVehicleData, 5000);
+    // return () => clearInterval(interval);
   }, [user?.user_id]);
 
   const nearbyStations = useMemo(() => {

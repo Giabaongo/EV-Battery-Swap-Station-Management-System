@@ -111,6 +111,7 @@ export const API_ENDPOINTS = {
     CREATE_VNPAY_URL: "/payments/create-vnpay-url", // Legacy - subscription only - CŨ
     CREATE_VNPAY_URL_ADVANCED: "/payments/create-vnpay-url-advanced", // Multi-type support
     CREATE_VNPAY_URL_WITH_FEES: "/payments/calculate-and-create-vnpay-url", // Integrated calculation - MỚI
+    CREATE_MOMO_URL: "/payments/calculate-and-create-momo-url", // MỚI sử dụng MOMO
     VNPAY_RETURN: "/payments/vnpay-return",
     VNPAY_IPN: "/payments/vnpay-ipn",
 
@@ -120,6 +121,7 @@ export const API_ENDPOINTS = {
     GET_PAYMENTS_BY_USER: (userId) => `/payments/user/${userId}`,
     GET_ALL_PAYMENTS: "/payments",
     RENEW_SUBSCRIPTION: "/payments/subscription-renewal",
+    RENEW_SUBSCRIPTION_MOMO: "/payments/momo-subscription-renewal",
     DIRECT_RENEW_SUBSCRIPTION: "/payments/direct-renewal",
     PAY_PENALTY_ONLY: "/payments/penalty-only",
 

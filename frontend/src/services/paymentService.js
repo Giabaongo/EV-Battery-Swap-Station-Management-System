@@ -26,6 +26,17 @@ const createPayment = async (paymentData) => {
   }
 };
 
+const createMomoPayment = async (paymentData) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.PAYMENT.CREATE_MOMO_URL, paymentData);
+    console.log("Created MOMO payment:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating MOMO payment:", error);
+    throw error;
+  }
+};  
+
 const createDirectPaymentWithFees = async (paymentData) => {
   try {
     // ⚠️ Use MOCK_PAYMENT because DIRECT_WITH_FEES returns 404
@@ -45,6 +56,17 @@ const renewSubscription = async (renewalData) => {
     return response.data;
   } catch (error) {
     console.error("Error renewing subscription payment:", error);
+    throw error;
+  }
+};
+
+const renewSubscriptionMomo = async (renewalData) => {
+  try {
+    const response = await api.post(API_ENDPOINTS.PAYMENT.RENEW_SUBSCRIPTION_MOMO, renewalData);  
+    console.log("Renewed MOMO subscription payment:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error renewing MOMO subscription payment:", error);
     throw error;
   }
 };
@@ -119,6 +141,8 @@ export const paymentService = {
   renewSubscriptionDirect,
   payPenaltyOnly,
   getPaymentById,
+  createMomoPayment,
+  renewSubscriptionMomo,
 };
 
 

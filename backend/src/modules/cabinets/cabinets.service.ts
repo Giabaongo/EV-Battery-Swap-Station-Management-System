@@ -141,4 +141,22 @@ export class CabinetService {
       throw error;
     }
   }
+
+  async findAllEmptySlotsAtStation(station_id: number) {
+    try {
+      const activeCabinets = await this.findManyByStation(station_id);
+      let allEmptySlots: any[] = [];
+
+      for (const cabinet of activeCabinets) {
+        const emptySlots = await this.databaseService.slot.findMany({
+          where: { cabinet_id: cabinet.cabinet_id, is_occupied: false },
+        });
+        allEmptySlots.push(...emptySlots);
+      }
+
+      return allEmptySlots;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

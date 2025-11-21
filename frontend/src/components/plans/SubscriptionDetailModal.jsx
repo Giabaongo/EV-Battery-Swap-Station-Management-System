@@ -149,7 +149,7 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
     }
   };
 
-  // Handle renew subscription - Gọi API renewSubscription
+  // Handle renew subscription - Gọi API renewSubscription (VNPAY)
   const handleRenewSubscription = async () => {
     setRenewing(true);
     try {
@@ -165,7 +165,31 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
       }
     } catch (error) {
       console.error('Error renewing subscription:', error);
-      toast.error('Error renewing subscription');
+      const errorMsg = error.response?.data?.message || error.message || 'Error renewing subscription';
+      toast.error(errorMsg);
+    } finally {
+      setRenewing(false);
+    }
+  };
+
+  // Handle renew subscription with MOMO - Gọi API renewSubscriptionMomo
+  const handleRenewSubscriptionMomo = async () => {
+    setRenewing(true);
+    try {
+      const res = await paymentService.renewSubscriptionMomo({
+        subscription_id: subscription.subscription_id
+      });
+      
+      if (res?.paymentUrl) {
+        // Redirect to MOMO
+        window.location.href = res.paymentUrl;
+      } else {
+        toast.error('Renewal failed');
+      }
+    } catch (error) {
+      console.error('Error renewing subscription with MOMO:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Error renewing subscription';
+      toast.error(errorMsg);
     } finally {
       setRenewing(false);
     }
@@ -356,11 +380,20 @@ export default function SubscriptionDetailModal({ subscription, open, onClose, o
                   <Button 
                     variant="default"
                     size="sm"
-                    className="flex items-center gap-2 bg-blue-700 hover:bg-blue-700 text-white"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={handleRenewSubscription}
                     disabled={renewing || renewingDirect}
                   >
                     {renewing ? 'Renewing...' : 'Renew (VNPAY)'}
+                  </Button>
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white"
+                    onClick={handleRenewSubscriptionMomo}
+                    disabled={renewing || renewingDirect}
+                  >
+                    {renewing ? 'Renewing...' : 'Renew (MOMO)'}
                   </Button>
                   <Button 
                     variant="outline"
