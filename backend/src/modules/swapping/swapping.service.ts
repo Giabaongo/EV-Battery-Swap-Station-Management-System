@@ -371,13 +371,14 @@ export class SwappingService {
             // Execute all updates in parallel within transaction
             const [updatedBattery, updatedVehicle, completedSwapTransaction, updatedSubscription] =
                 await Promise.all([
-                    //Update battery
+                    //Update battery - assign to vehicle and change status to in_use
                     this.batteriesService.update(dto.taken_battery_id,
                         {
                             station_id: null,
                             cabinet_id: null,
                             slot_id: null,
-                            vehicle_id: dto.vehicle_id
+                            vehicle_id: dto.vehicle_id,
+                            status: BatteryStatus.in_use
                         }, prisma),
                     //Mark slot is empty
                     this.cabinetsService.updateSlot(takenBattery.slot_id,
