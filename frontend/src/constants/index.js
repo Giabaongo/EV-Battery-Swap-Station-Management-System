@@ -48,6 +48,16 @@ export const API_ENDPOINTS = {
     DELETE_STATION: (id) => `/stations/${id}`,
   },
 
+  CABINET: {
+    GET_CABINETS: "/cabinets",
+    GET_CABINET: (id) => `/cabinets/${id}`,
+    CREATE_CABINET: "/cabinets",
+    UPDATE_CABINET: (id) => `/cabinets/${id}`,
+    DELETE_CABINET: (id) => `/cabinets/${id}`,
+    GET_AVAILABLE_SLOTS: (station_id) =>
+      `/cabinets/available-slots/${station_id}`,
+  },
+
   BATTERY: {
     CREATE_BATTERY: "/batteries",
     GET_ALL_BATTERIES: "/batteries",

@@ -4,20 +4,12 @@ import { MoreVertical } from 'lucide-react';
 export default function BatteryCard({ battery }) {
   if (!battery) return null;
 
-  // Tính toán phần trăm pin từ dung lượng hiện tại / dung lượng tối đa
-  // Công thức: (current_charge / capacity) * 100
-  // Math.max(0, ...) đảm bảo >= 0%; Math.min(100, ...) đảm bảo <= 100%
-  // Ví dụ: current_charge=850, capacity=1000 -> (850/1000)*100 = 85%
-  const percentage = battery.capacity && battery.current_charge
-    ? Math.max(0, Math.min(100, Math.round((battery.current_charge / battery.capacity) * 100)))
-    : 0;  // Nếu không có dữ liệu, mặc định 0%
-
   // Hàm lấy nhãn trạng thái và màu badge - dùng để hiển thị trạng thái pin với màu sắc khác nhau
   // Ví dụ: status='full' -> label='Available', color='bg-green-100 text-green-800'
   const getStatusInfo = (status) => {
     // Ánh xạ từ status code sang display label và CSS color classes
     const statusMap = {
-      full: { label: 'Available', color: 'bg-green-100 text-green-800' },  // Pin đầy, sẵn sàng dùng
+      full: { label: 'Full', color: 'bg-green-100 text-green-800' },  // Pin đầy, sẵn sàng dùng
       charging: { label: 'Charging', color: 'bg-yellow-100 text-yellow-800' },  // Pin đang sạc
       in_use: { label: 'In Use', color: 'bg-blue-100 text-blue-800' },  // Pin đang sử dụng trên xe
       booked: { label: 'Booked', color: 'bg-orange-100 text-orange-800' },  // Pin đã được đặt lịch
@@ -72,12 +64,12 @@ export default function BatteryCard({ battery }) {
         <div>
           <div className="flex justify-between text-sm mb-1">
             <span className="font-medium text-gray-600">State of Charge</span>
-            <span className="font-semibold text-gray-800">{percentage}%</span>
+            <span className="font-semibold text-gray-800">{battery.current_charge}%</span>
           </div>
           <div className="w-full overflow-hidden rounded-full bg-gray-200 h-2">
             <div
-              className={`h-2 rounded-full ${getChargeBarColor(percentage)}`}
-              style={{ width: `${percentage}%` }}
+              className={`h-2 rounded-full ${getChargeBarColor(battery.current_charge)}`}
+              style={{ width: `${battery.current_charge}%` }}
             ></div>
           </div>
         </div>
