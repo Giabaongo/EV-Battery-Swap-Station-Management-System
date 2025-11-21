@@ -26,6 +26,7 @@ export default function SupportDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -67,6 +68,20 @@ export default function SupportDetail() {
 
     const config = typeMap[type?.toLowerCase()] || { label: type, className: 'bg-gray-100 text-gray-700' };
     return config;
+  };
+
+  const handleCloseTicket = async () => {
+    try {
+      setIsClosing(true);
+      const response = await supportService.clearSupportTicket(id);
+      toast.success(response.message || 'Support ticket closed successfully');
+      await fetchSupportDetail(); // Refresh ticket data
+    } catch (err) {
+      console.error('Error closing support ticket:', err);
+      toast.error(err.response?.data?.message || 'Failed to close support ticket');
+    } finally {
+      setIsClosing(false);
+    }
   };
 
   const handleDeleteTicket = async () => {
@@ -156,11 +171,21 @@ export default function SupportDetail() {
 
             <div className="flex items-center gap-3">
               <Button
-                onClick={() => navigate(`/admin/support/${id}/edit`)}
-                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800"
+                onClick={handleCloseTicket}
+                disabled={isClosing || ticket.status?.toLowerCase() === 'closed'}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Edit className="h-4 w-4" />
-                Update Ticket
+                {isClosing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Closing...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="h-4 w-4" />
+                    Close Ticket
+                  </>
+                )}
               </Button>
               <Button
                 onClick={() => setShowDeleteConfirm(true)}
