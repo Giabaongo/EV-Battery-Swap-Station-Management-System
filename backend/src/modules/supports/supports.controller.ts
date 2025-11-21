@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { SupportsService } from './supports.service';
 import { CreateSupportDto } from './dto/create-support.dto';
-import { UpdateSupportDto } from './dto/update-support.dto';
+import { UpdateSupportDto, UpdateSupportAdminDto } from './dto/update-support.dto';
 import { $Enums, SupportStatus } from '@prisma/client';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -79,6 +79,17 @@ export class SupportsController {
   @ApiResponse({ status: 200, description: 'The support request status has been successfully updated.' })
   updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: SupportStatus) {
     return this.supportsService.updateStatus(id, status);
+  }
+
+  @Roles($Enums.Role.admin)
+  @Patch(':id/admin-response')
+  @ApiOperation({ summary: 'Update admin response and/or status (Admin only)' })
+  @ApiResponse({ status: 200, description: 'The admin response and status have been successfully updated.' })
+  updateAdminResponse(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() updateData: UpdateSupportAdminDto
+  ) {
+    return this.supportsService.updateAdminResponse(id, updateData);
   }
 
   @Patch(':id/rating')
