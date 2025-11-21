@@ -125,9 +125,6 @@ export default function MyTickets() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                            {statusConfig.label}
-                          </span>
                           <span className="text-xs text-gray-500">
                             #{ticket.support_id}
                           </span>
@@ -246,11 +243,8 @@ export default function MyTickets() {
               </div>
 
               <div className="space-y-4">
-                {/* Status & Type */}
+                {/* Type */}
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(selectedTicket.status).color}`}>
-                    {getStatusBadge(selectedTicket.status).label}
-                  </span>
                   <span className="text-sm text-gray-600">
                     {getTypeBadge(selectedTicket.type)}
                   </span>
