@@ -193,7 +193,7 @@ export default function SwapStepsDialog({
                 user_id: userId,
                 vehicle_id: vehicleId,
                 station_id: stationId,
-                cabinet_id: stationId, // Use same cabinet as AutoSwapDialog
+                cabinet_id: emptySlot.cabinet.cabinet_id,
             };
 
             const slot = await swappingService.getFullSlot(payload);
