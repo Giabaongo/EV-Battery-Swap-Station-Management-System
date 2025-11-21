@@ -109,18 +109,38 @@ export class BatteriesService {
         throw new NotFoundException('Vehicle not found or missing battery model/type');
       }
 
-      // Find best battery sorted by charge level (if available) or created date
-      const bestBattery = await this.databaseService.battery.findFirst({
-        where: {
-          station_id: station_id,
-          cabinet_id: cabinet_id,
-          status: BatteryStatus.full
-        },
-        include: {
-          cabinet: true,
-          slot: true
-        },
-      });
+      // First, try to find battery in the requested cabinet (if specified)
+      let bestBattery;
+      if (cabinet_id) {
+        bestBattery = await this.databaseService.battery.findFirst({
+          where: {
+            station_id: station_id,
+            cabinet_id: cabinet_id,
+            status: BatteryStatus.full
+          },
+          include: {
+            cabinet: true,
+            slot: true
+          },
+        });
+      }
+
+      // If no battery found in requested cabinet, search entire station
+      if (!bestBattery) {
+        this.logger.log(
+          `No battery found in cabinet ${cabinet_id}, searching entire station ${station_id}`
+        );
+        bestBattery = await this.databaseService.battery.findFirst({
+          where: {
+            station_id: station_id,
+            status: BatteryStatus.full
+          },
+          include: {
+            cabinet: true,
+            slot: true
+          },
+        });
+      }
 
       if (!bestBattery) {
         throw new NotFoundException(
@@ -129,7 +149,7 @@ export class BatteriesService {
       }
 
       this.logger.log(
-        `Found best battery ${bestBattery.battery_id} for vehicle ${vehicle_id}`
+        `Found best battery ${bestBattery.battery_id} in cabinet ${bestBattery.cabinet_id} for vehicle ${vehicle_id}`
       );
 
       return bestBattery;
