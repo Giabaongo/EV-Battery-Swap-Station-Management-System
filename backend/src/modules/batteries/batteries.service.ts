@@ -109,22 +109,13 @@ export class BatteriesService {
         throw new NotFoundException('Vehicle not found or missing battery model/type');
       }
 
-      // Build query conditions
-      const whereConditions: any = {
-        station_id,
-        model: vehicle.battery_model,
-        type: vehicle.battery_type,
-        status: BatteryStatus.full,
-      };
-
-      // Add cabinet filter if provided
-      if (cabinet_id !== undefined) {
-        whereConditions.cabinet_id = cabinet_id;
-      }
-
       // Find best battery sorted by charge level (if available) or created date
       const bestBattery = await this.databaseService.battery.findFirst({
-        where: whereConditions,
+        where: {
+          station_id: station_id,
+          cabinet_id: cabinet_id,
+          status: BatteryStatus.full
+        },
         include: {
           cabinet: true,
           slot: true

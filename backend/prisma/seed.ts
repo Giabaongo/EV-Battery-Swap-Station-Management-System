@@ -12,7 +12,7 @@
 // // vin of vehicle is unique and 18 characters
 
 
-// //10 stations, 21 users (1 admin, 10 staff, 10 users, 25 vehicle), 500 battery
+// //10 stations, 21 users (1 admin, 10 staff, 10 users, 30 vehicle (10 is new, not have user or battery)), 500 battery
 
 // import { PrismaClient, Battery, Slot } from '@prisma/client';
 // import * as bcrypt from 'bcrypt';
@@ -65,7 +65,7 @@
 //         },
 //     });
 
-//     // Create 10 drivers
+//     // Create 10 drivers (changed from previous version)
 //     const drivers = [];
 //     for (let i = 1; i <= 10; i++) {
 //         const driver = await prisma.user.create({
@@ -82,8 +82,8 @@
 //         drivers.push(driver);
 //     }
 
-//     const driver1 = drivers[0]; // For reference in tests
-//     const driver2 = drivers[1]; // For reference in tests
+//     const driver1 = drivers[0];
+//     const driver2 = drivers[1];
 
 //     console.log(`   ✓ Created 21 users (1 admin, 10 drivers)`);
 
@@ -179,19 +179,20 @@
 //     staff2 = staffUsers[1];
 //     staff3 = staffUsers[2];
 
-//     // 4. Seed Cabinets (1-2 cabinets per station, total ~12 cabinets)
+//     // 4. Seed Cabinets (ensure enough slots for 500 batteries)
 //     console.log('🗄️  Seeding cabinets...');
 //     const cabinets = [];
+//     // Need at least 34 cabinets (500 / 15 = 33.3) to hold 500 batteries
 //     for (let i = 0; i < 10; i++) {
-//         // Each station has 1-2 cabinets
-//         const cabinetCount = i % 3 === 0 ? 2 : 1;
+//         // Each station has 3-4 cabinets to accommodate 500 batteries
+//         const cabinetCount = i < 4 ? 4 : 3;
 //         for (let j = 0; j < cabinetCount; j++) {
 //             const cabinet = await prisma.cabinet.create({
 //                 data: {
 //                     station_id: stations[i].station_id,
 //                     cabinet_name: `Cabinet ${String.fromCharCode(65 + j)}`,
-//                     total_slots: 15, // Each cabinet has exactly 15 slots
-//                     status: (i + j) % 5 === 0 ? 'maintenance' : 'active',
+//                     total_slots: 15,
+//                     status: (i + j) % 7 === 0 ? 'maintenance' : 'active',
 //                 },
 //             });
 //             cabinets.push(cabinet);
@@ -200,7 +201,7 @@
 
 //     console.log(`   ✓ Created ${cabinets.length} cabinets`);
 
-//     // 5. Seed Slots (15 slots per cabinet, 50% occupied)
+//     // 5. Seed Slots (15 slots per cabinet)
 //     console.log('📦 Seeding slots...');
 //     const slots: Slot[] = [];
 //     for (const cabinet of cabinets) {
@@ -209,7 +210,7 @@
 //                 data: {
 //                     cabinet_id: cabinet.cabinet_id,
 //                     slot_number: i,
-//                     is_occupied: i <= Math.ceil(15 * 0.5), // 50% occupied
+//                     is_occupied: false, // Will update when batteries are created
 //                 },
 //             });
 //             slots.push(slot);
@@ -217,72 +218,112 @@
 //     }
 //     console.log(`   ✓ Created ${slots.length} slots (15 per cabinet)`);
 
-//     // 6. Seed 500 Batteries (distributed across slots, all same model/type)
+//     // 6. Seed 500 Batteries
 //     console.log('🔋 Seeding 500 batteries...');
 //     const batteries: Battery[] = [];
 //     const BATTERY_MODEL = 'VinFast Standard';
 //     const BATTERY_TYPE = 'Lithium-Ion';
 
-//     let batteryCount = 0;
-//     for (let i = 0; i < slots.length && batteryCount < 500; i++) {
+//     // Create 500 batteries with proper status distribution
+//     for (let i = 0; i < 500; i++) {
 //         const slot = slots[i];
-//         if (slot.is_occupied && batteryCount < 500) {
-//             const battery = await prisma.battery.create({
-//                 data: {
-//                     serial_number: `BAT-${String(batteryCount + 1).padStart(5, '0')}`,
-//                     station_id: cabinets[Math.floor(i / 15)].station_id,
-//                     cabinet_id: slot.cabinet_id,
-//                     slot_id: slot.slot_id,
-//                     model: BATTERY_MODEL,
-//                     type: BATTERY_TYPE,
-//                     capacity: 75.5,
-//                     current_charge: 70 + (batteryCount % 30),
-//                     soh: 90 + (batteryCount % 10) * 0.5,
-//                     status: batteryCount % 3 === 0 ? 'charging' : 'full',
-//                 },
+//         // Calculate charge: some at 100%, others below
+//         let currentCharge: number;
+//         if (i % 10 === 0) {
+//             currentCharge = 100; // Every 10th battery is full
+//         } else {
+//             currentCharge = 70 + (i % 30); // Range: 70-99
+//         }
+        
+//         let status: string;
+
+//         // Determine battery status based on charge and usage
+//         // First 20 batteries are in vehicles
+//         if (i < 20) {
+//             status = 'in_use';
+//             currentCharge = 60 + (i % 40); // In-use batteries: 60-99%
+//         } 
+//         // Maintenance batteries
+//         else if (i >= 480 && i < 490) {
+//             status = 'maintenance';
+//             currentCharge = 50 + (i % 50); // Maintenance: 50-99%
+//         } 
+//         // In transit batteries
+//         else if (i >= 490 && i < 495) {
+//             status = 'in_transit';
+//             currentCharge = 70 + (i % 30); // Transit: 70-99%
+//         }
+//         // Batteries in station - full only if charge is exactly 100
+//         else if (currentCharge === 100) {
+//             status = 'full';
+//         } 
+//         // Batteries in station charging (below 100%)
+//         else {
+//             status = 'charging';
+//         }
+
+//         const battery = await prisma.battery.create({
+//             data: {
+//                 serial_number: `BAT-${String(i + 1).padStart(5, '0')}`,
+//                 station_id: cabinets[Math.floor(i / 15)].station_id,
+//                 cabinet_id: slot.cabinet_id,
+//                 slot_id: status === 'in_use' || status === 'in_transit' ? null : slot.slot_id, // No slot if in use or transit
+//                 model: BATTERY_MODEL,
+//                 type: BATTERY_TYPE,
+//                 capacity: 75.5,
+//                 current_charge: currentCharge,
+//                 soh: 85 + (i % 15),
+//                 status: status,
+//             },
+//         });
+//         batteries.push(battery);
+
+//         // Update slot occupation if battery is in slot (not in_use or in_transit)
+//         if (status !== 'in_use' && status !== 'in_transit') {
+//             await prisma.slot.update({
+//                 where: { slot_id: slot.slot_id },
+//                 data: { is_occupied: true },
 //             });
-//             batteries.push(battery);
-//             batteryCount++;
 //         }
 //     }
 
 //     console.log(`   ✓ Created ${batteries.length} batteries (${BATTERY_MODEL})`);
 
-//     // 7. Seed 25 Vehicles (1 vehicle per driver + extra vehicles)
-//     console.log('🚗 Seeding 25 vehicles...');
+//     // 7. Seed 30 Vehicles (20 with users, 10 new without users/batteries)
+//     console.log('🚗 Seeding 30 vehicles...');
 //     const vehicles = [];
     
-//     // Create 10 vehicles for 10 drivers
-//     for (let i = 0; i < 10; i++) {
-//         const vehicle = await prisma.vehicle.create({
-//             data: {
-//                 user_id: drivers[i].user_id,
-//                 battery_id: batteries[i % batteries.length].battery_id,
-//                 vin: `VF${String(i + 1).padStart(16, '0')}`,
-//                 battery_model: BATTERY_MODEL,
-//                 battery_type: BATTERY_TYPE,
-//                 status: 'active',
-//             },
-//         });
-//         vehicles.push(vehicle);
-//     }
-
-//     // Create 15 additional vehicles for drivers (multi-vehicle support)
-//     for (let i = 10; i < 25; i++) {
+//     // Create 20 vehicles for drivers (2 vehicles per driver)
+//     for (let i = 0; i < 20; i++) {
 //         const vehicle = await prisma.vehicle.create({
 //             data: {
 //                 user_id: drivers[i % 10].user_id, // Distribute among 10 drivers
-//                 battery_id: batteries[i % batteries.length].battery_id,
-//                 vin: `VF${String(i + 1).padStart(16, '0')}`,
+//                 battery_id: batteries[i].battery_id, // Use first 20 batteries
+//                 vin: `VF${String(i + 1).padStart(16, '0')}`, // Total 18 chars (VF + 16 digits)
 //                 battery_model: BATTERY_MODEL,
 //                 battery_type: BATTERY_TYPE,
-//                 status: i % 4 === 3 ? 'inactive' : 'active',
+//                 status: 'active', // All vehicles with users are active
 //             },
 //         });
 //         vehicles.push(vehicle);
 //     }
 
-//     console.log(`   ✓ Created 25 vehicles`);
+//     // Create 10 new vehicles without users or batteries
+//     for (let i = 20; i < 30; i++) {
+//         const vehicle = await prisma.vehicle.create({
+//             data: {
+//                 user_id: null,
+//                 battery_id: null,
+//                 vin: `VF${String(i + 1).padStart(16, '0')}`, // Total 18 chars
+//                 battery_model: BATTERY_MODEL,
+//                 battery_type: BATTERY_TYPE,
+//                 status: 'inactive', // No user = inactive
+//             },
+//         });
+//         vehicles.push(vehicle);
+//     }
+
+//     console.log(`   ✓ Created 30 vehicles (20 with users, 10 new without users/batteries)`);
 
 //     // 8. Seed Configs
 //     console.log('⚙️  Seeding configs...');
@@ -394,7 +435,21 @@
 //         },
 //     });
 
-//     console.log(`   ✓ Created 2 subscriptions`);
+//     // Add subscription with penalty
+//     const subscription3 = await prisma.subscription.create({
+//         data: {
+//             user_id: drivers[2].user_id,
+//             package_id: basicPackage.package_id,
+//             vehicle_id: vehicles[2].vehicle_id,
+//             start_date: new Date(),
+//             end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+//             status: 'pending_penalty_payment', // Distance exceeded base distance
+//             swap_used: 8,
+//             distance_traveled: 1500.0, // Exceeds 1000 base distance
+//         },
+//     });
+
+//     console.log(`   ✓ Created 3 subscriptions`);
 
 //     // 11. Seed Payments
 //     console.log('💰 Seeding payments...');
@@ -696,12 +751,12 @@
 
 //     // Summary
 //     console.log('📊 Seeding Summary:');
-//     console.log('   Users:', await prisma.user.count());
+//     console.log('   Users:', await prisma.user.count(), '(1 admin + 10 staff + 10 drivers)');
 //     console.log('   Stations:', await prisma.station.count());
 //     console.log('   Cabinets:', await prisma.cabinet.count());
 //     console.log('   Slots:', await prisma.slot.count());
-//     console.log('   Batteries:', await prisma.battery.count());
-//     console.log('   Vehicles:', await prisma.vehicle.count());
+//     console.log('   Batteries:', await prisma.battery.count(), '(all same model/type)');
+//     console.log('   Vehicles:', await prisma.vehicle.count(), '(20 with users, 10 new)');
 //     console.log('   Configs:', await prisma.config.count());
 //     console.log('   Packages:', await prisma.batteryServicePackage.count());
 //     console.log('   Subscriptions:', await prisma.subscription.count());
