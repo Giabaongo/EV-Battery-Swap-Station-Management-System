@@ -3,6 +3,6 @@ import { FindEmptySlotDto } from "./find-empty-slot.dto";
 
 export class FindBatteryFullSlotDto extends FindEmptySlotDto {
     @IsNotEmpty({ message: 'cabinet_id is required' })
-    @IsNotEmpty({ message: 'cabinet_id must be an integer' })
+    @IsNumber({ message: 'cabinet_id must be an integer' })
     cabinet_id: number;
 }
