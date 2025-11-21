@@ -266,6 +266,26 @@ export class PaymentsService {
   private async handleSuccessfulPayment(payment: any) {
     const paymentType = payment.payment_type;
 
+    // Check if this is a renewal payment (stored in extraData from MoMo)
+    // For renewal payments, payment_type is 'subscription' but we need to handle it differently
+    let isRenewal = false;
+    try {
+      // Try to decode extraData from vnp_txn_ref if available
+      const orderInfo = payment.order_info || '';
+      if (orderInfo.includes('Gia han goi') || orderInfo.includes('gia han')) {
+        isRenewal = true;
+      }
+    } catch (error) {
+      // If we can't determine, treat as normal subscription
+      isRenewal = false;
+    }
+
+    // Handle renewal first (before checking payment_type)
+    if (isRenewal && paymentType === 'subscription') {
+      await this.handleSubscriptionRenewalPayment(payment);
+      return;
+    }
+
     switch (paymentType) {
       case 'subscription':
         // Thanh toán gói đăng ký thường
@@ -276,10 +296,6 @@ export class PaymentsService {
         // Thanh toán gói + tiền đặt cọc pin
         // Tách số tiền: gói đăng ký + phí đặt cọc pin
         await this.createSubscriptionWithDeposit(payment);
-        break;
-
-      case 'subscription_renewal':  // NEW CASE
-        await this.handleSubscriptionRenewalPayment(payment);
         break;
 
       case 'battery_deposit':
@@ -1350,6 +1366,178 @@ export class PaymentsService {
   }
 
   /**
+   * Create MoMo payment for subscription renewal (includes penalty fee)
+   * POST /payments/momo-subscription-renewal
+   */
+  async createMoMoSubscriptionRenewalPayment(
+    subscriptionId: number,
+  ): Promise<any> {
+    // 1. Get old subscription
+    const oldSubscription = await this.prisma.subscription.findUnique({
+      where: { subscription_id: subscriptionId },
+      include: { package: true },
+    });
+
+    if (!oldSubscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+
+    if (oldSubscription.status !== SubscriptionStatus.expired) {
+      throw new BadRequestException('Only expired subscriptions can be renewed');
+    }
+
+    const vehicleId = oldSubscription.vehicle_id;
+    const userId = oldSubscription.user_id;
+
+    // 2. Calculate penalty fee
+    const overChargeFee = await this.feeCalculationService.calculateOverchargeFee(
+      oldSubscription.subscription_id,
+    );
+
+    let penaltyFee = overChargeFee.overcharge_fee;
+
+    // 3. Calculate total amount
+    const basePrice = oldSubscription.package?.base_price.toNumber() || 0;
+    const totalAmount = basePrice + penaltyFee;
+
+    // 4. Create payment record
+    const orderId = `MOMO_RENEWAL_${moment().format('YYYYMMDDHHmmss')}`;
+    const expiresAt = this.getPaymentExpiryTime();
+
+    const payment = await this.prisma.payment.create({
+      data: {
+        user_id: userId,
+        package_id: oldSubscription.package_id,
+        vehicle_id: vehicleId,
+        amount: totalAmount,
+        method: PaymentMethod.momo,
+        status: PaymentStatus.pending,
+        payment_type: PaymentType.subscription,
+        vnp_txn_ref: orderId,
+        expires_at: expiresAt,
+        order_info: `Gia han goi ${oldSubscription.package.name}${penaltyFee > 0 ? ' + phat' : ''}`,
+      },
+    });
+
+    // 5. Build MoMo payment request
+    const requestId = orderId;
+    const orderInfo = payment.order_info;
+    const amount = totalAmount;
+    const redirectUrl = momoConfig.redirectUrl;
+    const ipnUrl = momoConfig.ipnUrl;
+    const extraData = Buffer.from(
+      JSON.stringify({
+        payment_id: payment.payment_id,
+        user_id: userId,
+        package_id: oldSubscription.package_id,
+        vehicle_id: vehicleId,
+        payment_type: PaymentType.subscription,
+        is_renewal: true,
+      }),
+    ).toString('base64');
+
+    // Create signature (using payWithMethod for payment method selection page)
+    const requestType = momoConfig.requestType || 'payWithMethod';
+    const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
+
+    const signature = crypto
+      .createHmac('sha256', momoConfig.secretKey)
+      .update(rawSignature)
+      .digest('hex');
+
+    const requestBody = {
+      partnerCode: momoConfig.partnerCode,
+      accessKey: momoConfig.accessKey,
+      requestId: requestId,
+      amount: amount,
+      orderId: orderId,
+      orderInfo: orderInfo,
+      redirectUrl: redirectUrl,
+      ipnUrl: ipnUrl,
+      extraData: extraData,
+      requestType: requestType, // payWithMethod = payment method selection page
+      signature: signature,
+      lang: 'vi',
+    };
+
+    // Check if mock mode is enabled
+    const useMock = process.env.MOMO_USE_MOCK === 'true';
+
+    if (useMock) {
+      // Mock mode: Return fake payment URL
+      this.logger.warn('🧪 MOCK MODE: Using fake MoMo payment URL');
+      const mockPayUrl = `http://localhost:8080/api/v1/payments/momo-return?orderId=${orderId}&resultCode=0&message=Success`;
+
+      return {
+        payment_id: payment.payment_id,
+        paymentUrl: mockPayUrl, // Changed from payUrl to paymentUrl
+        vnp_txn_ref: orderId, // Added for consistency with other endpoints
+        feeBreakdown: {
+          baseAmount: basePrice,
+          depositFee: 0,
+          overchargeFee: 0,
+          damageFee: penaltyFee,
+          totalAmount: totalAmount,
+          breakdown_text: `Goi: ${basePrice.toLocaleString('vi-VN')} VND, Phat: ${penaltyFee.toLocaleString('vi-VN')} VND, Tong: ${totalAmount.toLocaleString('vi-VN')} VND`,
+        },
+        paymentInfo: {
+          user_id: payment.user_id,
+          package_id: payment.package_id ?? 0,
+          vehicle_id: payment.vehicle_id ?? 0,
+          payment_type: payment.payment_type,
+          status: payment.status,
+          created_at: payment.created_at.toISOString(),
+        },
+      };
+    }
+
+    // Real MoMo API call
+    try {
+      const response = await fetch(momoConfig.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const momoResponse = await response.json();
+
+      if (momoResponse.resultCode !== 0) {
+        this.logger.error('MoMo API error:', momoResponse);
+        throw new BadRequestException(
+          `MoMo payment failed: ${momoResponse.message || 'Unknown error'}`,
+        );
+      }
+
+      return {
+        payment_id: payment.payment_id,
+        paymentUrl: momoResponse.payUrl, // Changed from payUrl to paymentUrl
+        vnp_txn_ref: orderId, // Added for consistency with other endpoints
+        feeBreakdown: {
+          baseAmount: basePrice,
+          depositFee: 0,
+          overchargeFee: 0,
+          damageFee: penaltyFee,
+          totalAmount: totalAmount,
+          breakdown_text: `Goi: ${basePrice.toLocaleString('vi-VN')} VND, Phat: ${penaltyFee.toLocaleString('vi-VN')} VND, Tong: ${totalAmount.toLocaleString('vi-VN')} VND`,
+        },
+        paymentInfo: {
+          user_id: payment.user_id,
+          package_id: payment.package_id ?? 0,
+          vehicle_id: payment.vehicle_id ?? 0,
+          payment_type: payment.payment_type,
+          status: payment.status,
+          created_at: payment.created_at.toISOString(),
+        },
+      };
+    } catch (error) {
+      this.logger.error('MoMo API call failed:', error);
+      throw new BadRequestException('Failed to create MoMo payment URL');
+    }
+  }
+
+  /**
    * Handle subscription renewal payment success
    * Called from handleVnpayReturn()
    */
@@ -1397,6 +1585,14 @@ export class PaymentsService {
       where: { payment_id: payment.payment_id },
       data: { subscription_id: newSubscription.subscription_id },
     });
+
+    // Mark old subscription as cancelled
+    await this.prisma.subscription.update({
+      where: { subscription_id: oldSubscription.subscription_id },
+      data: { status: SubscriptionStatus.cancelled },
+    });
+
+    this.logger.log(`Old subscription ${oldSubscription.subscription_id} marked as cancelled`);
 
   }
 

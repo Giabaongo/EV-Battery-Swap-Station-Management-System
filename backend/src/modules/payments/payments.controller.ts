@@ -675,6 +675,55 @@ export class PaymentsController {
   }
 
   /**
+   * Create subscription renewal payment with penalty fee (via MoMo)
+   * POST /payments/momo-subscription-renewal
+   */
+  @Post('momo-subscription-renewal')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Create payment for subscription renewal (via MoMo)' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'MoMo renewal payment URL created',
+    schema: {
+      example: {
+        payment_id: 123,
+        paymentUrl: 'https://test-payment.momo.vn/v2/gateway/pay?t=MOMO_RENEWAL_20250121123456',
+        vnp_txn_ref: 'MOMO_RENEWAL_20250121123456',
+        feeBreakdown: {
+          baseAmount: 200000,
+          depositFee: 0,
+          overchargeFee: 0,
+          damageFee: 50000,
+          totalAmount: 250000,
+          breakdown_text: 'Goi: 200.000 VND, Phat: 50.000 VND, Tong: 250.000 VND'
+        },
+        paymentInfo: {
+          user_id: 7,
+          package_id: 1,
+          vehicle_id: 6,
+          payment_type: 'subscription',
+          status: 'pending',
+          created_at: '2025-01-21T12:34:56.000Z'
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Only expired subscriptions can be renewed' })
+  @ApiResponse({ status: 404, description: 'Subscription not found' })
+  async createMoMoSubscriptionRenewalPayment(
+    @Body() body: { subscription_id: number },
+  ) {
+    if (!body.subscription_id) {
+      throw new BadRequestException('subscription_id is required');
+    }
+
+    return this.paymentsService.createMoMoSubscriptionRenewalPayment(
+      body.subscription_id,
+    );
+  }
+
+  /**
    * ⭐ NEW ENDPOINT - Create direct penalty payment (without renewal)
    * POST /payments/penalty-only
    *
