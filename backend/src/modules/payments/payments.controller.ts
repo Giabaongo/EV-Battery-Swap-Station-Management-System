@@ -137,6 +137,162 @@ export class PaymentsController {
     return this.paymentsService.handleVnpayIPN(query);
   }
 
+  // ==================== MOMO PAYMENT ENDPOINTS ====================
+
+  /**
+   * ⭐ MoMo ENDPOINT - Create MoMo payment URL (basic)
+   * POST /payments/create-momo-url
+   * 
+   * Create MoMo payment URL for subscription payment
+   * Similar to create-vnpay-url but uses MoMo gateway
+   * 
+   * Response includes:
+   * - payUrl: Browser payment URL
+   * - deeplink: Mobile app deep link (for mobile integration)
+   * - qrCodeUrl: QR code URL (for scanning)
+   */
+  @Post('create-momo-url')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Create MoMo payment URL (basic subscription payment)' })
+  @ApiResponse({ status: 201, description: 'The MoMo payment URL has been successfully created.' })
+  async createMoMoUrl(
+    @Body() createPaymentDto: CreatePaymentDto,
+  ) {
+    // Force payment_type to 'subscription' for basic endpoint
+    createPaymentDto.payment_type = 'subscription' as any;
+
+    return this.paymentsService.createMoMoPaymentUrl(createPaymentDto);
+  }
+
+  /**
+   * ⭐ MoMo ENDPOINT - Create MoMo payment URL with flexible payment types
+   * POST /payments/create-momo-url-advanced
+   * 
+   * Supported payment_type:
+   * - subscription (default)
+   * - subscription_with_deposit (first time + deposit)
+   * - battery_deposit (only deposit)
+   * - battery_replacement (replace battery)
+   * - damage_fee (pay damage)
+   * - other (misc)
+   */
+  @Post('create-momo-url-advanced')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Create MoMo payment URL with flexible payment types' })
+  @ApiResponse({ status: 201, description: 'The MoMo payment URL has been successfully created.' })
+  async createMoMoUrlAdvanced(
+    @Body() createPaymentDto: CreatePaymentDto,
+  ) {
+    return this.paymentsService.createMoMoPaymentUrl(createPaymentDto);
+  }
+
+  /**
+   * ⭐ MoMo ENDPOINT - Integrated Fee Calculation + MoMo Payment URL
+   * POST /payments/calculate-and-create-momo-url
+   * 
+   * Combines fee calculation with MoMo URL creation in one endpoint
+   * Same as calculate-and-create-vnpay-url but uses MoMo gateway
+   * 
+   * Response includes:
+   * - paymentUrl: Ready-to-use MoMo payment URL
+   * - deeplink: MoMo app deep link
+   * - qrCodeUrl: QR code for MoMo scanning
+   * - feeBreakdown: Detailed fee calculation breakdown
+   * - payment_id & orderId: For tracking and reconciliation
+   */
+  @Post('calculate-and-create-momo-url')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Calculate fees and create MoMo payment URL' })
+  @ApiResponse({ status: 201, description: 'The MoMo payment URL with calculated fees has been successfully created.' })
+  async createMoMoPaymentUrlWithFees(
+    @Body() createPaymentWithFeesDto: CreatePaymentWithFeesDto,
+  ) {
+    return this.paymentsService.createMoMoPaymentUrlWithFees(
+      createPaymentWithFeesDto,
+    );
+  }
+
+  /**
+   * MoMo return URL (redirect from MoMo)
+   * GET /payments/momo-return?partnerCode=...&orderId=...&resultCode=...
+   */
+  @Get('momo-return')
+  @ApiOperation({ summary: 'MoMo return URL (redirect from MoMo)' })
+  @ApiResponse({ status: 302, description: 'Redirect to frontend with payment result.' })
+  async momoReturn(@Query() query: any, @Res() res: Response) {
+    try {
+      const result = await this.paymentsService.handleMoMoReturn(query);
+
+      // Redirect to frontend with result
+      if (result.status === 'success') {
+        const subscriptionId = result.subscription_id || '';
+        return res.redirect(
+          `${process.env.MOMO_FRONTEND_URL || 'http://localhost:5173/driver'}/payment/success?subscription_id=${subscriptionId}`,
+        );
+      } else {
+        // Get resultCode from query params instead of result object
+        const resultCode = query.resultCode || 'unknown';
+        return res.redirect(
+          `${process.env.MOMO_FRONTEND_URL || 'http://localhost:5173/driver'}/payment/failed?code=${resultCode}`,
+        );
+      }
+    } catch (error) {
+      return res.redirect(
+        `${process.env.MOMO_FRONTEND_URL || 'http://localhost:5173/driver'}/payment/error?message=${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * MoMo IPN (Instant Payment Notification)
+   * POST /payments/momo-ipn
+   * 
+   * Note: MoMo IPN uses POST method (different from VNPAY which uses GET)
+   */
+  @Post('momo-ipn')
+  @ApiOperation({ summary: 'MoMo IPN (Instant Payment Notification)' })
+  @ApiResponse({ status: 200, description: 'IPN processed successfully.' })
+  async momoIPN(@Body() body: any) {
+    return this.paymentsService.handleMoMoIPN(body);
+  }
+
+  /**
+   * ⭐ MoMo ENDPOINT - Query transaction status from MoMo
+   * GET /payments/momo-query/:orderId
+   * 
+   * Query the current status of a MoMo transaction
+   * Useful for checking payment status without IPN callback
+   */
+  @Get('momo-query/:orderId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Query MoMo transaction status' })
+  @ApiResponse({ status: 200, description: 'Transaction status retrieved successfully.' })
+  async queryMoMoStatus(@Param('orderId') orderId: string) {
+    return this.paymentsService.queryMoMoTransactionStatus(orderId);
+  }
+
+  /**
+   * ⭐ Mock MoMo Payment (for testing without real MoMo credentials)
+   * POST /payments/mock-momo-payment
+   * 
+   * Simulates MoMo payment success/failure without calling real MoMo API
+   * Use this for testing the complete payment flow locally
+   */
+  @Post('mock-momo-payment')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('driver', 'admin')
+  @ApiOperation({ summary: 'Mock MoMo payment for testing (simulates payment without MoMo API)' })
+  @ApiResponse({ status: 201, description: 'The MoMo payment has been successfully mocked.' })
+  async mockMoMoPayment(
+    @Body() body: { orderId: string; success: boolean },
+  ) {
+    return this.paymentsService.mockMoMoPayment(body.orderId, body.success);
+  }
+
   /**
    * Get payment by ID
    * GET /payments/:id

@@ -26,6 +26,8 @@ import { CreateDirectPaymentDto } from './dto/create-direct-payment.dto';
 import { DirectRenewalPaymentDto } from './dto/direct-renewal-payment.dto';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { SystemConfigService } from '../config/system-config.service';
+import { momoConfig } from './config/momo.config';
+import { generateMoMoSignature, verifyMoMoSignature, logMoMoParams } from './utils/momo.utils';
 
 @Injectable()
 export class PaymentsService {
@@ -1529,6 +1531,728 @@ export class PaymentsService {
       },
       message: `Subscription renewed successfully${penaltyFee > 0 ? ` with penalty fee: ${penaltyFee.toLocaleString('vi-VN')} VND` : ''}`,
     };
+  }
+
+  // ==================== MOMO PAYMENT METHODS ====================
+
+  /**
+   * Create MoMo payment URL
+   * Similar to VNPAY but uses MoMo API
+   */
+  async createMoMoPaymentUrl(createPaymentDto: CreatePaymentDto) {
+    try {
+      // 1. Get package information (if package_id exists)
+      let servicePackage: any = null;
+      let amount: number;
+
+      if (createPaymentDto.package_id) {
+        servicePackage = await this.prisma.batteryServicePackage.findUnique({
+          where: { package_id: createPaymentDto.package_id },
+        });
+
+        if (!servicePackage) {
+          throw new NotFoundException('Package not found');
+        }
+
+        if (!servicePackage.active) {
+          throw new BadRequestException('Package is not active');
+        }
+
+        amount = Math.floor(servicePackage.base_price.toNumber());
+      } else {
+        throw new BadRequestException('package_id is required for payment');
+      }
+
+      // 2. Create payment record with pending status
+      // Align with MoMo sample: orderId = requestId = partnerCode + timestamp
+      const timestamp = Date.now();
+      const orderId = `${momoConfig.partnerCode}${timestamp}`;
+      const requestId = orderId;
+      const expiresAt = this.getPaymentExpiryTime();
+
+      const payment = await this.prisma.payment.create({
+        data: {
+          user_id: createPaymentDto.user_id,
+          package_id: createPaymentDto.package_id,
+          vehicle_id: createPaymentDto.vehicle_id,
+          amount: servicePackage?.base_price || 0,
+          method: PaymentMethod.momo,
+          status: PaymentStatus.pending,
+          payment_type: createPaymentDto.payment_type as any,
+          vnp_txn_ref: orderId, // Reuse this field for MoMo orderId
+          expires_at: expiresAt,
+          order_info:
+            createPaymentDto.orderDescription ||
+            (servicePackage ? `Thanh toan goi ${servicePackage.name}` : `Thanh toan ${createPaymentDto.payment_type}`),
+        },
+      });
+
+      // 3. Build MoMo payment request
+      const orderInfo = payment.order_info;
+      const extraData = ''; // Additional data (optional)
+
+      // Build request body BEFORE signature (need all fields)
+      const requestBody = {
+        partnerCode: momoConfig.partnerCode,
+        partnerName: 'EV Battery Swap Station',
+        storeId: momoConfig.partnerCode,
+        requestId: requestId,
+        amount: amount.toString(),
+        orderId: orderId,
+        orderInfo: orderInfo,
+        redirectUrl: momoConfig.redirectUrl,
+        ipnUrl: momoConfig.ipnUrl,
+        lang: createPaymentDto.language || momoConfig.lang,
+        extraData: extraData,
+        requestType: momoConfig.requestType,
+        autoCapture: true,
+        orderGroupId: '',
+      };
+
+      // Build raw signature string (alphabetical order of parameters)
+      const rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${momoConfig.requestType}`;
+
+      const signature = generateMoMoSignature(rawSignature, momoConfig.secretKey);
+
+      // Add signature to request body
+      requestBody['signature'] = signature;
+
+      // Log for debugging
+      logMoMoParams(requestBody, 'MoMo Payment Request');
+
+      // 4. Call MoMo API (or use mock mode)
+      let momoResponse: any;
+
+      if (momoConfig.useMockMode) {
+        // Mock mode - simulate successful MoMo response
+        this.logger.log('🎭 MOCK MODE: Simulating MoMo API success response');
+        momoResponse = {
+          partnerCode: momoConfig.partnerCode,
+          orderId: orderId,
+          requestId: requestId,
+          amount: amount,
+          responseTime: Date.now(),
+          message: 'Successful (MOCKED)',
+          resultCode: 0,
+          payUrl: `https://test-payment.momo.vn/v2/gateway/pay?t=${orderId}`,
+          deeplink: `momo://app.momo.vn/pay?orderId=${orderId}`,
+          qrCodeUrl: `https://test-payment.momo.vn/v2/gateway/qr/${orderId}`,
+        };
+      } else {
+        // Real MoMo API call
+        const response = await fetch(momoConfig.endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        momoResponse = await response.json();
+      }
+
+      this.logger.log('MoMo API Response:', momoResponse);
+
+      // 5. Check response
+      if (momoResponse.resultCode === 0) {
+        // Success - return payment URL
+        return {
+          paymentUrl: momoResponse.payUrl,
+          payment_id: payment.payment_id,
+          orderId: orderId,
+          requestId: requestId,
+          deeplink: momoResponse.deeplink, // For mobile app
+          qrCodeUrl: momoResponse.qrCodeUrl, // For QR code payment
+        };
+      } else {
+        // Failed - update payment status
+        await this.prisma.payment.update({
+          where: { payment_id: payment.payment_id },
+          data: {
+            status: PaymentStatus.failed,
+            vnp_response_code: momoResponse.resultCode.toString(),
+          },
+        });
+
+        throw new BadRequestException(
+          momoResponse.message || 'Failed to create MoMo payment',
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error creating MoMo payment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle MoMo return callback (from user browser redirect)
+   */
+  async handleMoMoReturn(momoParams: any) {
+    try {
+      // 1. Verify signature
+      const isValid = verifyMoMoSignature(momoParams, momoConfig.secretKey);
+
+      if (!isValid) {
+        throw new BadRequestException('Invalid MoMo signature');
+      }
+
+      // 2. Get payment record
+      const payment = await this.prisma.payment.findUnique({
+        where: { vnp_txn_ref: momoParams.orderId },
+        include: {
+          package: true,
+        },
+      });
+
+      if (!payment) {
+        throw new NotFoundException('Payment not found');
+      }
+
+      // 3. Check result code
+      const resultCode = momoParams.resultCode;
+      let paymentStatus: PaymentStatus;
+
+      if (resultCode === 0) {
+        paymentStatus = PaymentStatus.success;
+      } else if (resultCode === 1006) {
+        // User cancelled
+        paymentStatus = PaymentStatus.cancelled;
+      } else {
+        paymentStatus = PaymentStatus.failed;
+      }
+
+      // 4. Update payment record
+      const updatedPayment = await this.prisma.payment.update({
+        where: { payment_id: payment.payment_id },
+        data: {
+          status: paymentStatus,
+          transaction_id: momoParams.transId,
+          vnp_response_code: resultCode.toString(),
+          payment_time: new Date(),
+        },
+        include: {
+          package: true,
+          user: {
+            select: {
+              user_id: true,
+              username: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      });
+
+      // 5. If payment successful, handle based on payment_type
+      if (paymentStatus === PaymentStatus.success) {
+        await this.handleSuccessfulPayment(payment);
+      }
+
+      return updatedPayment;
+    } catch (error) {
+      this.logger.error('Error handling MoMo return:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle MoMo IPN (Instant Payment Notification)
+   * This is called by MoMo server to confirm payment
+   */
+  async handleMoMoIPN(momoParams: any) {
+    try {
+      // 1. Verify signature
+      const isValid = verifyMoMoSignature(momoParams, momoConfig.secretKey);
+
+      if (!isValid) {
+        this.logger.error('Invalid MoMo IPN signature');
+        return {
+          resultCode: 97,
+          message: 'Invalid signature',
+        };
+      }
+
+      // 2. Get payment record
+      const payment = await this.prisma.payment.findUnique({
+        where: { vnp_txn_ref: momoParams.orderId },
+        include: {
+          package: true,
+        },
+      });
+
+      if (!payment) {
+        this.logger.error(`Payment not found for orderId: ${momoParams.orderId}`);
+        return {
+          resultCode: 11,
+          message: 'Order not found',
+        };
+      }
+
+      // 3. Check if payment already processed
+      if (payment.status !== PaymentStatus.pending) {
+        this.logger.warn(`Payment already processed: ${payment.payment_id}`);
+        return {
+          resultCode: 0,
+          message: 'Payment already processed',
+        };
+      }
+
+      // 4. Update payment status
+      const resultCode = momoParams.resultCode;
+      let paymentStatus: PaymentStatus;
+
+      if (resultCode === 0) {
+        paymentStatus = PaymentStatus.success;
+      } else if (resultCode === 1006) {
+        paymentStatus = PaymentStatus.cancelled;
+      } else {
+        paymentStatus = PaymentStatus.failed;
+      }
+
+      await this.prisma.payment.update({
+        where: { payment_id: payment.payment_id },
+        data: {
+          status: paymentStatus,
+          transaction_id: momoParams.transId,
+          vnp_response_code: resultCode.toString(),
+          payment_time: new Date(),
+        },
+      });
+
+      // 5. If payment successful, create subscription
+      if (paymentStatus === PaymentStatus.success) {
+        await this.handleSuccessfulPayment(payment);
+      }
+
+      // 6. Return success response to MoMo
+      return {
+        resultCode: 0,
+        message: 'Confirm Success',
+      };
+    } catch (error) {
+      this.logger.error('Error handling MoMo IPN:', error);
+      return {
+        resultCode: 99,
+        message: error.message || 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Create MoMo payment URL with fee calculation
+   */
+  async createMoMoPaymentUrlWithFees(
+    createPaymentWithFeesDto: CreatePaymentWithFeesDto,
+  ): Promise<PaymentWithFeesResponse> {
+    try {
+      console.log('🔍 createMoMoPaymentUrlWithFees called with:', {
+        user_id: createPaymentWithFeesDto.user_id,
+        package_id: createPaymentWithFeesDto.package_id,
+        payment_type: createPaymentWithFeesDto.payment_type,
+        vehicle_id: createPaymentWithFeesDto.vehicle_id,
+      });
+
+      // 1. Get package information
+      const servicePackage = await this.prisma.batteryServicePackage.findUnique({
+        where: { package_id: createPaymentWithFeesDto.package_id },
+      });
+
+      if (!servicePackage) {
+        throw new NotFoundException('Package not found');
+      }
+
+      if (!servicePackage.active) {
+        throw new BadRequestException('Package is not active');
+      }
+
+      console.log('✅ Package found:', servicePackage.name);
+
+      // 2. Check existing subscription (for deposit status)
+      let existingSubscription: any = null;
+      if (createPaymentWithFeesDto.vehicle_id) {
+        const vehicle = await this.prisma.vehicle.findUnique({
+          where: { vehicle_id: createPaymentWithFeesDto.vehicle_id },
+        });
+
+        if (!vehicle) {
+          throw new NotFoundException(`Vehicle with ID ${createPaymentWithFeesDto.vehicle_id} not found`);
+        }
+
+        if (vehicle.user_id !== createPaymentWithFeesDto.user_id) {
+          throw new BadRequestException(`Vehicle does not belong to this user`);
+        }
+
+        existingSubscription = await this.prisma.subscription.findFirst({
+          where: {
+            user_id: createPaymentWithFeesDto.user_id,
+            vehicle_id: createPaymentWithFeesDto.vehicle_id,
+            status: SubscriptionStatus.active,
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        });
+      }
+
+      // 3. Calculate fee based on payment type (same logic as VNPAY)
+      let feeAmount = 0;
+      let feeBreakdownText = '';
+      let feeDetails: any = {
+        baseAmount: servicePackage.base_price.toNumber(),
+        totalAmount: 0,
+      };
+
+      switch (createPaymentWithFeesDto.payment_type) {
+        case 'subscription_with_deposit':
+          const depositResult = await this.feeCalculationService.calculateSubscriptionWithDeposit(
+            createPaymentWithFeesDto.package_id,
+            existingSubscription?.subscription_id,
+          );
+          feeAmount = depositResult.deposit_fee;
+
+          if (depositResult.deposit_fee > 0) {
+            feeBreakdownText = `Gói: ${depositResult.breakdown.package_price.toLocaleString('vi-VN')} VND, Cọc: ${depositResult.deposit_fee.toLocaleString('vi-VN')} VND, Tổng: ${depositResult.total_fee.toLocaleString('vi-VN')} VND`;
+          } else {
+            feeBreakdownText = `Gói: ${depositResult.breakdown.package_price.toLocaleString('vi-VN')} VND (Đã đặt cọc trước đó), Tổng: ${depositResult.total_fee.toLocaleString('vi-VN')} VND`;
+          }
+          feeDetails.depositFee = depositResult.deposit_fee;
+          feeDetails.depositAlreadyPaid = existingSubscription?.deposit_paid || false;
+          break;
+
+        case 'damage_fee':
+          if (createPaymentWithFeesDto.damage_type) {
+            const damageTypeMapping = {
+              'low': 'minor',
+              'medium': 'moderate',
+              'high': 'severe',
+            };
+            const mappedDamageType = damageTypeMapping[createPaymentWithFeesDto.damage_type] as 'minor' | 'moderate' | 'severe';
+
+            const damageResult = await this.feeCalculationService.calculateDamageFee(mappedDamageType);
+            feeAmount = damageResult.damage_fee;
+            feeBreakdownText = `Phí hư hỏng: ${damageResult.damage_fee.toLocaleString('vi-VN')} VND`;
+            feeDetails.damageFee = damageResult.damage_fee;
+          }
+          break;
+
+        case 'subscription':
+        case 'other':
+        default:
+          feeAmount = 0;
+          feeBreakdownText = `Tổng tiền: ${servicePackage.base_price.toNumber().toLocaleString('vi-VN')} VND`;
+          break;
+      }
+
+      // 4. Calculate total amount
+      const totalAmount = servicePackage.base_price.toNumber() + feeAmount;
+      feeDetails.totalAmount = totalAmount;
+      feeDetails.breakdown_text = feeBreakdownText;
+
+      console.log('💰 Fee calculation:', {
+        baseAmount: feeDetails.baseAmount,
+        feeAmount,
+        totalAmount,
+        breakdown: feeBreakdownText,
+      });
+
+      // 5. Create payment record
+      const timestamp = Date.now();
+      const orderId = `${momoConfig.partnerCode}${timestamp}`;
+      const requestId = orderId;
+      const expiresAt = this.getPaymentExpiryTime();
+
+      const payment = await this.prisma.payment.create({
+        data: {
+          user_id: createPaymentWithFeesDto.user_id,
+          package_id: createPaymentWithFeesDto.package_id,
+          vehicle_id: createPaymentWithFeesDto.vehicle_id,
+          amount: totalAmount,
+          method: PaymentMethod.momo,
+          status: PaymentStatus.pending,
+          payment_type: createPaymentWithFeesDto.payment_type as any,
+          vnp_txn_ref: orderId,
+          expires_at: expiresAt,
+          order_info:
+            createPaymentWithFeesDto.order_info ||
+            `Thanh toan ${servicePackage.name}${feeAmount > 0 ? ' + phí' : ''}`,
+        },
+      });
+
+      console.log('✅ Payment record created:', {
+        payment_id: payment.payment_id,
+        orderId: orderId,
+        amount: totalAmount,
+      });
+
+      // 6. Build MoMo payment request
+      // MoMo can reject non-ASCII in signature; strip non-ASCII for safety
+      const orderInfoRaw = (payment.order_info || '').replace(/[^\x20-\x7E]/g, '');
+      let orderInfo = orderInfoRaw;
+      if (!orderInfo.trim()) {
+        orderInfo = 'pay with MoMo';
+      }
+
+      // MoMo docs accept only 'vi'/'en'; force 'vi' to avoid invalid values
+      const lang = 'vi';
+      const extraData = momoConfig.extraData || '';
+      const amountStr = totalAmount.toString();
+      const paymentCode = momoConfig.paymentCode;
+      const isPosFlow = !!paymentCode;
+
+      // Build request body aligned with MoMo sample (POS if paymentCode is provided, otherwise captureWallet)
+      const requestBody: any = {
+        partnerCode: momoConfig.partnerCode,
+        partnerName: 'EV Battery Swap Station',
+        storeId: momoConfig.partnerCode,
+        accessKey: momoConfig.accessKey,
+        requestId: requestId,
+        amount: amountStr, // MoMo expects string amount
+        orderId: orderId,
+        orderInfo: orderInfo,
+        extraData: extraData,
+        lang: lang,
+        signature: '',
+      };
+
+      let rawSignature: string;
+      let endpoint = momoConfig.endpoint;
+
+      if (isPosFlow) {
+        requestBody.paymentCode = paymentCode;
+        requestBody.orderGroupId = '';
+        requestBody.autoCapture = true;
+        // POS signature format (no redirect/ipn/requestType)
+        rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amountStr}&extraData=${extraData}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&paymentCode=${paymentCode}&requestId=${requestId}`;
+        if (!endpoint.includes('/pos')) {
+          endpoint = 'https://test-payment.momo.vn/v2/gateway/api/pos';
+        }
+      } else {
+        requestBody.requestType = momoConfig.requestType || 'payWithMethod';
+        requestBody.redirectUrl = momoConfig.redirectUrl;
+        requestBody.ipnUrl = momoConfig.ipnUrl;
+        // CaptureWallet signature format
+        rawSignature = `accessKey=${momoConfig.accessKey}&amount=${amountStr}&extraData=${extraData}&ipnUrl=${momoConfig.ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${momoConfig.partnerCode}&redirectUrl=${momoConfig.redirectUrl}&requestId=${requestId}&requestType=${requestBody.requestType}`;
+        if (!endpoint.includes('/create')) {
+          endpoint = 'https://test-payment.momo.vn/v2/gateway/api/create';
+        }
+      }
+
+      const signature = generateMoMoSignature(rawSignature, momoConfig.secretKey);
+
+      // Add signature to request body
+      requestBody.signature = signature;
+
+      logMoMoParams(requestBody, 'MoMo Payment with Fees Request');
+      this.logger.debug(`MoMo rawSignature: ${rawSignature}`);
+
+      // 7. Call MoMo API (or use mock mode)
+      let momoResponse: any;
+
+      if (momoConfig.useMockMode) {
+        // Mock mode - simulate successful MoMo response
+        this.logger.log('🎭 MOCK MODE: Simulating MoMo API success response');
+        momoResponse = {
+          partnerCode: momoConfig.partnerCode,
+          orderId: orderId,
+          requestId: requestId,
+          amount: totalAmount,
+          responseTime: Date.now(),
+          message: 'Successful (MOCKED)',
+          resultCode: 0,
+          payUrl: `https://test-payment.momo.vn/v2/gateway/pay?t=${orderId}`,
+          deeplink: `momo://app.momo.vn/pay?orderId=${orderId}`,
+          qrCodeUrl: `https://test-payment.momo.vn/v2/gateway/qr/${orderId}`,
+        };
+      } else {
+        // Real MoMo API call
+        this.logger.log('🌐 Calling MoMo API:', endpoint);
+        this.logger.log('📦 Request Body:', JSON.stringify(requestBody, null, 2));
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        momoResponse = await response.json();
+      }
+
+      this.logger.log('📥 MoMo API Response:', momoResponse);
+
+      // 8. Check response and return
+      if (momoResponse.resultCode === 0) {
+        return {
+          payment_id: payment.payment_id,
+          paymentUrl: momoResponse.payUrl,
+          vnp_txn_ref: orderId,
+          feeBreakdown: {
+            baseAmount: feeDetails.baseAmount,
+            depositFee: feeDetails.depositFee,
+            overchargeFee: feeDetails.overchargeFee,
+            damageFee: feeDetails.damageFee,
+            totalAmount: feeDetails.totalAmount,
+            breakdown_text: feeDetails.breakdown_text,
+          },
+          paymentInfo: {
+            user_id: payment.user_id,
+            package_id: payment.package_id ?? 0,
+            vehicle_id: payment.vehicle_id ?? 0,
+            payment_type: payment.payment_type,
+            status: payment.status,
+            created_at: payment.created_at.toISOString(),
+          },
+          momoExtras: {
+            deeplink: momoResponse.deeplink,
+            qrCodeUrl: momoResponse.qrCodeUrl,
+          },
+        };
+      } else {
+        // Failed - update payment status
+        await this.prisma.payment.update({
+          where: { payment_id: payment.payment_id },
+          data: {
+            status: PaymentStatus.failed,
+            vnp_response_code: momoResponse.resultCode.toString(),
+          },
+        });
+
+        throw new BadRequestException(
+          momoResponse.message || 'Failed to create MoMo payment',
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error creating MoMo payment with fees:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Query MoMo transaction status
+   * Useful for checking payment status without waiting for callback
+   */
+  async queryMoMoTransactionStatus(orderId: string) {
+    try {
+      const requestId = `QUERY${moment().format('YYYYMMDDHHmmss')}`;
+
+      // Build signature for query request
+      const rawSignature = `accessKey=${momoConfig.accessKey}&orderId=${orderId}&partnerCode=${momoConfig.partnerCode}&requestId=${requestId}`;
+      const signature = generateMoMoSignature(rawSignature, momoConfig.secretKey);
+
+      const requestBody = {
+        partnerCode: momoConfig.partnerCode,
+        accessKey: momoConfig.accessKey,
+        requestId: requestId,
+        orderId: orderId,
+        signature: signature,
+        lang: momoConfig.lang,
+      };
+
+      // Call MoMo query API
+      const queryEndpoint = momoConfig.endpoint.replace('/create', '/query');
+      const response = await fetch(queryEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const momoResponse = await response.json();
+
+      this.logger.log('MoMo Query Response:', momoResponse);
+
+      return momoResponse;
+    } catch (error) {
+      this.logger.error('Error querying MoMo transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mock MoMo payment (for testing without real MoMo credentials)
+   * Simulates MoMo payment success/failure
+   */
+  async mockMoMoPayment(orderId: string, success: boolean = true) {
+    try {
+      // Find payment by orderId (stored in vnp_txn_ref field)
+      const payment = await this.prisma.payment.findFirst({
+        where: {
+          vnp_txn_ref: orderId,
+          method: PaymentMethod.momo,
+        },
+        include: {
+          package: true,
+          user: {
+            select: {
+              user_id: true,
+              username: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!payment) {
+        throw new NotFoundException(`Payment with orderId ${orderId} not found`);
+      }
+
+      if (payment.status !== PaymentStatus.pending) {
+        throw new BadRequestException(`Payment ${orderId} is not pending (current status: ${payment.status})`);
+      }
+
+      if (success) {
+        // Simulate successful payment
+        const updatedPayment = await this.prisma.payment.update({
+          where: { payment_id: payment.payment_id },
+          data: {
+            status: PaymentStatus.success,
+            payment_time: new Date(),
+            transaction_id: `MOCK_MOMO_${orderId}`,
+            vnp_response_code: '0',
+          },
+          include: {
+            package: true,
+            user: {
+              select: {
+                user_id: true,
+                username: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+        // Handle successful payment (create subscription if needed)
+        await this.handleSuccessfulPayment(updatedPayment);
+
+        return {
+          success: true,
+          message: 'MoMo payment mocked successfully',
+          payment: updatedPayment,
+          subscription_id: updatedPayment.subscription_id,
+        };
+      } else {
+        // Simulate failed payment
+        const updatedPayment = await this.prisma.payment.update({
+          where: { payment_id: payment.payment_id },
+          data: {
+            status: PaymentStatus.failed,
+            vnp_response_code: '1',
+          },
+        });
+
+        return {
+          success: false,
+          message: 'MoMo payment failed (mocked)',
+          payment: updatedPayment,
+        };
+      }
+    } catch (error) {
+      this.logger.error('Error mocking MoMo payment:', error);
+      throw error;
+    }
   }
 }
 
