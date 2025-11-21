@@ -21,8 +21,7 @@ const batterySchema = z.object({
     current_charge: z.coerce.number().optional().default(100),
     soh: z.coerce.number().optional().default(100),
     status: z.string().optional().default('full'),
-    cabinet_id: z.coerce.number().int('Cabinet ID must be an integer').optional().or(z.literal('')),
-    slot_id: z.coerce.number().int('Slot ID must be an integer').optional().or(z.literal('')),
+    cabinet_id: z.coerce.number().int('Cabinet ID must be an integer').optional().or(z.literal('')).nullable(),
 });
 
 export default function CreateBattery() {
@@ -93,7 +92,6 @@ export default function CreateBattery() {
             soh: 100,
             status: 'full',
             cabinet_id: null,
-            slot_id: null,
         },
     });
 
