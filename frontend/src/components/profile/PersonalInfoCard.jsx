@@ -37,11 +37,6 @@ export default function PersonalInfoCard({ user }) {
           <label className="text-sm font-medium text-gray-500">Phone Number</label>
           <p className="text-gray-800 mt-1">{user?.phone || '—'}</p>  {/* Hiển thị số điện thoại hoặc '—' */}
         </div>
-        {/* Trường Address */}
-        <div>
-          <label className="text-sm font-medium text-gray-500">Address</label>
-          <p className="text-gray-800 mt-1">—</p>  {/* Hiện tại không có dữ liệu địa chỉ */}
-        </div>
       </div>
     </div>
   );

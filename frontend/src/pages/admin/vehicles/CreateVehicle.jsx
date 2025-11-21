@@ -13,6 +13,8 @@ const validationSchema = Yup.object({
   vin: Yup.string()
     .required('VIN is required')
     .length(18, 'VIN must be exactly 18 characters'),
+  battery_type: Yup.string()
+    .required('Battery type is required'),
   battery_model: Yup.string()
     .required('Battery model is required'),
 });
@@ -24,6 +26,7 @@ export default function CreateVehicle() {
   const formik = useFormik({
     initialValues: {
       vin: '',
+      battery_type: '',
       battery_model: '',
     },
     validationSchema,
@@ -32,6 +35,7 @@ export default function CreateVehicle() {
         setIsSubmitting(true);
         await vehicleService.createVehicle({
           vin: values.vin.toUpperCase().trim(),
+          battery_type: values.battery_type.trim(),
           battery_model: values.battery_model.trim(),
         });
         toast.success('Vehicle created successfully!');
@@ -46,7 +50,7 @@ export default function CreateVehicle() {
   });
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark p-6 lg:p-8 ml-64">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -93,6 +97,29 @@ export default function CreateVehicle() {
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   VIN must be exactly 18 characters
                 </p>
+              </div>
+
+              {/* Battery Type Field */}
+              <div>
+                <label htmlFor="battery_type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Battery Type <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="battery_type"
+                  placeholder="e.g., Lithium-Ion"
+                  {...formik.getFieldProps('battery_type')}
+                  className={`w-full px-4 py-2 rounded-lg border ${formik.touched.battery_type && formik.errors.battery_type
+                      ? 'border-danger bg-danger/5'
+                      : 'border-gray-300 dark:border-gray-600'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all`}
+                />
+                {formik.touched.battery_type && formik.errors.battery_type && (
+                  <div className="mt-2 flex items-start gap-2 text-danger text-sm">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>{formik.errors.battery_type}</span>
+                  </div>
+                )}
               </div>
 
               {/* Battery Model Field */}

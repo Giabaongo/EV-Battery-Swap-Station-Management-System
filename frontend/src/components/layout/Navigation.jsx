@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   MessageCircle,
   FileText,
+  Battery,
   User as UserIcon,
   LogOut
 } from 'lucide-react'
@@ -110,7 +111,7 @@ export default function Navigation({ type = "main" }) {
       { name: 'Overview', path: '/staff', icon: LayoutDashboard },
       { name: 'Manual Swap', path: '/staff/manual-swap', icon: MapPin },
       { name: 'Battery Inventory', path: '/staff/inventory', icon: Package },
-      { name: 'Swap Requests', path: '/staff/swap-requests', icon: ArrowLeftRight },
+      { name: 'Swap Requests', path: '/staff/swap-requests', icon: Battery },
       { name: 'Transfer Requests', path: '/staff/transfer-requests', icon: ArrowLeftRight },
       { name: 'Import Batteries', path: '/staff/import-batteries', icon: FileText },
       { name: 'Profile', path: '/staff/profile', icon: UserIcon },
