@@ -184,7 +184,8 @@ export class SwappingService {
                     station_id: dto.station_id,
                     cabinet_id: dto.cabinet_id,
                     slot_id: dto.slot_id,
-                    vehicle_id: null
+                    vehicle_id: null,
+                    status: BatteryStatus.charging
                 }, prisma),
 
                 //Mark slot is occupied
@@ -284,13 +285,21 @@ export class SwappingService {
             );
         }
 
+        // Note: We don't validate cabinet_id match here because findBestBatteryForVehicle 
+        // may return a battery from a different cabinet if the requested cabinet has no suitable battery
+        // Frontend should use the returned battery's actual cabinet_id
         if (takenBattery.cabinet_id !== dto.cabinet_id) {
-            throw new BadRequestException(
-                `Battery ID ${takenBattery.battery_id} is in cabinet ${takenBattery.cabinet_id}, not in requested cabinet ${dto.cabinet_id}`
+            this.logger.warn(
+                `Battery ID ${takenBattery.battery_id} is in cabinet ${takenBattery.cabinet_id}, different from requested cabinet ${dto.cabinet_id}`
             );
         }
 
-        return { battery: takenBattery };
+        return { 
+            battery: takenBattery,
+            message: takenBattery.cabinet_id !== dto.cabinet_id 
+                ? `Battery found in cabinet ${takenBattery.cabinet_id} instead of requested cabinet ${dto.cabinet_id}`
+                : undefined
+        };
     }
 
     async takeBatteryFromCabinet(dto: TakeBatteryDto) {
