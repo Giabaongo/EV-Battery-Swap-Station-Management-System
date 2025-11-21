@@ -18,7 +18,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 export class CreateBatteryDto {
     @IsNotEmpty({ message: 'Serial number is required' })
     @IsString({ message: 'Serial number must be a string' })
-    @MinLength(12, { message: 'Serial number must be at least 2 characters long' })
+    @MinLength(11, { message: 'Serial number must be at least 2 characters long' })
     serial_number: string;
 
     @IsOptional()
