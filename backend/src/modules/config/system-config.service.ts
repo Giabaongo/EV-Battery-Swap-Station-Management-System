@@ -30,7 +30,9 @@ export class SystemConfigService implements OnModuleInit {
     try {
       const configs = await this.prisma.config.findMany({
         where: {
-          type: ConfigType.system,
+          type: {
+            in: [ConfigType.system, ConfigType.penalty]
+          },
           is_active: true,
         },
       });
@@ -38,8 +40,11 @@ export class SystemConfigService implements OnModuleInit {
       this.configCache = {};
       
       for (const config of configs) {
+        // Ưu tiên string_value, nếu không có thì dùng value (Decimal)
         if (config.string_value) {
           this.configCache[config.name] = this.parseValue(config.string_value);
+        } else if (config.value !== null && config.value !== undefined) {
+          this.configCache[config.name] = Number(config.value);
         }
       }
 

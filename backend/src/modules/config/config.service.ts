@@ -17,11 +17,17 @@ export class ConfigService {
       throw new BadRequestException(`Config with name "${createConfigDto.name}" already exists`);
     }
 
+    // Validate: must have either value or string_value
+    if (!createConfigDto.value && !createConfigDto.string_value) {
+      throw new BadRequestException('Must provide either "value" or "string_value"');
+    }
+
     return await this.databaseService.config.create({
       data: {
         type: createConfigDto.type as any,
         name: createConfigDto.name,
         value: createConfigDto.value,
+        string_value: createConfigDto.string_value,
         description: createConfigDto.description,
         is_active: true,
       },
@@ -89,7 +95,8 @@ export class ConfigService {
       data: {
         ...(updateConfigDto.type && { type: updateConfigDto.type as any }),
         ...(updateConfigDto.name && { name: updateConfigDto.name }),
-        ...(updateConfigDto.value && { value: updateConfigDto.value }),
+        ...(updateConfigDto.value !== undefined && { value: updateConfigDto.value }),
+        ...(updateConfigDto.string_value !== undefined && { string_value: updateConfigDto.string_value }),
         ...(updateConfigDto.description !== undefined && { description: updateConfigDto.description }),
         ...(updateConfigDto.is_active !== undefined && { is_active: updateConfigDto.is_active }),
       },

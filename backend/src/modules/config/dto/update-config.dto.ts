@@ -16,6 +16,10 @@ export class UpdateConfigDto {
 
   @IsString()
   @IsOptional()
+  string_value?: string;
+
+  @IsString()
+  @IsOptional()
   description?: string;
 
   @IsBoolean()
