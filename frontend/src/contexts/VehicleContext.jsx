@@ -11,6 +11,10 @@ const { getAllVehicles: getAllVehiclesService,
 
 export const VehicleContext = createContext();
 
+// VehicleContext: provides user's vehicle data and lookup helpers
+// - vehicles: list of vehicles owned by current user
+// - fetchAllVehicles: refresh user's vehicles (used by map & booking flows)
+// Typical flows: driver logs in → vehicles loaded → map filters compatible stations
 export const VehicleProvider = ({ children }) => {
     const authContext = useContext(AuthContext);
     const user = authContext?.user;
@@ -22,7 +26,7 @@ export const VehicleProvider = ({ children }) => {
     const fetchAllVehicles = async (userId = null) => {
         // Use parameter if provided, otherwise fall back to context user
         const targetUserId = userId || user?.user_id;
-        
+
         if (!targetUserId) {
             console.warn('No user logged in, skipping vehicle fetch');
             setVehicles([]);
@@ -44,7 +48,7 @@ export const VehicleProvider = ({ children }) => {
         }
     };
 
-    
+
 
     //function to fetch vehicle by VIN
     const fetchVehicleByVin = async (vin) => {
