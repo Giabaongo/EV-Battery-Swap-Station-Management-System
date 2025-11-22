@@ -95,13 +95,20 @@ const deleteRequest = async (requestId) => {
 
 const createTicket = async (ticketData) => {
   try {
+    console.log(
+      "🚀 Sending createTicket request with data:",
+      JSON.stringify(ticketData, null, 2)
+    );
     const response = await api.post(
       API_ENDPOINTS.BATTERY_TRANSFER_TICKET.CREATE_TICKET,
       ticketData
     );
     return response.data;
   } catch (error) {
-    console.error("Error creating transfer ticket:", error);
+    console.error("❌ Error creating transfer ticket:", error);
+    console.error("Error response data:", error.response?.data);
+    console.error("Error status:", error.response?.status);
+    console.error("Error message:", error.message);
     throw error;
   }
 };

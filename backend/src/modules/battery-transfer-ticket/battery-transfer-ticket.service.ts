@@ -23,10 +23,18 @@ export class BatteryTransferTicketService {
 
   async create(dto: CreateBatteryTransferTicketDto) {
     try {
+      this.logger.log('\n🔍 CREATE TICKET - Starting validation');
+      this.logger.log(`Transfer Request ID: ${dto.transfer_request_id}`);
+      this.logger.log(`Ticket Type: ${dto.ticket_type}`);
+      this.logger.log(`Station ID: ${dto.station_id}`);
+      this.logger.log(`Battery IDs: ${JSON.stringify(dto.battery_ids)}`);
+      this.logger.log(`Battery Count: ${dto.battery_ids.length}`);
+
       // ✅ Dùng service thay vì prisma trực tiếp
       const transferRequest = await this.batteryTransferRequestService.findOne(
         dto.transfer_request_id
       );
+      this.logger.log(`✅ Transfer Request found: quantity=${transferRequest.quantity}`);
 
       // Validate battery quantity
       if (dto.battery_ids.length !== transferRequest.quantity) {
@@ -333,8 +341,17 @@ export class BatteryTransferTicketService {
     let allEmptySlots: any[] = [];
     for (const cabinet of cabinets) {
       const emptySlots = await this.cabinetsService.findEmptySlotAtCabinet(cabinet.cabinet_id);
-      allEmptySlots.push(...[emptySlots]);
+      this.logger.debug(`Cabinet ${cabinet.cabinet_id} empty slots:`, emptySlots);
+      // FIX: Properly spread array without nesting
+      if (emptySlots && Array.isArray(emptySlots)) {
+        allEmptySlots.push(...emptySlots);
+      } else if (emptySlots) {
+        allEmptySlots.push(emptySlots);
+      }
     }
+
+    this.logger.debug(`Total empty slots available: ${allEmptySlots.length}`);
+    this.logger.debug(`Slots structure:`, allEmptySlots);
 
     if (allEmptySlots.length < dto.battery_ids.length) {
       throw new BadRequestException(
@@ -353,7 +370,7 @@ export class BatteryTransferTicketService {
         station_id: dto.station_id,
         cabinet_id: slot.cabinet_id,
         slot_id: slot.slot_id,
-        status: BatteryStatus.charging
+        status: BatteryStatus.full
       },
         prisma
       );
@@ -448,7 +465,7 @@ export class BatteryTransferTicketService {
         station_id: dto.station_id,
         cabinet_id: mapping.cabinet_id,
         slot_id: mapping.slot_id,
-        status: BatteryStatus.charging
+        status: BatteryStatus.full
       },
         prisma
       );
