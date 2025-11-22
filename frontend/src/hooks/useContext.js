@@ -20,7 +20,9 @@ export function useStation() {
     stations: context.stations,
     availableStations: context.availableStations,
     initialized: context.initialized,
-    getAllStations: context.getAllStations,
+    // Backwards compatible alias: expose fetchAllStations as getAllStations
+    getAllStations: context.fetchAllStations || context.getAllStations,
+    // Primary method to get nearby/available stations
     getAvailableStations: context.getAvailableStations,
     getStationById: context.getStationById,
     loading: context.stationLoading,

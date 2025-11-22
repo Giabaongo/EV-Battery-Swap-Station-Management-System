@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,13 +26,19 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
+  // Add global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   // Enable global validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // Chỉ cho phép fields trong DTO
-      forbidNonWhitelisted: true, // Reject extra fields
+      forbidNonWhitelisted: false, // ⚠️ DISABLED - để debug extra fields
       transform: true, // Auto transform types
       disableErrorMessages: false, // Show validation errors
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 

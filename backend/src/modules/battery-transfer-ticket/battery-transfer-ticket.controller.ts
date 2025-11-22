@@ -17,8 +17,29 @@ export class BatteryTransferTicketController {
   @Post()
   @ApiOperation({ summary: 'Create a new battery transfer ticket' })
   @ApiResponse({ status: 201, description: 'The battery transfer ticket has been successfully created.' })
-  create(@Body() createBatteryTransferTicketDto: CreateBatteryTransferTicketDto) {
-    return this.batteryTransferTicketService.create(createBatteryTransferTicketDto);
+  async create(@Body() createBatteryTransferTicketDto: CreateBatteryTransferTicketDto) {
+    try {
+      console.log('\n\n====== 🔍 CREATE TICKET REQUEST ======');
+      console.log('Full DTO Object:', createBatteryTransferTicketDto);
+      console.log('DTO Keys:', Object.keys(createBatteryTransferTicketDto));
+      console.log('DTO JSON:', JSON.stringify(createBatteryTransferTicketDto, null, 2));
+
+      console.log('\n📋 Field Details:');
+      console.log('  transfer_request_id:', createBatteryTransferTicketDto.transfer_request_id, '| Type:', typeof createBatteryTransferTicketDto.transfer_request_id);
+      console.log('  ticket_type:', createBatteryTransferTicketDto.ticket_type, '| Type:', typeof createBatteryTransferTicketDto.ticket_type);
+      console.log('  station_id:', createBatteryTransferTicketDto.station_id, '| Type:', typeof createBatteryTransferTicketDto.station_id);
+      console.log('  staff_id:', createBatteryTransferTicketDto.staff_id, '| Type:', typeof createBatteryTransferTicketDto.staff_id);
+      console.log('  battery_ids:', createBatteryTransferTicketDto.battery_ids, '| Type:', typeof createBatteryTransferTicketDto.battery_ids);
+      console.log('  battery_ids isArray:', Array.isArray(createBatteryTransferTicketDto.battery_ids));
+      console.log('  battery_ids length:', createBatteryTransferTicketDto.battery_ids?.length);
+      console.log('  battery_ids[0]:', createBatteryTransferTicketDto.battery_ids?.[0], '| Type:', typeof createBatteryTransferTicketDto.battery_ids?.[0]);
+      console.log('======================================\n');
+
+      return this.batteryTransferTicketService.create(createBatteryTransferTicketDto);
+    } catch (error) {
+      console.error('❌ ERROR in controller:', error);
+      throw error;
+    }
   }
 
   @Get()

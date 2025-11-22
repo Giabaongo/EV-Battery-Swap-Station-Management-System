@@ -35,11 +35,10 @@ export default function Filter({ filters, setFilters }) {
                     className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="all">Status</option>
-                    <option value="full">Available</option>
+                    <option value="full">Full</option>
                     <option value="charging">Charging</option>
                     <option value="booked">Booked</option>
                     <option value="defective">Defective</option>
-                    <option value="in_use">In Use</option>
                     <option value="in_transit">In Transit</option>
                 </select>
 

@@ -9,7 +9,7 @@ import { stationService } from '../../services/stationService';
 // Take real station data from StationContext
 
 export default function MapPage() {
-  const { stations, getAllStations } = useStation();
+  const { stations, getAllStations, getAvailableStations } = useStation();
   const { batteries, getAllBatteries } = useBattery();
   const { vehicles } = useVehicle();
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,14 +18,26 @@ export default function MapPage() {
   const [map, setMap] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
 
-  // Initial data load - fetch once on mount
+  // Show all stations toggle (if true, fetch all stations; otherwise fetch available stations)
+  const [showAllStations, setShowAllStations] = useState(false);
+
+  // Initial data load - fetch once on mount and when toggle changes
   useEffect(() => {
     const refreshData = async () => {
       try {
-        await Promise.all([
-          stationService.getAllStations(),
-          getAllBatteries()
-        ]);
+        if (showAllStations) {
+          await Promise.all([
+            // use context fetch (backwards-compatible)
+            getAllStations && getAllStations(),
+            getAllBatteries()
+          ]);
+        } else {
+          await Promise.all([
+            // fetch nearby/available stations using InventoryContext helper
+            getAvailableStations && getAvailableStations(),
+            getAllBatteries()
+          ]);
+        }
       } catch (error) {
         console.error('Error refreshing map data:', error);
       }
@@ -33,7 +45,8 @@ export default function MapPage() {
 
     // Initial fetch only
     refreshData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAllStations]);
 
   // Compute Haversine distance in meters
   //Công thức tính quãng đường giữa hai điểm trên map dựa trên vĩ độ và kinh độ của chúng
@@ -98,8 +111,8 @@ export default function MapPage() {
       );
     }
 
-    // Filter by vehicle's battery model
-    if (vehicleId && vehicleId !== 'all') {
+    // Filter by vehicle's battery model (skip when showing all stations)
+    if (!showAllStations && vehicleId && vehicleId !== 'all') {
       const selectedVehicle = vehicles?.find(v => String(v.vehicle_id) === String(vehicleId));
       if (selectedVehicle?.battery_model) {
         const vehicleBatteryModel = selectedVehicle.battery_model;
@@ -119,7 +132,7 @@ export default function MapPage() {
     }
 
     setFilteredStations(base);
-  }, [stations, userLocation, vehicles, batteries]);
+  }, [stations, userLocation, vehicles, batteries, showAllStations]);
 
   const handleStationClick = (station) => {
     if (map) {
@@ -175,6 +188,8 @@ export default function MapPage() {
         vehicles={vehicles}
         selectedVehicleId={selectedVehicleId}
         onVehicleFilterChange={handleVehicleFilter}
+        showAllStations={showAllStations}
+        onToggleAllStations={(val) => setShowAllStations(val)}
       />
 
       {/* Main content area with Map and Stations side by side */}
