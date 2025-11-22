@@ -29,6 +29,29 @@ export default function SwapStepsDialog({
     const [fullBatterySlot, setFullBatterySlot] = useState(null);
     const [batteryCheckStatus, setBatteryCheckStatus] = useState(null); // 'checking', 'passed', 'failed'
 
+    // Helper: normalize empty slot response from backend (slot may be array)
+    const normalizeEmptySlot = (resp) => {
+        if (!resp) return null;
+        // If resp already has cabinet and slot as object
+        if (resp.cabinet && resp.slot && !Array.isArray(resp.slot)) return resp;
+        // If resp has slot as array, pick the first
+        if (resp.cabinet && Array.isArray(resp.slot)) {
+            const first = resp.slot.length > 0 ? resp.slot[0] : null;
+            if (!first) return null;
+            return { cabinet: resp.cabinet, slot: first };
+        }
+        // If response itself is an array of slots (older API or different variant)
+        if (Array.isArray(resp)) {
+            // assume each item is { cabinet, slot } or slot object
+            const firstItem = resp[0];
+            if (!firstItem) return null;
+            if (firstItem.cabinet && firstItem.slot) return normalizeEmptySlot(firstItem);
+            // If item is slot object without cabinet, try to attach cabinet from elsewhere (not available)
+            return firstItem;
+        }
+        return null;
+    };
+
     // Final transaction data
     const [swapTransaction, setSwapTransaction] = useState(null);
     const [enrichedTransaction, setEnrichedTransaction] = useState(null);
@@ -92,8 +115,9 @@ export default function SwapStepsDialog({
                     station_id: stationId,
                 };
 
-                const slot = await swappingService.getEmptySlot(payload);
-                setEmptySlot(slot);
+                const slotResp = await swappingService.getEmptySlot(payload);
+                const normalized = normalizeEmptySlot(slotResp);
+                setEmptySlot(normalized || slotResp);
             } catch (err) {
                 console.error('Error getting empty slot:', err);
                 setErrors([err?.response?.data?.message || 'Failed to get empty slot']);

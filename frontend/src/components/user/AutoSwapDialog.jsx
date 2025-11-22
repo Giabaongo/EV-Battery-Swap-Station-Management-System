@@ -62,6 +62,18 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
     // Step 2: Return Battery - Empty slot info
     const [emptySlot, setEmptySlot] = useState(null);
 
+    // Helper: backend may return `emptySlot.slot` as an array — always pick the first slot object
+    const getFirstSlotFromEmpty = (es) => {
+        if (!es) return null;
+        // If the response is the slot itself
+        if (!es.cabinet && (es.slot_id || es.slot_number)) return es;
+        // If es has a 'slot' property which may be an array or an object
+        const s = es.slot;
+        if (!s) return null;
+        if (Array.isArray(s)) return s.length > 0 ? s[0] : null;
+        return s;
+    };
+
     // Step 3: Check Battery Health
     const [batteryCheckStatus, setBatteryCheckStatus] = useState(null); // 'checking', 'passed', 'failed'
 
@@ -295,8 +307,33 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
             console.log('📤 Sending to get-empty-slot:', payload);
             const response = await swappingService.getEmptySlot(payload);
 
-            console.log('✅ Empty slot found:', response);
-            setEmptySlot(response); // { cabinet, slot }
+            // Normalize backend response: older API returned a single { cabinet, slot }
+            // newer backend may return an array of available slots. Pick the first.
+            let slotResult = null;
+
+            // If axios-style response with data property
+            const respBody = response && response.data ? response.data : response;
+
+            if (Array.isArray(respBody)) {
+                slotResult = respBody.length > 0 ? respBody[0] : null;
+            } else if (Array.isArray(respBody?.available_slots)) {
+                slotResult = respBody.available_slots.length > 0 ? respBody.available_slots[0] : null;
+            } else if (respBody && (respBody.cabinet || respBody.slot)) {
+                // already a single slot object
+                slotResult = respBody;
+            } else {
+                // fallback: try to use response directly
+                slotResult = respBody || null;
+            }
+
+            if (!slotResult) {
+                setErrors(['No empty slot available at this station']);
+                setLoading(false);
+                return;
+            }
+
+            console.log('✅ Empty slot found:', slotResult);
+            setEmptySlot(slotResult); // { cabinet, slot }
             setCurrentStep(SWAP_STEPS.RETURN_BATTERY);
         } catch (err) {
             console.error('❌ Error getting empty slot:', err);
@@ -313,18 +350,19 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
         setLoading(true);
 
         try {
-            if (!emptySlot || !emptySlot.cabinet || !emptySlot.slot) {
+            const slotObj = getFirstSlotFromEmpty(emptySlot);
+            if (!emptySlot || !emptySlot.cabinet || !slotObj) {
                 setErrors(['Invalid empty slot information']);
                 return;
             }
 
-            // Call API: return battery to cabinet
+            // Call API: return battery to cabinet using first available slot
             const response = await swappingService.returnBattery({
                 user_id: parseInt(formData.user_id, 10),
                 vehicle_id: parseInt(formData.vehicle_id, 10),
                 station_id: parseInt(formData.station_id, 10),
                 cabinet_id: emptySlot.cabinet.cabinet_id,
-                slot_id: emptySlot.slot.slot_id,
+                slot_id: slotObj.slot_id,
             });
 
             console.log('✅ Battery returned:', response);
@@ -560,9 +598,9 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                             className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                             required
                                         />
-                                        {showSuggestions && stationsWithBatteries.length > 0 && (
+                                        {showSuggestions && filteredStations.length > 0 && (
                                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                                {stationsWithBatteries.map((station) => (
+                                                {filteredStations.map((station) => (
                                                     <div
                                                         key={station.station_id}
                                                         onClick={() => handleSelectStation(station)}
@@ -630,7 +668,7 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                     <p className="text-gray-500 text-sm mb-2">Cabinet/Slot:</p>
                                     <p className="text-3xl font-bold text-blue-600">
                                         {emptySlot.cabinet?.cabinet_name || `Cabinet ${emptySlot.cabinet?.cabinet_id}`},
-                                        Slot {emptySlot.slot?.slot_number}
+                                        Slot {getFirstSlotFromEmpty(emptySlot)?.slot_number}
                                     </p>
                                 </div>
                             </div>
