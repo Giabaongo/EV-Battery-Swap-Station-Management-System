@@ -12,6 +12,10 @@ const {
 
 export const BookingContext = createContext();
 
+// BookingContext handles reservations and swap requests
+// - reservations: user's reservations and station reservations
+// - swapRequests: pending swap requests for staff dashboard
+// - notifications: local notifications about swaps/reservations
 export const BookingProvider = ({ children }) => {
     // ============ RESERVATION STATE (from ReservationContext) ============
     const [reservations, setReservations] = useState([]);
@@ -24,6 +28,7 @@ export const BookingProvider = ({ children }) => {
     const [swapRequestLoading, setSwapRequestLoading] = useState(false);
     const [swapRequestError, setSwapRequestError] = useState(null);
 
+    // persisted local notifications to show operators/users
     const [notifications, setNotifications] = useState(() => {
         const saved = localStorage.getItem('swapNotifications');
         return saved ? JSON.parse(saved) : [];

@@ -1,4 +1,5 @@
-// Auth context - Simplified
+// Auth context - responsible for user authentication state and helpers
+// Short: holds `user`, `token` and exposes `login`, `logout`, `register`, and helpers.
 import { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { authService } from "../services/authService";
 import { redirect, useNavigate } from "react-router-dom";
@@ -16,6 +17,7 @@ const {
 export const AuthContext = createContext();
 
 // Custom hook để sử dụng AuthContext
+// Hook for components to read auth state and call auth actions
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -26,11 +28,13 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
+    // auth state: current user object, jwt token, loading & error
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [token, setToken] = useState(localStorage.getItem("token") || null);
 
+    // convenience boolean for UI
     const isAuthenticated = !!user;
 
     // Helper function để format error message
@@ -61,7 +65,7 @@ export const AuthProvider = ({ children }) => {
         return error.message || "An unknown error occurred";
     };
 
-    // Function to handle login
+    // Function to handle login: call service, save token, fetch profile, navigate
     const login = async (credentials) => {
         setLoading(true);
         setError(null);
@@ -104,7 +108,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Function to handle Google login
+    // Redirect to Google login flow
     const redirectToGoogleLogin = async () => {
         try {
             await redirectToGoogleLoginService();
@@ -114,7 +118,7 @@ export const AuthProvider = ({ children }) => {
         }
     }
 
-    // Function to handle Google login callback
+    // Handle callback from Google: save token + fetch profile
     const handleGoogleCallback = async () => {
         setLoading(true);
         setError(null);
@@ -147,7 +151,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Function to handle logout
+    // Logout: call API then clear local state + storage
     const logout = async () => {
         try {
             await logoutService();
@@ -163,7 +167,7 @@ export const AuthProvider = ({ children }) => {
         navigate("/", { replace: true });
     };
 
-    // Function to handle register
+    // Register user and optionally set auth state if token returned
     const register = async (userInfo) => {
         setLoading(true);
         setError(null);
@@ -209,7 +213,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Function to create staff account
+    // Admin helper: create staff account
     const createStaffAccount = async (staffInfo) => {
         setLoading(true);
         setError(null);
@@ -227,7 +231,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Function to get all users
+    // Admin helper: fetch all users
     const getAllUsers = async () => {
         setLoading(true);
         setError(null);
@@ -244,10 +248,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Clear error function (stable reference)
+    // Utility: clear stored error
     const clearError = useCallback(() => setError(null), []);
 
-    // Check user on page reload - fetch from API using token
+    // On app load: if token present, fetch user profile and populate context
     useEffect(() => {
         const initializeUser = async () => {
             const savedToken = localStorage.getItem("token");
@@ -271,7 +275,7 @@ export const AuthProvider = ({ children }) => {
                 setUser(userData);
                 localStorage.setItem("user", JSON.stringify(userData));
 
-                // Dispatch event for other contexts
+                // Dispatch event so other contexts (Inventory, Vehicle, etc.) can react
                 window.dispatchEvent(new CustomEvent('userLoggedIn', { detail: userData }));
             } catch (err) {
                 console.error("Failed to fetch user profile on app load:", err);

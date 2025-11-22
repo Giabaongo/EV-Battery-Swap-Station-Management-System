@@ -18,6 +18,9 @@ const {
 
 export const ServiceContext = createContext();
 
+// ServiceContext aggregates package & subscription data
+// - packages: subscription packages available in the product
+// - subscriptions: user's subscriptions (used for swap limits, billing)
 export const ServiceProvider = ({ children }) => {
     // ============ PACKAGE STATE (from PackageContext) ============
     const [packages, setPackages] = useState([]);

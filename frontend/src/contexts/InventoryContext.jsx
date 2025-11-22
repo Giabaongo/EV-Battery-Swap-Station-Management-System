@@ -11,28 +11,36 @@ const { getVehicleByUserId: getVehicleByUserIdService } = vehicleService;
 
 export const InventoryContext = createContext();
 
+// InventoryProvider: central source for stations, batteries and vehicles
+// - Stations: list + availableStations (nearby / filtered for drivers)
+// - Batteries: cached batteries used by map and staff views
+// - Vehicles: driver's vehicles (used to filter compatible stations)
 export const InventoryProvider = ({ children }) => {
-    // Get user from AuthContext
+    // Get current user from AuthContext (some flows are driver-only)
     const authContext = useContext(AuthContext);
     const user = authContext?.user;
 
     // ============ STATION STATE (from StationContext) ============
+    // `stations` = current list shown in UI (could be all or nearby)
+    // `availableStations` = same shape, kept for clarity
     const [stations, setStations] = useState([]);
     const [availableStations, setAvailableStations] = useState([]);
     const [stationLoading, setStationLoading] = useState(false);
     const [stationError, setStationError] = useState(null);
     const [initialized, setInitialized] = useState(false);
 
-    // Geolocation state
+    // cached browser geolocation (used to request nearby stations)
     const [userLocation, setUserLocation] = useState(null);
 
     // ============ BATTERY STATE (from BatteryContext) ============
+    // Batteries are loaded for map overlays and staff views
     const [batteries, setBatteries] = useState([]);
 
     const [batteryLoading, setBatteryLoading] = useState(false);
     const [batteryError, setBatteryError] = useState(null);
 
     // ============ VEHICLE STATE ============
+    // Driver's vehicles used to filter stations by compatibility
     const [vehicles, setVehicles] = useState([]);
     const [vehicleLoading, setVehicleLoading] = useState(false);
     const [vehicleError, setVehicleError] = useState(null);
@@ -40,6 +48,7 @@ export const InventoryProvider = ({ children }) => {
     // ============ STATION METHODS ============
     // Get user's current location
     const getUserLocation = () => {
+        // Return Promise that resolves to {latitude, longitude} or null
         return new Promise((resolve) => {
             if (!navigator.geolocation) {
                 console.warn('Geolocation is not supported by this browser');

@@ -6,10 +6,22 @@ import { BookingContext } from "../contexts/BookingContext";
 import { VehicleContext } from "../contexts/VehicleContext";
 
 export function useAuth() {
+  // Simple wrapper for AuthContext
+  // Provides current authenticated user and auth helpers (login/logout/token)
+  // Use this in any component that needs the current user or auth actions.
   return useContext(AuthContext);
 }
 
 // ============ STATION (from InventoryContext) ============
+// Purpose: central source for station-related data and actions used across the app.
+// InventoryContext owns:
+// - stations: full list fetched by admin or when 'All stations' is requested
+// - availableStations: filtered list (nearby / compatible) for driver flows
+// - methods: fetchAllStations (admin/all), getAvailableStations (driver/nearby), getStationById
+// Typical flow:
+// 1. Driver opens Map -> InventoryContext.getAvailableStations(userId, vehicleId, coords)
+// 2. InventoryContext calls stationService.getAvailableStations -> backend filters by radius & vehicle
+// 3. Components read `stations` or `availableStations` from the hook and render UI
 export function useStation() {
   const context = useContext(InventoryContext);
   if (!context) {
@@ -17,14 +29,19 @@ export function useStation() {
   }
 
   return {
+    // Data
     stations: context.stations,
     availableStations: context.availableStations,
     initialized: context.initialized,
-    // Backwards compatible alias: expose fetchAllStations as getAllStations
+
+    // Methods (alias kept for backward compatibility)
+    // - getAllStations: fetch everything (admin / 'All' toggle)
+    // - getAvailableStations: fetch nearby/compatible for drivers
     getAllStations: context.fetchAllStations || context.getAllStations,
-    // Primary method to get nearby/available stations
     getAvailableStations: context.getAvailableStations,
     getStationById: context.getStationById,
+
+    // Status
     loading: context.stationLoading,
     error: context.stationError,
   };
