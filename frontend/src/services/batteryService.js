@@ -48,6 +48,18 @@ const getBatteriesByStationId = async (stationId) => {
   }
 };
 
+// Get full battery count for a station
+const getFullCountByStationId = async (stationId) => {
+  try {
+    const response = await api.get(
+      API_ENDPOINTS.BATTERY.GET_FULL_COUNT_BY_STATION(stationId)
+    );
+    return response.data?.fullCount ?? 0;
+  } catch (error) {
+    console.error("Error fetching full count for station:", error);
+    throw error;
+  }
+};
 // Function to update battery by id
 const updateBatteryById = async (id, batteryData) => {
   try {
@@ -113,4 +125,5 @@ export const batteryService = {
   updateBatteryById,
   updateBatteryCharge,
   createBattery,
+  getFullCountByStationId,
 };

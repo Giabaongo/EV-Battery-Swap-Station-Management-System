@@ -48,6 +48,14 @@ export class BatteriesController {
     return this.batteriesService.findAllByStationId(+station_id);
   }
 
+  @Get('station/:station_id/full-count')
+  @ApiOperation({ summary: 'Get count of full batteries at a station' })
+  @ApiResponse({ status: 200, description: 'Number of full batteries for the specified station.' })
+  async getFullCountByStation(@Param('station_id') station_id: string) {
+    const count = await this.batteriesService.countFullByStationId(+station_id);
+    return { station_id: +station_id, fullCount: count };
+  }
+
   @ApiOperation({ summary: 'Retrieve a battery by ID' })
   @ApiResponse({ status: 200, description: 'The battery details.' })
   @Get(':id')
