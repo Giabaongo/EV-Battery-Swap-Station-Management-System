@@ -550,7 +550,6 @@ export default function AutoSwapDialog({ open, onOpenChange, userId, onSuccess }
                                     {vehicles.map((vehicle) => (
                                         <option key={vehicle.vehicle_id} value={vehicle.vehicle_id}>
                                             {vehicle.vin} - {vehicle.battery_model || 'Unknown Model'}
-                                            {vehicle.status === 'active' ? ' (Active)' : ''}
                                         </option>
                                     ))}
                                 </select>
