@@ -422,14 +422,9 @@ export class SubscriptionsService {
 
     const expiredIds = expiredSubscriptions.map((sub) => sub.subscription_id);
 
-    // Subscriptions that have exceeded base distance and need penalty payment
-    const needPaymentIds = expiredSubscriptions
-      .filter((sub) => sub.distance_traveled > sub.package.base_distance)
-      .map((sub) => sub.subscription_id);
-
     // Use transaction to update subscriptions and deactivate vehicles
     await this.prisma.$transaction(async (tx) => {
-      // Mark subscriptions as expired
+      // Mark all expired subscriptions as expired
       await tx.subscription.updateMany({
         where: {
           subscription_id: { in: expiredIds },
@@ -439,19 +434,6 @@ export class SubscriptionsService {
         },
       });
       this.logger.log(`Marked ${expiredIds.length} subscriptions as expired.`);
-
-      // Mark subscriptions with penalty as pending payment
-      await tx.subscription.updateMany({
-        where: {
-          subscription_id: { in: needPaymentIds },
-        },
-        data: {
-          status: SubscriptionStatus.pending_penalty_payment,
-        },
-      });
-      this.logger.log(
-        `Marked ${needPaymentIds.length} subscriptions as pending penalty payment.`,
-      );
 
       // Deactivate vehicles that no longer have active subscriptions
       const vehicleIds = expiredSubscriptions
