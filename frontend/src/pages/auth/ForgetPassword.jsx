@@ -52,14 +52,8 @@ export default function ForgetPassword() {
         <div className="w-full max-w-md">
           {/* Header */}
           <header className="mb-8 flex items-center justify-center gap-4">
-            <div className="h-8 w-8 text-primary">
-              <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <path clipRule="evenodd"
-                  d="M12.0799 24L4 19.2479L9.95537 8.75216L18.04 13.4961L18.0446 4H29.9554L29.96 13.4961L38.0446 8.75216L44 19.2479L35.92 24L44 28.7521L38.0446 39.2479L29.96 34.5039L29.9554 44H18.0446L18.04 34.5039L9.95537 39.2479L4 28.7521L12.0799 24Z"
-                  fill="currentColor" fillRule="evenodd"></path>
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">EV Charge</h2>
+            <img src="/logo.png" alt="KIRI Swap" className="h-8 w-8" />
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">KIRI Swap</h2>
           </header>
 
           {/* Success Card */}
@@ -93,7 +87,7 @@ export default function ForgetPassword() {
                   Didn't receive the email?{' '}
                   <button
                     onClick={() => setSuccess(false)}
-                    className="text-primary hover:underline"
+                    className="text-blue-900 hover:underline dark:text-blue-400"
                   >
                     Try again
                   </button>
@@ -111,21 +105,15 @@ export default function ForgetPassword() {
       <div className="w-full max-w-md">
         {/* Header */}
         <header className="mb-8 flex items-center justify-center gap-4">
-          <div className="h-8 w-8 text-primary">
-            <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-              <path clipRule="evenodd"
-                d="M12.0799 24L4 19.2479L9.95537 8.75216L18.04 13.4961L18.0446 4H29.9554L29.96 13.4961L38.0446 8.75216L44 19.2479L35.92 24L44 28.7521L38.0446 39.2479L29.96 34.5039L29.9554 44H18.0446L18.04 34.5039L9.95537 39.2479L4 28.7521L12.0799 24Z"
-                fill="currentColor" fillRule="evenodd"></path>
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">EV Charge</h2>
+          <img src="/kiri-swap-logo.png" alt="KIRI Swap" className="h-8 w-8" />
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">KIRI Swap</h2>
         </header>
 
         {/* Main Card */}
         <main className="w-full rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Mail className="h-6 w-6 text-primary" />
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <Mail className="h-6 w-6 text-blue-900 dark:text-blue-400" />
             </div>
             
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Forgot Password?</h1>

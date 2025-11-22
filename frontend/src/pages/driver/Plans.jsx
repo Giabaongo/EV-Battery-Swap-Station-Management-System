@@ -42,7 +42,6 @@ export default function Plans() {
       : 'per swap',
     features: [
       pkg.base_distance && pkg.base_distance > 0 ? `${formatCurrency(pkg.base_distance)} km included` : 'Flexible swaps',
-      pkg.phi_phat && pkg.phi_phat > 0 ? `Extra fee: ${formatCurrency(pkg.phi_phat)} VNĐ` : 'No extra fee',
       'Access to all stations',
       '24/7 customer support'
     ],

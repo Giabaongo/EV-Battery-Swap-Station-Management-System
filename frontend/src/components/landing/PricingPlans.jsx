@@ -31,12 +31,12 @@ const plans = [
     popular: true
   },
   {
-    name: "Premium Package",
+    name: "Custom Package",
     description: "Unlimited swaps for heavy users",
-    price: "2,000,000",
+    price: "XXX,000",
     period: "per month",
     features: [
-      "5,000 km included",
+      "XXX km included",
       "No extra fee",
       "Access to all stations",
       "24/7 customer support"

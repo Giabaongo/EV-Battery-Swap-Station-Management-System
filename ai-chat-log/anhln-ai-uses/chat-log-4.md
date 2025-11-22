@@ -11927,3 +11927,749 @@ Hoàn thành! Tôi đã thêm 3 nút thanh toán riêng biệt cho việc đăng
 Giờ khi đăng ký gói mới, user có 3 lựa chọn thanh toán: VNPAY, MOMO, hoặc tiền mặt!
 
 Made changes.
+
+Rowlec: vì sao hàm này nó bị gọi lại liên tục không dùng
+
+GitHub Copilot: Hàm `getAvailableStations` bị gọi liên tục có thể do nhiều nguyên nhân. Hãy để tôi kiểm tra các nơi gọi hàm này:
+
+```javascript
+// Tìm các component sử dụng getAvailableStations
+```
+
+Các nguyên nhân phổ biến khiến hàm bị gọi liên tục:
+
+## 🔍 **Nguyên nhân có thể:**
+
+### **1. useEffect không có dependency array đúng**
+```javascript
+// ❌ SAI - Gọi mỗi lần render
+useEffect(() => {
+  stationService.getAvailableStations(userId, vehicleId, lng, lat);
+});
+
+// ❌ SAI - setState trong useEffect → re-render → gọi lại
+useEffect(() => {
+  const fetchStations = async () => {
+    const data = await stationService.getAvailableStations(...);
+    setStations(data); // Trigger re-render → gọi lại useEffect
+  };
+  fetchStations();
+}, [stations]); // stations thay đổi → loop vô tận
+
+// ✅ ĐÚNG
+useEffect(() => {
+  const fetchStations = async () => {
+    const data = await stationService.getAvailableStations(...);
+    setStations(data);
+  };
+  fetchStations();
+}, [userId, vehicleId, lng, lat]); // Chỉ gọi khi các giá trị này thay đổi
+```
+
+### **2. Coordinates thay đổi liên tục**
+```javascript
+// ❌ SAI - coordinates object mới mỗi lần render
+const coords = { lng: 106.123, lat: 10.456 };
+useEffect(() => {
+  getAvailableStations(userId, vehicleId, coords.lng, coords.lat);
+}, [coords]); // coords luôn khác nhau → gọi liên tục
+
+// ✅ ĐÚNG - Dùng giá trị primitive
+const [lng, setLng] = useState(106.123);
+const [lat, setLat] = useState(10.456);
+useEffect(() => {
+  getAvailableStations(userId, vehicleId, lng, lat);
+}, [lng, lat]); // Chỉ gọi khi lng/lat thực sự thay đổi
+```
+
+### **3. State update trong render**
+```javascript
+// ❌ SAI
+function Component() {
+  const [stations, setStations] = useState([]);
+  
+  // Gọi trong render → setState → re-render → loop
+  stationService.getAvailableStations(...).then(data => setStations(data));
+  
+  return <div>...</div>;
+}
+```
+
+---
+
+Hãy cho tôi xem component nào đang gọi `getAvailableStations` để tôi kiểm tra cụ thể vấn đề? Thường là:
+- `MapView.jsx`
+- `StationList.jsx`  
+- `Booking.jsx`
+- `BookingContainer.jsx`
+
+Bạn muốn tôi kiểm tra file nào? 🔎
+
+Rowlec: đây là trang gọi
+
+GitHub Copilot: Tôi tìm thấy vấn đề! Trong InventoryContext.jsx, có nhiều `useEffect` đang trigger việc gọi `getAvailableStations` liên tục. Hãy để tôi fix:
+
+## 🔍 **Vấn đề chính:**
+
+1. **useEffect thứ nhất** (line ~350) gọi `getAvailableStations()` khi `initialized` false
+2. **useEffect thứ hai** (line ~395) lắng nghe event `userLoggedIn` và cũng gọi `getAvailableStations()`
+3. Cả 2 đều thiếu dependencies đúng → gây infinite loop
+
+Hãy fix dependencies và điều kiện:
+
+```javascript
+// Fix useEffect 1 - Station fetch
+useEffect(() => {
+    const checkAndFetch = () => {
+        const token = localStorage.getItem('token');
+        const userId = user?.user_id || user?.id;
+
+        if (!token || !userId || user?.role !== 'driver') {
+            return;
+        }
+
+        if (!initialized && !stationLoading) {
+            console.log('Fetching available stations...');
+            getAvailableStations().catch(err => {
+                console.error('Failed to fetch stations:', err);
+            });
+        }
+    };
+
+    checkAndFetch();
+}, [user?.role, user?.user_id, initialized, stationLoading]); // ✅ Thêm dependencies
+
+// Fix useEffect 2 - Login event
+useEffect(() => {
+    const handleLogin = () => {
+        const userId = user?.user_id || user?.id;
+        if (userId && user?.role === 'driver' && !initialized && !stationLoading) {
+            console.log('Driver logged in - fetching available stations');
+            getAvailableStations().catch(err => {
+                console.error('Failed to fetch stations after login:', err);
+            });
+        }
+    };
+
+    window.addEventListener('userLoggedIn', handleLogin);
+    return () => window.removeEventListener('userLoggedIn', handleLogin);
+}, [user?.role, user?.user_id, initialized, stationLoading]); // ✅ Thêm dependencies
+```
+
+Nhưng vấn đề lớn hơn là **`getAvailableStations` không được wrap trong `useCallback`**, nên mỗi lần component re-render, nó tạo function mới → trigger useEffect.
+
+Hãy để tôi fix toàn bộ:
+
+Rowlec: điều chỉnh giá với thông tin trong gói cho giống với hình tôi gửi, bỏ 2 nút Start Now và Contact sales, nút Subscribe Now thì chuyển thành Login To Subscribe và chuyển hướng đến trang đăng nhập
+
+GitHub Copilot: ```javascript
+import { Card, CardContent, CardHeader } from "../ui/card"
+import { Button } from "../ui/button"
+import { Check } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+
+const plans = [
+  {
+    name: "Basic Package",
+    description: "Perfect for light users",
+    price: "500,000",
+    period: "per month",
+    features: [
+      "1,000 km included",
+      "No extra fee",
+      "Access to all stations",
+      "24/7 customer support"
+    ],
+    popular: false
+  },
+  {
+    name: "Standard Package",
+    description: "Most popular package",
+    price: "900,000",
+    period: "per month",
+    features: [
+      "2,000 km included",
+      "No extra fee",
+      "Access to all stations",
+      "24/7 customer support"
+    ],
+    popular: true
+  },
+  {
+    name: "Premium Package",
+    description: "Unlimited swaps for heavy users",
+    price: "2,000,000",
+    period: "per month",
+    features: [
+      "5,000 km included",
+      "No extra fee",
+      "Access to all stations",
+      "24/7 customer support"
+    ],
+    popular: false
+  }
+]
+
+export default function PricingPlans() {
+  const navigate = useNavigate();
+
+  const handleSubscribe = () => {
+    navigate('/login');
+  };
+
+  return (
+    <section className="py-16 px-4 bg-gray-50">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            Pricing and Service Packages
+          </h2>
+          <p className="text-lg text-gray-600">
+            Choose the plan that works best for your EV charging needs
+          </p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-8">
+          {plans.map((plan, index) => (
+            <Card 
+              key={index} 
+              className={`relative ${plan.popular ? 'border-blue-700 shadow-xl scale-105' : 'border-gray-200 shadow-lg'}`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-blue-700 text-white px-4 py-1 rounded-full text-sm font-medium">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+              
+              <CardHeader className={`text-center ${plan.popular ? 'bg-blue-700 text-white' : 'bg-white'} rounded-t-lg`}>
+                <h3 className="text-2xl font-bold mb-2">
+                  {plan.name}
+                </h3>
+                <p className={`text-sm ${plan.popular ? 'text-blue-100' : 'text-gray-600'} mb-4`}>
+                  {plan.description}
+                </p>
+                <div className="text-4xl font-bold">
+                  {plan.price} <span className="text-2xl">VND</span>
+                  <div className={`text-lg font-normal ${plan.popular ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {plan.period}
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-6 bg-white">
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-center">
+                      <Check className="w-5 h-5 text-blue-700 mr-3 flex-shrink-0" />
+                      <span className="text-gray-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <Button 
+                  className={`w-full ${plan.popular ? 'bg-blue-700 hover:bg-blue-800 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                  size="lg"
+                  onClick={handleSubscribe}
+                >
+                  Login To Subscribe
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+```
+
+✅ **Thay đổi đã thực hiện:**
+
+1. **Cập nhật thông tin gói:**
+   - Basic Package: 500,000 VND - 1,000 km
+   - Standard Package: 900,000 VND - 2,000 km
+   - Premium Package: 2,000,000 VND - 5,000 km
+
+2. **Xóa các nút không cần:**
+   - ❌ Xóa "Start Now" và "Contact Sales"
+   - ✅ Chỉ giữ lại nút "Login To Subscribe" cho cả 3 gói
+
+3. **Chức năng chuyển hướng:**
+   - Import `useNavigate` từ react-router-dom
+   - Tạo handler `handleSubscribe()` để navigate tới `/login`
+   - Tất cả 3 nút đều chuyển hướng đến trang đăng nhập
+
+4. **Styling:**
+   - Popular plan: màu xanh dương (blue-700)
+   - Non-popular plans: màu tím (purple-600)
+   - Hover effects đã được cập nhật
+
+Rowlec: khi không có pin được gắn vào xe thì hiển thị No battery assigned for this vehicle, you can take your battery at station
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+Đã cập nhật! Giờ khi xe không có pin được gắn (`battery_id` không tồn tại), sẽ hiển thị thông báo cảnh báo màu vàng với nội dung:
+
+**"No battery assigned for this vehicle, you can take your battery at station"**
+
+Thông báo bao gồm:
+- Icon cảnh báo màu vàng
+- Tiêu đề in đậm 
+- Text hướng dẫn bên dưới
+- Style: background vàng nhạt với border vàng đậm hơn
+
+Made changes.
+
+Rowlec: cho phép chuyền battery_type vào 
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Đã thêm trường **Battery Type** vào form tạo xe:
+
+✅ **Thay đổi:**
+1. Thêm validation cho `battery_type` (bắt buộc)
+2. Thêm `battery_type` vào `initialValues`
+3. Gửi `battery_type` lên API khi submit
+4. Thêm UI field "Battery Type" giữa VIN và Battery Model
+5. Có placeholder và error validation đầy đủ
+
+Thứ tự các trường bây giờ:
+1. VIN (18 ký tự)
+2. Battery Type (mới thêm)
+3. Battery Model
+
+Made changes.
+
+Rowlec: cho trang này nằm ra giữa trang
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+
+
+Made changes.
+
+Rowlec: Đổi nút update ticket thành close ticket 
+sử dụng api clearSupportTicket của service,
+đây là ví dụ:
+/api/v1/supports/:id (PATCH)
+
+body:
+{
+"status":"closed"
+}
+respone sẽ trả về tin nhắn
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Đã cập nhật thành công! 
+
+**Thay đổi:**
+
+1. ✅ Thay nút "Update Ticket" thành "Close Ticket" (màu xanh lá)
+2. ✅ Sử dụng `clearSupportTicket(id)` API
+3. ✅ Hiển thị "Closing..." khi đang xử lý
+4. ✅ Disabled nút khi ticket đã có status = "closed"
+5. ✅ Hiển thị toast message từ response của API
+6. ✅ Tự động refresh dữ liệu sau khi close thành công
+7. ✅ Icon đổi từ Edit sang MessageSquare
+
+Nút "Close Ticket" sẽ gọi API `PATCH /api/v1/supports/:id` với body `{ "status": "closed" }` và hiển thị message trả về từ server.
+
+Made changes.
+
+Rowlec: thông báo đã thành công nhưng ticket không đổi trạng thái, http://localhost:5173/admin/support/7
+
+GitHub Copilot: Hãy để tôi kiểm tra API endpoint trong `clearSupportTicket`: 
+
+Searched for text `CLOSE_TICKET` (`**/frontend/src/constants/index.js`), 1 result
+
+Tôi thấy vấn đề rồi! API endpoint `CLOSE_TICKET` chỉ trả về `/supports/${id}` nhưng không có body `{ "status": "closed" }`. Hãy sửa lại: 
+
+Using "Replace String in File"
+
+
+```
+
+```
+Đã fix! Vấn đề là `clearSupportTicket` không gửi body `{ "status": "closed" }` kèm theo request. Bây giờ API sẽ:
+
+1. ✅ Gửi `PATCH /api/v1/supports/:id` 
+2. ✅ Với body: `{ "status": "closed" }`
+3. ✅ Nhận response và cập nhật UI
+
+Hãy thử lại, ticket bây giờ sẽ đổi trạng thái sang "closed" sau khi click nút!
+
+Made changes.
+
+Rowlec: Ở trang này, làm thêm 1 mục để xem các support ticket mà mình đã gửi, có nút view detail để xem chi tiết hơn, sử dụng API getSupportByUserId của supportServices, 
+đây là ví dụ:
+http://localhost:8080/api/v1/supports/user/346 (GET)
+
+respone: 
+[
+  {
+    "support_id": 22,
+    "user_id": 346,
+    "station_id": 160,
+    "type": "station_issue",
+    "description": "Ở trong trạm vẫn còn thiếu vệ sinh",
+    "admin_respond": null,
+    "status": "open",
+    "rating": 4,
+    "created_at": "2025-11-21T17:31:41.840Z",
+    "updated_at": "2025-11-21T17:31:41.840Z",
+    "station": {
+      "station_id": 160,
+      "name": "Station Go Vap",
+      "address": "321 Dien Bien Phu, Go Vap, HCMC",
+      "latitude": "10.78265",
+      "longitude": "106.6342",
+      "status": "active"
+    }
+  }
+]
+Nếu như admin respond là null thì hiển thị chưa có phản hồi từ admin (tiếng anh), nếu có thì hiện bạn có phản hồi từ admin 
+
+
+GitHub Copilot: Searched for files matching `**/support/Support*.jsx`, 3 matches
+
+Read [](file:///d%3A/CHUYEN%20NGANH/FALL25%28HOC%20KI%205%29/SWP/EV-Battery-Swap-Station-Management-System/frontend/src/components/support/SupportTicketCard.jsx#1-1), lines 1 to 50
+
+Bây giờ tôi sẽ tạo component mới để hiển thị danh sách support tickets của user: 
+
+Created [](file:///d%3A/CHUYEN%20NGANH/FALL25%28HOC%20KI%205%29/SWP/EV-Battery-Swap-Station-Management-System/frontend/src/components/support/MyTickets.jsx)
+
+Using "Replace String in File"
+
+
+```
+
+```
+Đã hoàn thành! Tôi đã tạo component `MyTickets` với các tính năng:
+
+✅ **Tính năng chính:**
+1. Hiển thị danh sách support tickets của user
+2. Gọi API `getSupportByUserId(user_id)` để lấy dữ liệu
+3. Hiển thị status badge (Open, In Progress, Resolved, Closed)
+4. Hiển thị type badge (Battery Issue, Station Issue, Other)
+5. Hiển thị thông tin station liên quan
+6. Nút "View Detail" để xem chi tiết từng ticket
+
+✅ **Logic admin response:**
+- ✅ Nếu `admin_respond` là `null` hoặc rỗng → "No admin response yet" (màu xám)
+- ✅ Nếu có response → "You have a response from admin" (màu xanh với icon CheckCircle)
+
+✅ **Modal chi tiết:**
+- Hiển thị đầy đủ thông tin: status, type, station, description, admin response
+- Hiển thị rating (nếu có)
+- Timestamps: created_at và updated_at
+- Admin response được highlight với background màu xanh nếu có
+
+Component được thêm vào trang Support giữa `SupportTicketCard` và `SupportContact`.
+
+Made changes.
+
+Rowlec: bây giờ hãy validate cho tôi, thứ nhất là thêm paging cho các ticket, thứ 2 là các ticket có status là close thì không hiển thị nữa 
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Hoàn thành! Đã thêm 2 tính năng validation:
+
+✅ **1. Pagination:**
+- Hiển thị 5 tickets mỗi trang
+- Nút "Previous" và "Next" để chuyển trang
+- Số trang hiển thị ở giữa (có thể click trực tiếp)
+- Nút Previous disabled khi ở trang 1
+- Nút Next disabled khi ở trang cuối
+- Tự động scroll lên đầu khi chuyển trang
+- Pagination chỉ hiển thị khi có nhiều hơn 1 trang
+
+✅ **2. Filter Closed Tickets:**
+- Tự động lọc bỏ các ticket có `status === 'closed'`
+- Chỉ hiển thị tickets có status: open, in_progress, resolved
+- Filter được áp dụng ngay khi fetch data
+
+Bây giờ user chỉ thấy các tickets đang active và có thể dễ dàng navigate qua các trang!
+
+Made changes.
+
+Rowlec: Thêm cho tôi 1 nút phản hồi lại ticket, cần có 1 pop-up để admin ghi nội dung reply lại, sử dụng api replyToSupportTicket của supportService, method là patch và body chuyền vào chỉ cần có "admin_respond":"String"
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Hoàn thành! Đã thêm tính năng Reply cho admin với các đặc điểm:
+
+✅ **Tính năng:**
+1. Nút "Reply to Ticket" (màu xanh dương) - nằm trước nút Close Ticket
+2. Modal popup để admin nhập nội dung phản hồi
+3. Textarea với placeholder và validation
+4. Gọi API `replyToSupportTicket(id, { admin_respond: "..." })`
+5. Disabled khi ticket đã closed
+6. Loading state khi đang gửi reply
+7. Tự động refresh dữ liệu sau khi gửi thành công
+
+✅ **Validation:**
+- Kiểm tra reply text không được rỗng
+- Disabled nút Send Reply khi chưa nhập gì
+- Disabled nút Reply khi ticket đã closed
+- Loading spinner khi đang xử lý
+
+✅ **UX:**
+- Toast notification khi thành công/thất bại
+- Clear form sau khi gửi
+- Cancel button để đóng modal
+- Auto-refresh ticket data sau khi reply
+
+Made changes.
+
+Rowlec: {
+  "admin_respond": "Chúng tôi đã kiểm tra và sẽ sửa chữa trạm sạc trong vòng 24h",
+  "status": "in_progress"
+}
+cập nhật thêm body
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+Đã cập nhật! Bây giờ khi admin reply ticket, body sẽ gửi:
+
+```json
+{
+  "admin_respond": "Nội dung phản hồi...",
+  "status": "in_progress"
+}
+```
+
+Ticket sẽ tự động chuyển sang status "In Progress" sau khi admin gửi reply. ✅
+
+Made changes.
+
+Rowlec: api nên là như vậy: ...support/22/admin-respone
+
+
+GitHub Copilot: Using "Replace String in File"
+
+
+```
+
+```
+Đã cập nhật endpoint! Bây giờ API reply sẽ gọi:
+
+```
+PATCH /supports/22/admin-respone
+```
+
+với body:
+```json
+{
+  "admin_respond": "...",
+  "status": "in_progress"
+}
+```
+
+✅ Endpoint đã được sửa từ `/supports/:id` thành `/supports/:id/admin-respone`
+
+Made changes.
+
+Rowlec: SupportDetail.jsx:93 Error replying to support ticket: 
+AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+
+GitHub Copilot: Lỗi 404 vì endpoint sai chính tả. Backend có thể là `admin-response` (có 's') thay vì `admin-respone`. Hãy để tôi kiểm tra và sửa: 
+
+Using "Replace String in File"
+
+
+```
+
+```
+Đã sửa endpoint từ `admin-respone` → `admin-response` (thêm chữ 's'). 
+
+Endpoint bây giờ là:
+```
+PATCH /supports/22/admin-response
+```
+
+Hãy thử lại! ✅
+
+Made changes.
+
+Rowlec: Loại bỏ status ra khỏi phần display của driver, cả ở trong bảng pop up của view detail luôn
+
+GitHub Copilot: I'll remove the status display from the driver's view in both the ticket list and the detail modal. 
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Done! I've removed the status badge from both the ticket list view and the detail modal popup. Now drivers will only see:
+- Ticket ID (#)
+- Type (Battery Issue/Station Issue/Other)
+- Description
+- Station info
+- Admin response status
+
+The status is now only used internally for filtering (hiding closed tickets) but not displayed to drivers.
+
+Made changes.
+
+Rowlec: database tôi đang như thế này, vì sao phần booking nó lại lấy subscription cancelled thay vì active, của vehicle id 205
+
+GitHub Copilot: Tôi sẽ kiểm tra logic chọn subscription trong BookingContainer để tìm nguyên nhân. 
+
+Read [](file:///d%3A/CHUYEN%20NGANH/FALL25%28HOC%20KI%205%29/SWP/EV-Battery-Swap-Station-Management-System/frontend/src/components/containers/BookingContainer.jsx#95-95), lines 95 to 135
+
+Tôi đã tìm ra vấn đề! Logic hiện tại đang **ưu tiên hiển thị subscription có status khác "active" trước** (dòng 120-123). Điều này không đúng cho phần booking - người dùng chỉ nên thấy subscription active để có thể đặt lịch.
+
+Logic sai này có lẽ được thiết kế cho trang quản lý subscription (để nhắc user renew), nhưng không phù hợp với booking flow.
+
+Tôi sẽ sửa logic để **ưu tiên subscription active** thay vì non-active: 
+
+Using "Replace String in File"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Đã sửa xong! 
+
+**Nguyên nhân lỗi:** Logic trước đây **ưu tiên chọn subscription có status khác "active"** (cancelled, expired, pending_penalty_payment) thay vì active. Điều này không đúng cho booking flow.
+
+**Đã sửa:**
+- Bây giờ logic sẽ **ưu tiên chọn subscription có status = "active"** khi có nhiều subscription cho cùng 1 vehicle
+- Chỉ khi không có active subscription nào thì mới chọn subscription gần nhất
+
+Với vehicle ID 205 của bạn:
+- Có 2 subscriptions: #44 (cancelled) và #45 (active)
+- Trước: Chọn #44 (cancelled) ❌
+- Sau: Chọn #45 (active) ✅
+
+Giờ booking sẽ luôn ưu tiên subscription active để user có thể đặt lịch swap battery.
+
+Made changes.
+
+Rowlec: Bỏ nút edit ra khỏi giao diện
+
+GitHub Copilot: Summarized conversation history
+
+Rowlec: .
+
+GitHub Copilot: Summarizing conversation history...

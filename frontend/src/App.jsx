@@ -49,6 +49,8 @@ import UnauthorizedPage from './pages/shared/UnauthorizedPage'
 import StaffTransfer from './pages/staff/TransferRequests'
 import CreateBattery from './pages/staff/CreateBattery'
 import ReservationCountdownWidget from './components/booking/ReservationCountdownWidget'
+import AdminConfigList from './pages/admin/config/ConfigList'
+import EditConfig from './pages/admin/config/EditConfig'
 
 // import ProtectedRoute from './components/auth/ProtectedRoute'
 
@@ -130,6 +132,8 @@ function App() {
           <Route path="support/:id" element={<SupportDetail />} />
 
           <Route path="report" element={<AdminReport />} />
+          <Route path="config-list" element={<AdminConfigList />} />
+          <Route path="config/:id/edit" element={<EditConfig />} />
           <Route path="profile" element={<Profile />} />
         </Route>
 

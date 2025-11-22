@@ -11,7 +11,8 @@ import {
   FileText,
   Battery,
   User as UserIcon,
-  LogOut
+  LogOut,
+  Settings
 } from 'lucide-react'
 
 export default function Navigation({ type = "main" }) {
@@ -180,6 +181,7 @@ export default function Navigation({ type = "main" }) {
       { name: 'Battery Transfer', path: '/admin/battery-transfer-requests', icon: ArrowLeftRight },
       { name: 'Support', path: '/admin/support-list', icon: MessageCircle },
       { name: 'AI Reports', path: '/admin/report', icon: FileText },
+      { name: 'Configuration', path: '/admin/config-list', icon: Settings },
       { name: 'Profile', path: '/admin/profile', icon: UserIcon },
     ]
 
