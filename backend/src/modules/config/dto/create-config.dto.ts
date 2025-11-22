@@ -8,6 +8,7 @@ export enum ConfigTypeEnum {
   SWAP_FEE = 'swap_fee',
   LATE_FEE = 'late_fee',
   DAMAGE_FEE = 'damage_fee',
+  SYSTEM = 'system',
   OTHER = 'other',
 }
 
@@ -22,10 +23,15 @@ export class CreateConfigDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Value of the configuration' })
+  @ApiProperty({ description: 'Numeric value of the configuration', required: false })
   @IsNumber()
-  @IsNotEmpty()
-  value: number;
+  @IsOptional()
+  value?: number;
+
+  @ApiProperty({ description: 'String value of the configuration (for system configs)', required: false })
+  @IsString()
+  @IsOptional()
+  string_value?: string;
 
   @ApiProperty({ description: 'Description of the configuration', required: false })
   @IsString()
