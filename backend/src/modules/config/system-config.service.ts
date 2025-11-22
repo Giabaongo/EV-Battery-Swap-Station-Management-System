@@ -134,4 +134,33 @@ export class SystemConfigService implements OnModuleInit {
   has(key: string): boolean {
     return key in this.configCache;
   }
+
+  /**
+   * Update config value in database (for runtime configs like last_run timestamps)
+   * Note: This does NOT update the cache. Use only for non-critical runtime data.
+   */
+  async updateConfig(configName: string, configValue: string): Promise<void> {
+    try {
+      await this.prisma.config.upsert({
+        where: { name: configName },
+        update: {
+          string_value: configValue,
+          updated_at: new Date(),
+        },
+        create: {
+          name: configName,
+          string_value: configValue,
+          type: ConfigType.system,
+          description: 'Auto-generated runtime config',
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to update config ${configName}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
 }

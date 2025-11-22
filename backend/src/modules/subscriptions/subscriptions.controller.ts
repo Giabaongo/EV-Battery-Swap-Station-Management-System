@@ -22,13 +22,17 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard';
 import { $Enums } from '@prisma/client';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { SubscriptionExpiryTask } from './tasks/subscription-expiry.task';
 
 @ApiTags('subscriptions')
 @ApiBearerAuth('access-token')
 @Controller('subscriptions')
 @UseGuards(AuthGuard, RolesGuard, EmailVerifiedGuard)
 export class SubscriptionsController {
-  constructor(private readonly subscriptionsService: SubscriptionsService) { }
+  constructor(
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly subscriptionExpiryTask: SubscriptionExpiryTask,
+  ) { }
 
   @Roles($Enums.Role.driver)
   @Post()
@@ -46,6 +50,23 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Subscriptions have been checked and expired if necessary.' })
   expireSubscriptions() {
     return this.subscriptionsService.updateExpiredSubscriptions();
+  }
+
+  /**
+   * TEST ENDPOINT: Manually trigger cron job for subscription expiry
+   * This endpoint allows testing the cron job without waiting for scheduled execution
+   */
+  @HttpCode(HttpStatus.OK)
+  @Post('test/trigger-expiry-cron')
+  @Roles($Enums.Role.admin)
+  @ApiOperation({ summary: 'TEST: Manually trigger subscription expiry cron job' })
+  @ApiResponse({ status: 200, description: 'Cron job executed successfully.' })
+  async triggerExpiryCron() {
+    await this.subscriptionExpiryTask.handleExpiredSubscriptions();
+    return {
+      success: true,
+      message: 'Subscription expiry cron job executed manually',
+    };
   }
 
   @Get()
