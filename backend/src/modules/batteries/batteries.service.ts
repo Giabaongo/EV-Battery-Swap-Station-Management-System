@@ -97,6 +97,15 @@ export class BatteriesService {
     });
   }
 
+  /**
+   * Count batteries with status 'full' at a given station
+   */
+  async countFullByStationId(station_id: number) {
+    return await this.databaseService.battery.count({
+      where: { station_id, status: BatteryStatus.full },
+    });
+  }
+
   async findCompatibleBatteries(
     model: string,
     type: string,

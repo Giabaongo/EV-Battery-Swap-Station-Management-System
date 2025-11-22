@@ -7,6 +7,8 @@ import { Button } from '../../../components/ui/button';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { batteryTransferService } from '../../../services/batteryTransferService';
 import { stationService } from '../../../services/stationService';
+import { batteryService } from '../../../services/batteryService';
+import { cabinetService } from '../../../services/cabinetService';
 import { toast } from 'sonner';
 
 const validationSchema = Yup.object().shape({
@@ -29,7 +31,34 @@ export default function AdminBatteryTransferReq() {
       try {
         setLoadingStations(true);
         const data = await stationService.getAllStations();
-        setStations(Array.isArray(data) ? data : data?.data || []);
+        const stationsArray = Array.isArray(data) ? data : data?.data || [];
+
+        // Fetch full-battery counts and available empty slots for each station in parallel
+        const stationsWithCounts = await Promise.all(
+          stationsArray.map(async (s) => {
+            const stationId = s.station_id || s.id;
+            if (!stationId) return { ...s, fullCount: 0, emptySlots: 0 };
+            try {
+              const [fullCountResp, availableSlotsResp] = await Promise.all([
+                batteryService.getFullCountByStationId(stationId),
+                // cabinetService returns array of available slots
+                // we import cabinetService at top of file
+                // if it fails, we fallback to 0
+                cabinetService.getAvailableSlots(stationId),
+              ]);
+
+              const fullCount = typeof fullCountResp === 'number' ? fullCountResp : (fullCountResp?.fullCount ?? 0);
+              const emptySlots = Array.isArray(availableSlotsResp) ? availableSlotsResp.length : (availableSlotsResp?.data?.length ?? 0);
+
+              return { ...s, fullCount, emptySlots };
+            } catch (err) {
+              // If either request fails, return defaults
+              return { ...s, fullCount: s.fullCount ?? 0, emptySlots: s.emptySlots ?? 0 };
+            }
+          })
+        );
+
+        setStations(stationsWithCounts);
       } catch (err) {
         console.error('Error fetching stations:', err);
         toast.error('Failed to load stations');
@@ -37,6 +66,7 @@ export default function AdminBatteryTransferReq() {
         setLoadingStations(false);
       }
     };
+
     fetchStations();
   }, []);
 
@@ -58,7 +88,7 @@ export default function AdminBatteryTransferReq() {
 
       try {
         setSubmitting(true);
-        const newRequest = await batteryTransferService.createRequest({
+        await batteryTransferService.createRequest({
           battery_model: values.battery_model,
           battery_type: values.battery_type,
           quantity: parseInt(values.quantity),
@@ -139,9 +169,8 @@ export default function AdminBatteryTransferReq() {
                     value={formik.values.battery_model}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${
-                      formik.touched.battery_model && formik.errors.battery_model ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                    }`}
+                    className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${formik.touched.battery_model && formik.errors.battery_model ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                      }`}
                     placeholder="e.g., VF8 Battery"
                   />
                   {formik.touched.battery_model && formik.errors.battery_model && <p className="text-red-500 text-xs mt-1">{formik.errors.battery_model}</p>}
@@ -158,9 +187,8 @@ export default function AdminBatteryTransferReq() {
                     value={formik.values.battery_type}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${
-                      formik.touched.battery_type && formik.errors.battery_type ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                    }`}
+                    className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${formik.touched.battery_type && formik.errors.battery_type ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                      }`}
                     placeholder="e.g., Lithium-ion"
                   />
                   {formik.touched.battery_type && formik.errors.battery_type && <p className="text-red-500 text-xs mt-1">{formik.errors.battery_type}</p>}
@@ -178,9 +206,8 @@ export default function AdminBatteryTransferReq() {
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
                     min="1"
-                    className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${
-                      formik.touched.quantity && formik.errors.quantity ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                    }`}
+                    className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 placeholder:text-slate-400 dark:placeholder:text-slate-500 p-3 text-sm ${formik.touched.quantity && formik.errors.quantity ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                      }`}
                     placeholder="1"
                   />
                   {formik.touched.quantity && formik.errors.quantity && <p className="text-red-500 text-xs mt-1">{formik.errors.quantity}</p>}
@@ -196,14 +223,14 @@ export default function AdminBatteryTransferReq() {
                     value={formik.values.from_station_id}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 p-3 text-sm ${
-                      formik.touched.from_station_id && formik.errors.from_station_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                    }`}
+                    className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 p-3 text-sm ${formik.touched.from_station_id && formik.errors.from_station_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                      }`}
                   >
                     <option value="">Select source station</option>
                     {stations.map((station) => (
                       <option key={station.station_id} value={station.station_id}>
-                        {station.name}
+                        {station.name}{' '}
+                        {station.fullCount !== undefined ? ` - [ ${station.fullCount} full batteries ]` : ''}
                       </option>
                     ))}
                   </select>
@@ -220,14 +247,13 @@ export default function AdminBatteryTransferReq() {
                     value={formik.values.to_station_id}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 p-3 text-sm ${
-                      formik.touched.to_station_id && formik.errors.to_station_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
-                    }`}
+                    className={`form-select flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-slate-50 dark:bg-slate-800/50 h-11 p-3 text-sm ${formik.touched.to_station_id && formik.errors.to_station_id ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500' : 'border-slate-300 dark:border-slate-700 focus:ring-primary/50 focus:border-primary'
+                      }`}
                   >
                     <option value="">Select destination station</option>
                     {stations.map((station) => (
                       <option key={station.station_id} value={station.station_id} disabled={String(station.station_id) === String(formik.values.from_station_id)}>
-                        {station.name}
+                        {station.name}{' '}{station.emptySlots !== undefined ? ` - [ ${station.emptySlots} empty slots ]` : ''}
                       </option>
                     ))}
                   </select>
