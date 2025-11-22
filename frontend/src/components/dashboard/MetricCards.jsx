@@ -18,7 +18,7 @@ export default function MetricCards({ data }) {
       value: (data.revenue?.currentMonth?.total_transactions || 0).toLocaleString('vi-VN'),  // Số lượng giao dịch (format Vietnamese)
       icon: Receipt,  // Icon Receipt từ lucide-react
       color: 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300',  // Màu xanh
-      period: `Avg: ${formatCurrency(data.revenue?.currentMonth?.average_transaction || 0)}`,  // Thông tin thêm: Giá trị trung bình giao dịch
+      // period: `Avg: ${formatCurrency(data.revenue?.currentMonth?.average_transaction || 0)}`,  // Thông tin thêm: Giá trị trung bình giao dịch
     },
     {
       title: 'Total Swaps',  // Tiêu đề: Tổng số lần trao đổi pin
